@@ -17,9 +17,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -130,16 +129,16 @@ fun SaveInfoScreen(
                 is SaveInfoState.Idle -> {}
                 is SaveInfoState.Success -> {
                     val saveFileInfo = saveInfoState.info
-                    Column(
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                for (i in 0..3 step 2) {
+                    Row(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        for (i in 0..3 step 2) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            .fillMaxWidth()
+                            .weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 val left = saveFileInfo.licenses.getOrNull(i)
                                 val right = saveFileInfo.licenses.getOrNull(i + 1)
@@ -167,7 +166,7 @@ private fun LicenseCard(
 ) {
     val info = license
     Surface(
-        modifier = modifier.height(200.dp),
+        modifier = modifier,
         shape = cardShape,
         color = if (info?.exists == true) MaterialTheme.colorScheme.surfaceVariant
                 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
@@ -182,21 +181,21 @@ private fun LicenseCard(
                 MiiFace(
                     imageBase64 = info.leaderboard?.miiImageBase64,
                     miiDataBase64 = info.miiDataBase64,
-                    modifier = Modifier.size(72.dp)
+                    modifier = Modifier.size(84.dp)
                 )
                 Spacer(modifier = Modifier.width(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = info.miiName ?: "Player",
                         fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         maxLines = 1,
                         fontFamily = CtmkfFontFamily
                     )
                     info.friendCode?.let { fc ->
                         Text(
                             text = fc,
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -207,21 +206,13 @@ private fun LicenseCard(
                     ) {
                         val displayVr = info.leaderboard?.vr ?: info.vr
                         StatLabel("VR", displayVr)
-                        StatLabel("BR", info.br)
                     }
                     Spacer(modifier = Modifier.height(2.dp))
                     val rW = info.raceWins ?: 0
                     val rL = info.raceLosses ?: 0
                     Text(
                         text = "Race: W $rW / L $rL",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    val bW = info.battleWins ?: 0
-                    val bL = info.battleLosses ?: 0
-                    Text(
-                        text = "Battle: W $bW / L $bL",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -246,12 +237,12 @@ private fun StatLabel(label: String, value: Int?) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = "$label: ",
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = "${value ?: 0}",
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.primary
         )
