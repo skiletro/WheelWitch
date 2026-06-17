@@ -51,9 +51,9 @@ private const val APP_NAME = "Wheel Witch"
 private const val PACK_NAME = "Retro Rewind Pack"
 private const val SUBTITLE = "$PACK_NAME Manager"
 
-private const val SPARKLE_COUNT = 3
+private const val SPARKLE_COUNT = 6
 private const val SPARKLE_PERIOD_MS = 3000
-private val SPARKLE_INDICES = listOf(0, 1, 2)
+private val SPARKLE_INDICES = listOf(0, 3, 4)
 
 @Composable
 fun TopBar(
