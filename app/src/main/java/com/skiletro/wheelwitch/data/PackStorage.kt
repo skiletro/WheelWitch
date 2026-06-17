@@ -131,12 +131,6 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
         resolver.openOutputStream(doc.uri)?.use { it.write(data) }
     }
 
-    fun getFileUri(childPath: String): Uri? {
-        val file = resolveDirect(childPath)
-        if (file?.exists() == true) return Uri.fromFile(file)
-        return resolveDoc(childPath)?.uri
-    }
-
     private fun resolveDirect(childPath: String): File? {
         return rootPath?.let { File(it, childPath) }
     }

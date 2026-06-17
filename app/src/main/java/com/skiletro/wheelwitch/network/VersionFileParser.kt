@@ -1,10 +1,12 @@
 package com.skiletro.wheelwitch.network
 
 import com.skiletro.wheelwitch.model.DeletionEntry
+import com.skiletro.wheelwitch.model.Room
 import com.skiletro.wheelwitch.model.SemVersion
 import com.skiletro.wheelwitch.model.ServerInfo
 import com.skiletro.wheelwitch.model.UpdateEntry
 import com.skiletro.wheelwitch.model.parsePlayerCount
+import com.skiletro.wheelwitch.model.parseRooms
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.concurrent.TimeUnit
@@ -64,6 +66,11 @@ object VersionFileParser {
     fun fetchPlayerCount(): Result<Int> = runCatching {
         val json = fetchUrl(ROOM_STATUS_URL)
         parsePlayerCount(json)
+    }
+
+    fun fetchRooms(): Result<List<Room>> = runCatching {
+        val json = fetchUrl(ROOM_STATUS_URL)
+        parseRooms(json)
     }
 
     fun okHttpClient(): OkHttpClient = client

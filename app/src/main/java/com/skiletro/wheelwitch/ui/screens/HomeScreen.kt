@@ -28,10 +28,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -54,7 +57,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.focus.onFocusChanged
-
 import androidx.compose.ui.graphics.Color
 
 import androidx.compose.ui.text.font.FontWeight
@@ -98,6 +100,11 @@ fun HomeScreen(
     val miiMakerState by viewModel.miiMakerState.collectAsState()
     val playerCount by viewModel.playerCount.collectAsState()
     val serverConnectivity by viewModel.serverConnectivity.collectAsState()
+    val rooms by viewModel.rooms.collectAsState()
+    val isLoadingRooms by viewModel.isLoadingRooms.collectAsState()
+    val roomsError by viewModel.roomsError.collectAsState()
+
+    var showRooms by remember { mutableStateOf(false) }
 
     LaunchedEffect(successMessage) {
         if (successMessage != null) {
@@ -118,132 +125,152 @@ fun HomeScreen(
         else -> false
     }
 
-    if (showBottomLaunch) {
-        val onLaunch = when (val s = state) {
-            is UiState.ReadyToLaunch -> ({ viewModel.launchDolphin() })
-            is UiState.Ready -> ({ viewModel.launchDolphin() })
-            else -> ({})
-        }
-        val versionInfo = when (val s = state) {
-            is UiState.ReadyToLaunch -> "v${s.version}"
-            is UiState.Ready -> when (val st = s.status) {
-                is PackStatus.Installed -> "v${st.version}"
-                is PackStatus.UpToDate -> "v${st.currentVersion} (latest v${st.latestVersion})"
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (showRooms) {
+            RoomsScreen(
+                rooms = rooms,
+                isLoading = isLoadingRooms,
+                errorMessage = roomsError,
+                onRefresh = { viewModel.fetchRooms() },
+                onClose = { showRooms = false }
+            )
+        } else if (showBottomLaunch) {
+            val onLaunch = when (val s = state) {
+                is UiState.ReadyToLaunch -> ({ viewModel.launchDolphin() })
+                is UiState.Ready -> ({ viewModel.launchDolphin() })
+                else -> ({})
+            }
+            val versionInfo = when (val s = state) {
+                is UiState.ReadyToLaunch -> "v${s.version}"
+                is UiState.Ready -> when (val st = s.status) {
+                    is PackStatus.Installed -> "v${st.version}"
+                    is PackStatus.UpToDate -> "v${st.currentVersion} (latest v${st.latestVersion})"
+                    else -> null
+                }
                 else -> null
             }
-            else -> null
-        }
 
-        Scaffold(
-            topBar = {
-                Surface(
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 0.dp
-                ) {
-                    TopBar(
-                        onOpenSettings = onOpenSettings,
-                        onLaunchMiiMaker = { viewModel.launchMiiMaker() },
-                        miiMakerEnabled = miiMakerState.hasWad
-                    )
-                }
-            },
-            bottomBar = {
-                Surface(
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 0.dp
-                ) {
-                    Column(
-                        modifier = Modifier.padding(vertical = 12.dp)
+            Scaffold(
+                topBar = {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 0.dp
                     ) {
-                        BottomLaunchBar(
-                            onLaunch = onLaunch,
-                            onRefresh = { viewModel.checkStatus() },
-                            versionInfo = versionInfo,
-                            playerCount = playerCount,
-                            serverConnectivity = serverConnectivity,
-                            isChecking = isChecking
+                        TopBar(
+                            onOpenSettings = onOpenSettings,
+                            onLaunchMiiMaker = { viewModel.launchMiiMaker() },
+                            miiMakerEnabled = miiMakerState.hasWad,
+                            onOpenNetplay = {
+                                viewModel.fetchRooms()
+                                showRooms = true
+                            },
+                            roomsEnabled = serverConnectivity is ServerConnectivity.Online
                         )
                     }
-                }
-            }
-        ) { padding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(padding)
-            ) {
-                VersionHistoryWebView(modifier = Modifier.fillMaxSize())
-            }
-        }
-    } else {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            TopBar(
-                onOpenSettings = onOpenSettings,
-                onLaunchMiiMaker = { viewModel.launchMiiMaker() },
-                miiMakerEnabled = miiMakerState.hasWad
-            )
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(bottom = 24.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    if (successMessage != null) {
-                        SuccessBanner(successMessage!!)
-                    }
-
-                    AnimatedContent(
-                        targetState = state,
-                        transitionSpec = { fadeIn() togetherWith fadeOut() },
-                        label = "stateTransition"
-                    ) { currentState ->
-                        when (currentState) {
-                            is UiState.NoStorage -> NoStorageContent(onPickStorage)
-                            is UiState.Ready -> ReadyContent(
-                                status = currentState.status,
-                                viewModel = viewModel
+                },
+                bottomBar = {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 0.dp
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(vertical = 12.dp)
+                        ) {
+                            BottomLaunchBar(
+                                onLaunch = onLaunch,
+                                onRefresh = { viewModel.checkStatus() },
+                                versionInfo = versionInfo,
+                                playerCount = playerCount,
+                                serverConnectivity = serverConnectivity,
+                                isChecking = isChecking
                             )
-                            is UiState.Downloading -> ProgressContent(
-                                currentState.progress,
-                                currentState.message
-                            )
-                            is UiState.Extracting -> ProgressContent(
-                                currentState.progress,
-                                "Extracting files..."
-                            )
-                            is UiState.ApplyingUpdate -> ProgressContent(
-                                currentState.progress,
-                                "Applying update ${currentState.index}/${currentState.total}: ${currentState.description}"
-                            )
-                            is UiState.ReadyToLaunch -> ReadyToLaunchContent(
-                                version = currentState.version
-                            )
-                            is UiState.Error -> ErrorContent(
-                                currentState.message,
-                                onRetry = { viewModel.clearError() },
-                                onPickIso = onPickIso
-                            )
-                            else -> {}
                         }
                     }
                 }
+            ) { padding ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                        .padding(padding)
+                ) {
+                    VersionHistoryWebView(modifier = Modifier.fillMaxSize())
+                }
             }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
+                TopBar(
+                    onOpenSettings = onOpenSettings,
+                    onLaunchMiiMaker = { viewModel.launchMiiMaker() },
+                    miiMakerEnabled = miiMakerState.hasWad,
+                    onOpenNetplay = {
+                        viewModel.fetchRooms()
+                        showRooms = true
+                    },
+                    roomsEnabled = serverConnectivity is ServerConnectivity.Online
+                )
 
-            Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(bottom = 24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        if (successMessage != null) {
+                            SuccessBanner(successMessage!!)
+                        }
+
+                        AnimatedContent(
+                            targetState = state,
+                            transitionSpec = { fadeIn() togetherWith fadeOut() },
+                            label = "stateTransition"
+                        ) { currentState ->
+                            when (currentState) {
+                                is UiState.NoStorage -> NoStorageContent(onPickStorage)
+                                is UiState.Ready -> ReadyContent(
+                                    status = currentState.status,
+                                    viewModel = viewModel
+                                )
+                                is UiState.Downloading -> ProgressContent(
+                                    currentState.progress,
+                                    currentState.message
+                                )
+                                is UiState.Extracting -> ProgressContent(
+                                    currentState.progress,
+                                    "Extracting files..."
+                                )
+                                is UiState.ApplyingUpdate -> ProgressContent(
+                                    currentState.progress,
+                                    "Applying update ${currentState.index}/${currentState.total}: ${currentState.description}"
+                                )
+                                is UiState.ReadyToLaunch -> ReadyToLaunchContent(
+                                    version = currentState.version
+                                )
+                                is UiState.Error -> ErrorContent(
+                                    currentState.message,
+                                    onRetry = { viewModel.clearError() },
+                                    onPickIso = onPickIso
+                                )
+                                else -> {}
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+            }
         }
     }
 }
@@ -256,7 +283,9 @@ private fun isInstalled(status: PackStatus): Boolean {
 private fun TopBar(
     onOpenSettings: () -> Unit,
     onLaunchMiiMaker: () -> Unit,
-    miiMakerEnabled: Boolean
+    miiMakerEnabled: Boolean,
+    onOpenNetplay: () -> Unit,
+    roomsEnabled: Boolean
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "bob")
     val bobOffset by infiniteTransition.animateFloat(
@@ -301,6 +330,13 @@ private fun TopBar(
                 text = SUBTITLE,
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        IconButton(onClick = onOpenNetplay, enabled = roomsEnabled) {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = "Online Rooms",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         TextButton(
@@ -460,39 +496,6 @@ private fun PrimaryActionButton(
             text = text,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold
-        )
-    }
-}
-
-@Composable
-private fun SecondaryActionButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true
-) {
-    var isFocused by remember { mutableStateOf(false) }
-
-    OutlinedButton(
-        onClick = onClick,
-        enabled = enabled,
-        shape = buttonShape,
-        modifier = modifier
-            .height(48.dp)
-            .onFocusChanged { isFocused = it.isFocused }
-            .then(
-                if (isFocused) Modifier.border(
-                    width = 3.dp,
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = buttonShape
-                ) else Modifier
-            ),
-        border = if (isFocused) null else ButtonDefaults.outlinedButtonBorder(enabled)
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Medium
         )
     }
 }
@@ -822,40 +825,5 @@ private fun BodyText(text: String) {
         style = MaterialTheme.typography.bodyLarge,
         textAlign = TextAlign.Center,
         color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun PreviewReadyContent() {
-    ContentSection {
-        SectionTitle(PACK_NAME)
-        Spacer(modifier = Modifier.height(6.dp))
-        Text(
-            text = "v3.2.6 (latest is v3.2.6)",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-        PrimaryActionButton(
-            text = "Launch Dolphin",
-            onClick = {},
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        SecondaryActionButton(
-            text = "Check Again",
-            onClick = {}
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun PreviewErrorContent() {
-    ErrorContent(
-        message = "Please select your Mario Kart Wii ROM file first.",
-        onRetry = {},
-        onPickIso = {}
     )
 }

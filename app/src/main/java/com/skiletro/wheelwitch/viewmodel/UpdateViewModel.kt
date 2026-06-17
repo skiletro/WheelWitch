@@ -14,6 +14,7 @@ import com.skiletro.wheelwitch.domain.RewindPackManager.VERSION_FILE
 import com.skiletro.wheelwitch.network.VersionFileParser
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.ProgressInfo
+import com.skiletro.wheelwitch.model.Room
 import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.util.DolphinLauncher
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import java.io.File
 
 sealed class UiState {
@@ -66,14 +68,27 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
     private val _serverConnectivity = MutableStateFlow<ServerConnectivity>(ServerConnectivity.Unknown)
     val serverConnectivity: StateFlow<ServerConnectivity> = _serverConnectivity.asStateFlow()
 
+    private val _rooms = MutableStateFlow<List<Room>>(emptyList())
+    val rooms: StateFlow<List<Room>> = _rooms.asStateFlow()
+
+    private val _isLoadingRooms = MutableStateFlow(false)
+    val isLoadingRooms: StateFlow<Boolean> = _isLoadingRooms.asStateFlow()
+
+    private val _roomsError = MutableStateFlow<String?>(null)
+    val roomsError: StateFlow<String?> = _roomsError.asStateFlow()
+
     private val _isInstallingWad = MutableStateFlow(false)
     val isInstallingWad: StateFlow<Boolean> = _isInstallingWad.asStateFlow()
 
     private val _successMessage = MutableStateFlow<String?>(null)
     val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
 
+    private val _currentIsoPath = MutableStateFlow<String?>(null)
+    val currentIsoPath: StateFlow<String?> = _currentIsoPath.asStateFlow()
+
     private var storageUri: Uri? = null
     private var storage: PackStorage? = null
+    val storageRootPath: String? get() = storage?.rootPath
 
     init {
         RewindPackManager.initCacheDir(application.cacheDir)
@@ -86,10 +101,23 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
         if (uriString != null) {
             storageUri = Uri.parse(uriString)
             storage = PackStorage(getApplication(), storageUri!!)
+            refreshIsoPath()
             checkStatus()
         } else {
             _state.value = UiState.NoStorage
         }
+    }
+
+    private fun refreshIsoPath() {
+        val rootPath = storage?.rootPath ?: return
+        val file = File(rootPath, "RR.json")
+        _currentIsoPath.value = if (file.exists()) {
+            try {
+                JSONObject(file.readText()).optString("base-file", "").takeIf { it.isNotEmpty() }
+            } catch (_: Exception) {
+                null
+            }
+        } else null
     }
 
     fun setStorageUri(uri: Uri) {
@@ -212,11 +240,33 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun setGameIsoPath(path: String) {
-        DolphinLauncher.setGameIsoPath(getApplication(), path)
+        val app = getApplication<Application>()
+        DolphinLauncher.setGameIsoPath(app, path)
+        val currentStorage = storage
+        val rootPath = currentStorage?.rootPath
+        if (rootPath != null) {
+            viewModelScope.launch {
+                withContext(Dispatchers.IO) {
+                    val json = DolphinLauncher.generateLaunchJson(rootPath, path)
+                    File(rootPath, "RR.json").writeText(json)
+                }
+            }
+        }
+        _currentIsoPath.value = path
         val currentState = _state.value
         if (currentState is UiState.Error && currentState.message.contains("ROM file", ignoreCase = true)) {
             launchDolphin()
         }
+    }
+
+    fun clearIsoPath() {
+        val app = getApplication<Application>()
+        DolphinLauncher.setGameIsoPath(app, "")
+        val rootPath = storage?.rootPath
+        if (rootPath != null) {
+            File(rootPath, "RR.json").delete()
+        }
+        _currentIsoPath.value = null
     }
 
     fun launchMiiMaker() {
@@ -252,7 +302,6 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
                 }
                 refreshMiiMakerState()
             } catch (e: Exception) {
-                _isInstallingWad.value = false
                 _state.value = UiState.Error(e.message ?: "Failed to install Mii Maker WAD")
             }
             _isInstallingWad.value = false
@@ -345,6 +394,23 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
     fun refreshMiiMakerState() {
         val hasWad = DolphinLauncher.getCachedWadFile(getApplication()) != null
         _miiMakerState.value = MiiMakerState(hasWad)
+    }
+
+    fun fetchRooms() {
+        viewModelScope.launch {
+            _isLoadingRooms.value = true
+            _roomsError.value = null
+            val result = withContext(Dispatchers.IO) {
+                VersionFileParser.fetchRooms()
+            }
+            result.onSuccess { rooms ->
+                _rooms.value = rooms
+            }.onFailure { e ->
+                _roomsError.value = e.message ?: "Failed to load rooms"
+                _rooms.value = emptyList()
+            }
+            _isLoadingRooms.value = false
+        }
     }
 
     private fun handleProgress(progress: ProgressInfo) {

@@ -6,6 +6,8 @@ import android.net.Uri
 import androidx.core.content.FileProvider
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 import java.io.FileInputStream
 import java.util.zip.ZipInputStream
@@ -48,27 +50,37 @@ object DolphinLauncher {
     ): String {
         val xmlPath = "$storageRootPath/$RIIVOLUTION_FOLDER/$XML_FILE_NAME"
 
-        return buildString {
-            appendLine("{")
-            appendLine("  \"base-file\": \"$gameIsoPath\",")
-            appendLine("  \"display-name\": \"$displayName\",")
-            appendLine("  \"riivolution\": {")
-            appendLine("    \"patches\": [")
-            appendLine("      {")
-            appendLine("        \"options\": [")
-            appendLine("          { \"choice\": 1, \"option-name\": \"Pack\", \"section-name\": \"Retro Rewind\" },")
-            appendLine("          { \"choice\": 2, \"option-name\": \"My Stuff\", \"section-name\": \"Retro Rewind\" },")
-            appendLine("          { \"choice\": 2, \"option-name\": \"Seperate Savegame\", \"section-name\": \"Retro Rewind\" }")
-            appendLine("        ],")
-            appendLine("        \"root\": \"$storageRootPath\",")
-            appendLine("        \"xml\": \"$xmlPath\"")
-            appendLine("      }")
-            appendLine("    ]")
-            appendLine("  },")
-            appendLine("  \"type\": \"dolphin-game-mod-descriptor\",")
-            appendLine("  \"version\": 1")
-            append("}")
-        }
+        return JSONObject().apply {
+            put("base-file", gameIsoPath)
+            put("display-name", displayName)
+            put("riivolution", JSONObject().apply {
+                put("patches", JSONArray().apply {
+                    put(JSONObject().apply {
+                        put("options", JSONArray().apply {
+                            put(JSONObject().apply {
+                                put("choice", 1)
+                                put("option-name", "Pack")
+                                put("section-name", "Retro Rewind")
+                            })
+                            put(JSONObject().apply {
+                                put("choice", 2)
+                                put("option-name", "My Stuff")
+                                put("section-name", "Retro Rewind")
+                            })
+                            put(JSONObject().apply {
+                                put("choice", 2)
+                                put("option-name", "Seperate Savegame")
+                                put("section-name", "Retro Rewind")
+                            })
+                        })
+                        put("root", storageRootPath)
+                        put("xml", xmlPath)
+                    })
+                })
+            })
+            put("type", "dolphin-game-mod-descriptor")
+            put("version", 1)
+        }.toString(2)
     }
 
     fun launchDolphin(context: Context, jsonFilePath: String): Result<Unit> = runCatching {

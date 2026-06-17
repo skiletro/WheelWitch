@@ -145,7 +145,8 @@ private fun MainScreen(
                     useDynamicColor = useDynamicColor,
                     onToggleDynamicColor = onToggleDynamicColor,
                     themeMode = themeMode,
-                    onChangeThemeMode = onChangeThemeMode
+                    onChangeThemeMode = onChangeThemeMode,
+                    onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) }
                 )
             }
         }

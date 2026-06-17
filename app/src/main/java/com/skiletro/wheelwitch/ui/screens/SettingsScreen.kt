@@ -73,7 +73,8 @@ fun SettingsScreen(
     useDynamicColor: Boolean,
     onToggleDynamicColor: (Boolean) -> Unit,
     themeMode: ThemeMode,
-    onChangeThemeMode: (ThemeMode) -> Unit
+    onChangeThemeMode: (ThemeMode) -> Unit,
+    onPickIso: () -> Unit
 ) {
     val saveState by viewModel.saveState.collectAsState()
     val miiMakerState by viewModel.miiMakerState.collectAsState()
@@ -185,7 +186,19 @@ fun SettingsScreen(
             HorizontalDivider()
             Spacer(modifier = Modifier.height(16.dp))
 
+            IsoSection(viewModel = viewModel, onPickIso = onPickIso)
+
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(16.dp))
+
             CacheSection()
+
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(16.dp))
+
+            StorageSection(storageRootPath = viewModel.storageRootPath)
 
             Spacer(modifier = Modifier.height(16.dp))
             HorizontalDivider()
@@ -492,6 +505,74 @@ private fun ThemeSection(
             }
             }
         }
+    }
+}
+
+@Composable
+private fun IsoSection(
+    viewModel: UpdateViewModel,
+    onPickIso: () -> Unit
+) {
+    val isoPath by viewModel.currentIsoPath.collectAsState()
+    val fileName = isoPath?.substringAfterLast('/')?.ifBlank { null }
+
+    Text(
+        text = "Mario Kart Wii",
+        style = MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurface
+    )
+    Spacer(modifier = Modifier.height(4.dp))
+    Text(
+        text = if (fileName != null) fileName else "Not selected",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+    Spacer(modifier = Modifier.height(16.dp))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        OutlinedButton(
+            onClick = onPickIso,
+            shape = buttonShape,
+            modifier = Modifier.height(48.dp).weight(1f)
+        ) {
+            Text("Pick ROM", fontWeight = FontWeight.Medium)
+        }
+        if (fileName != null) {
+            OutlinedButton(
+                onClick = { viewModel.clearIsoPath() },
+                shape = buttonShape,
+                modifier = Modifier.height(48.dp).weight(1f)
+            ) {
+                Text("Clear", fontWeight = FontWeight.Medium)
+            }
+        }
+    }
+}
+
+@Composable
+private fun StorageSection(storageRootPath: String?) {
+    Text(
+        text = "Pack Location",
+        style = MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurface
+    )
+    Spacer(modifier = Modifier.height(4.dp))
+    if (storageRootPath != null) {
+        Text(
+            text = storageRootPath,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    } else {
+        Text(
+            text = "Not configured",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
