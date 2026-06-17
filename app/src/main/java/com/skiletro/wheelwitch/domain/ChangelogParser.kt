@@ -5,19 +5,18 @@ import com.skiletro.wheelwitch.util.HttpClientProvider
 import okhttp3.Request
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
-import org.jsoup.select.Elements
 
 object ChangelogParser {
 
     private const val WIKI_URL = "https://wiki.tockdom.com/wiki/Retro_Rewind"
-    private val client get() = HttpClientProvider.client
+    private val httpClient get() = HttpClientProvider.client
 
     fun fetch(): Result<List<ChangelogEntry>> = runCatching {
         val request = Request.Builder()
             .url(WIKI_URL)
             .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
             .build()
-        val html = client.newCall(request).execute().use { response ->
+        val html = httpClient.newCall(request).execute().use { response ->
             response.body?.string() ?: error("Empty response from wiki")
         }
         val doc = Jsoup.parse(html)

@@ -293,16 +293,16 @@ private fun HomeBottomBar(
             }
             is UiState.Ready -> {
                 val status = state.status
-                var leftFocused by remember { mutableStateOf(false) }
+                var checkButtonFocused by remember { mutableStateOf(false) }
                 OutlinedButton(
                     onClick = onCheck,
                     enabled = !isBusy,
                     shape = buttonShape,
                     modifier = Modifier
                         .height(56.dp)
-                        .onFocusChanged { leftFocused = it.isFocused }
+                        .onFocusChanged { checkButtonFocused = it.isFocused }
                         .then(
-                            if (leftFocused) Modifier.border(
+                            if (checkButtonFocused) Modifier.border(
                                 width = 3.dp, color = MaterialTheme.colorScheme.primary, shape = buttonShape
                             ) else Modifier
                         )
@@ -345,44 +345,6 @@ private fun HomeBottomBar(
                             )
                         }
                     }
-                }
-            }
-            is UiState.ReadyToLaunch -> {
-                var leftFocused by remember { mutableStateOf(false) }
-                OutlinedButton(
-                    onClick = onCheck,
-                    shape = buttonShape,
-                    modifier = Modifier
-                        .height(56.dp)
-                        .onFocusChanged { leftFocused = it.isFocused }
-                        .then(
-                            if (leftFocused) Modifier.border(
-                                width = 3.dp, color = MaterialTheme.colorScheme.primary, shape = buttonShape
-                            ) else Modifier
-                        )
-                ) {
-                    Text(
-                        text = "Check for updates",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                if (hasIso) {
-                    PrimaryActionButton(
-                        text = "Launch Retro Rewind",
-                        onClick = onLaunch,
-                        badgeText = vrMultiplier?.let { m ->
-                            if (m > 1.0f) {
-                                if (m == m.toInt().toFloat()) "${m.toInt()}x VR" else "${m}x VR"
-                            } else null
-                        }
-                    )
-                } else {
-                    PrimaryActionButton(
-                        text = "Select Mario Kart Wii ROM",
-                        onClick = onPickIso
-                    )
                 }
             }
             is UiState.NoStorage -> {

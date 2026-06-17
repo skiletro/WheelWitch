@@ -8,7 +8,6 @@ import com.skiletro.wheelwitch.model.ServerInfo
 import com.skiletro.wheelwitch.model.UpdateEntry
 import com.skiletro.wheelwitch.model.parseRooms
 import com.skiletro.wheelwitch.util.HttpClientProvider
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
 
@@ -20,7 +19,7 @@ object VersionFileParser {
     private const val ROOM_STATUS_URL = "https://rwfc.net/api/roomstatus"
     private const val MULTIPLIER_URL = "https://rwfc.net/updates/RetroRewind/multiplier.txt"
 
-    private val client get() = HttpClientProvider.client
+    private val httpClient get() = HttpClientProvider.client
 
     fun fetchServerInfo(): Result<ServerInfo> = runCatching {
         val updates = fetchUpdates()
@@ -71,8 +70,6 @@ object VersionFileParser {
         fetchUrl(MULTIPLIER_URL).trim().toFloat()
     }
 
-    fun okHttpClient(): OkHttpClient = client
-
     fun fetchPlayerLeaderboard(friendCode: String): Result<LeaderboardPlayerData> = runCatching {
         val url = "https://rwfc.net/api/leaderboard/player/$friendCode/"
         val json = fetchUrl(url)
@@ -85,7 +82,7 @@ object VersionFileParser {
 
     private fun fetchUrl(urlString: String): String {
         val request = Request.Builder().url(urlString).build()
-        client.newCall(request).execute().use { response ->
+        httpClient.newCall(request).execute().use { response ->
             val body = response.body?.string() ?: error("Empty response from $urlString")
             if (!response.isSuccessful) error("$urlString returned ${response.code}: $body")
             return body

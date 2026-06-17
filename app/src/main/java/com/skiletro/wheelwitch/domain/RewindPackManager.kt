@@ -6,6 +6,7 @@ import com.skiletro.wheelwitch.model.ProgressInfo
 import com.skiletro.wheelwitch.model.SemVersion
 import com.skiletro.wheelwitch.model.ServerInfo
 import com.skiletro.wheelwitch.network.VersionFileParser
+import com.skiletro.wheelwitch.util.HttpClientProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -130,7 +131,7 @@ object RewindPackManager {
 
     private fun downloadToFile(urlString: String, targetFile: File, onProgress: (Float) -> Unit) {
         val request = Request.Builder().url(urlString).build()
-        val response = VersionFileParser.okHttpClient().newCall(request).execute()
+        val response = HttpClientProvider.client.newCall(request).execute()
         if (!response.isSuccessful) error("Download failed: HTTP ${response.code} ${response.message}")
         val body = response.body ?: error("No response body")
         val totalBytes = body.contentLength()

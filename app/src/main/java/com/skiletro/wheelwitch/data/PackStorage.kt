@@ -15,6 +15,22 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
     companion object {
         const val COPY_BUFFER_SIZE = 262144
 
+        fun resolveContentUriToPath(uri: Uri): String? {
+            val docId = try {
+                DocumentsContract.getDocumentId(uri)
+            } catch (e: Exception) {
+                return uri.path
+            }
+            val parts = docId.split(":")
+            if (parts.size < 2) return uri.path
+            return when {
+                parts[0].equals("primary", ignoreCase = true) ->
+                    "/storage/emulated/0/${parts[1]}"
+                else ->
+                    "/storage/${parts[0]}/${parts[1]}"
+            }
+        }
+
         private fun resolveToRealPath(treeUri: Uri): String? {
             val docId = try {
                 DocumentsContract.getTreeDocumentId(treeUri)

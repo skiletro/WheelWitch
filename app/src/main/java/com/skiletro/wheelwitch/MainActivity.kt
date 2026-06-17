@@ -30,7 +30,7 @@ import com.skiletro.wheelwitch.ui.screens.OnboardingScreen
 import com.skiletro.wheelwitch.ui.screens.SettingsScreen
 import com.skiletro.wheelwitch.ui.theme.ThemeMode
 import com.skiletro.wheelwitch.ui.theme.WheelWitchTheme
-import com.skiletro.wheelwitch.util.resolveContentUriToPath
+import com.skiletro.wheelwitch.data.PackStorage
 import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
 
 class MainActivity : ComponentActivity() {
@@ -102,7 +102,7 @@ private fun MainScreen(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         if (uri != null) {
-            val path = resolveContentUriToPath(uri)
+            val path = PackStorage.resolveContentUriToPath(uri)
             if (path != null) {
                 viewModel.setGameIsoPath(path)
                 onboardingIsoSelected = true

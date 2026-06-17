@@ -11,7 +11,6 @@ import com.skiletro.wheelwitch.data.PackStorage
 import com.skiletro.wheelwitch.data.RksysParser
 import com.skiletro.wheelwitch.data.SaveManager
 import com.skiletro.wheelwitch.domain.RewindPackManager
-import com.skiletro.wheelwitch.domain.RewindPackManager.VERSION_FILE
 import com.skiletro.wheelwitch.network.VersionFileParser
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.ProgressInfo
@@ -43,7 +42,6 @@ sealed class UiState {
         val progress: Float
     ) : UiState()
 
-    data class ReadyToLaunch(val version: String) : UiState()
     data class Error(val message: String) : UiState()
 }
 
@@ -201,13 +199,13 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
                     SaveManager.backupSaveToCache(app, currentStorage)
                 }
 
-                when (status) {
+                val installedVersion = when (status) {
                     is PackStatus.NotInstalled -> {
                         withContext(Dispatchers.IO) {
                             RewindPackManager.freshInstall(currentStorage) { progress ->
                                 handleProgress(progress)
                             }
-                        }
+                        }.getOrThrow()
                     }
                     is PackStatus.UpdateAvailable -> {
                         withContext(Dispatchers.IO) {
@@ -218,7 +216,7 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
                             ) { progress ->
                                 handleProgress(progress)
                             }
-                        }
+                        }.getOrThrow()
                     }
                     is PackStatus.Installed -> {
                         _state.value = UiState.Error(
@@ -228,7 +226,10 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
                         return@launch
                     }
                     is PackStatus.UpToDate -> {
-                        _state.value = UiState.ReadyToLaunch(getDisplayVersion())
+                        withContext(Dispatchers.IO) {
+                            SaveManager.deleteSaveBackup(app)
+                        }
+                        _state.value = UiState.Ready(PackStatus.UpToDate(status.currentVersion, status.latestVersion))
                         refreshSaveState()
                         return@launch
                     }
@@ -236,7 +237,7 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
                 withContext(Dispatchers.IO) {
                     SaveManager.deleteSaveBackup(app)
                 }
-                _state.value = UiState.ReadyToLaunch(getDisplayVersion())
+                _state.value = UiState.Ready(PackStatus.UpToDate(installedVersion, installedVersion))
                 refreshSaveState()
             } catch (e: Exception) {
                 _state.value = UiState.Error(e.message ?: "Unknown error")
@@ -519,15 +520,6 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
             is ProgressInfo.ApplyingUpdate -> UiState.ApplyingUpdate(
                 progress.index, progress.total, progress.description, progress.progress
             )
-        }
-    }
-
-    private fun getDisplayVersion(): String {
-        return try {
-            val text = storage?.readFile(VERSION_FILE)?.trim() ?: "Unknown"
-            text
-        } catch (e: Exception) {
-            "Unknown"
         }
     }
 

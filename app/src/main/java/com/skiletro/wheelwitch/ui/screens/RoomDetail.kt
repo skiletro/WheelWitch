@@ -41,6 +41,7 @@ import com.skiletro.wheelwitch.model.Player
 import com.skiletro.wheelwitch.model.Room
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
 import com.skiletro.wheelwitch.util.HttpClientProvider
+import com.skiletro.wheelwitch.util.MII_IMAGE_BASE_URL
 import java.net.URLEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -127,7 +128,7 @@ fun MiiPlayerCard(player: Player) {
     LaunchedEffect(player.mii?.data) {
         if (player.mii?.data != null) {
             withContext(Dispatchers.IO) {
-                val url = "https://mii-unsecure.ariankordi.net/miis/image.png?data=${
+                val url = "$MII_IMAGE_BASE_URL?data=${
                     URLEncoder.encode(player.mii.data, "UTF-8")
                 }&width=96&type=face"
                 val request = Request.Builder().url(url).build()

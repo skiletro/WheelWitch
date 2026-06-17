@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.model.LicenseInfo
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
 import com.skiletro.wheelwitch.util.HttpClientProvider
+import com.skiletro.wheelwitch.util.MII_IMAGE_BASE_URL
 import com.skiletro.wheelwitch.viewmodel.SaveInfoState
 import java.net.URLEncoder
 import kotlinx.coroutines.Dispatchers
@@ -55,7 +56,7 @@ import okhttp3.Request
 
 private val httpClient get() = HttpClientProvider.client
 private val cardShape = RoundedCornerShape(14.dp)
-private val miiUrlBase = "https://mii-unsecure.ariankordi.net/miis/image.png"
+private val miiUrlBase = MII_IMAGE_BASE_URL
 
 @Composable
 fun SaveInfoScreen(
