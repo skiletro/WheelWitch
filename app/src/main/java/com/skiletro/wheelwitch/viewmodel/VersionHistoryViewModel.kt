@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.domain.ChangelogParser
 import com.skiletro.wheelwitch.model.ChangelogEntry
 import kotlinx.coroutines.Dispatchers
@@ -38,7 +39,7 @@ class VersionHistoryViewModel(application: Application) : AndroidViewModel(appli
             }
             _state.value = result.fold(
                 onSuccess = { VersionHistoryState.Success(it) },
-                onFailure = { VersionHistoryState.Error(it.message ?: "Failed to load version history") }
+                onFailure = { VersionHistoryState.Error(it.message ?: app.getString(R.string.version_history_failed)) }
             )
         }
     }

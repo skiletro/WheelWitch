@@ -135,7 +135,7 @@ fun SettingsScreen(
             IconButton(onClick = onClose) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = stringResource(R.string.cd_back),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -397,7 +397,7 @@ fun SettingsScreen(
                                             val shortcut = ShortcutInfo.Builder(context, "quick_launch")
                                                 .setShortLabel(context.getString(R.string.settings_shortcut_short))
                                                 .setLongLabel(context.getString(R.string.settings_shortcut_long))
-                                                .setIcon(Icon.createWithResource(context, com.skiletro.wheelwitch.R.mipmap.ic_launcher))
+                                                .setIcon(Icon.createWithResource(context, R.mipmap.ic_launcher))
                                                 .setIntent(intent)
                                                 .build()
                                             shortcutManager.requestPinShortcut(shortcut, null)

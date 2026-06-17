@@ -35,6 +35,7 @@ import com.skiletro.wheelwitch.ui.theme.ThemeMode
 import com.skiletro.wheelwitch.ui.theme.WheelWitchTheme
 import com.skiletro.wheelwitch.data.PackStorage
 import com.skiletro.wheelwitch.util.DolphinLauncher
+import com.skiletro.wheelwitch.util.PrefsKeys
 import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 import com.skiletro.wheelwitch.viewmodel.PackUpdateViewModel
@@ -52,10 +53,10 @@ class MainActivity : ComponentActivity() {
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         controller.hide(WindowInsetsCompat.Type.systemBars())
         setContent {
-            val prefs = remember { this@MainActivity.getSharedPreferences("settings", Context.MODE_PRIVATE) }
-            var useDynamicColor by remember { mutableStateOf(prefs.getBoolean("dynamic_color", false)) }
+            val prefs = remember { this@MainActivity.getSharedPreferences(PrefsKeys.SETTINGS_PREFS, Context.MODE_PRIVATE) }
+            var useDynamicColor by remember { mutableStateOf(prefs.getBoolean(PrefsKeys.DYNAMIC_COLOR_KEY, false)) }
             var themeMode by remember {
-                mutableStateOf(ThemeMode.valueOf(prefs.getString("theme_mode", ThemeMode.System.name) ?: ThemeMode.System.name))
+                mutableStateOf(ThemeMode.valueOf(prefs.getString(PrefsKeys.THEME_MODE_KEY, ThemeMode.System.name) ?: ThemeMode.System.name))
             }
 
             WheelWitchTheme(
@@ -68,12 +69,12 @@ class MainActivity : ComponentActivity() {
                     useDynamicColor = useDynamicColor,
                     onToggleDynamicColor = { enabled ->
                         useDynamicColor = enabled
-                        prefs.edit().putBoolean("dynamic_color", enabled).apply()
+                        prefs.edit().putBoolean(PrefsKeys.DYNAMIC_COLOR_KEY, enabled).apply()
                     },
                     themeMode = themeMode,
                     onChangeThemeMode = { mode ->
                         themeMode = mode
-                        prefs.edit().putString("theme_mode", mode.name).apply()
+                        prefs.edit().putString(PrefsKeys.THEME_MODE_KEY, mode.name).apply()
                     }
                 )
             }
@@ -105,9 +106,9 @@ private fun MainScreen(
     onChangeThemeMode: (ThemeMode) -> Unit = {}
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val prefs = remember { context.getSharedPreferences("settings", Context.MODE_PRIVATE) }
+    val prefs = remember { context.getSharedPreferences(PrefsKeys.SETTINGS_PREFS, Context.MODE_PRIVATE) }
     var quickLaunchMode by remember { mutableStateOf(quickLaunchFromIntent) }
-    var onboardingComplete by remember { mutableStateOf(prefs.getBoolean("onboarding_completed", false)) }
+    var onboardingComplete by remember { mutableStateOf(prefs.getBoolean(PrefsKeys.ONBOARDING_COMPLETED_KEY, false)) }
     var onboardingStorageSelected by remember { mutableStateOf(false) }
     var onboardingIsoSelected by remember { mutableStateOf(false) }
 
@@ -201,7 +202,7 @@ private fun MainScreen(
                     onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
                     onSimulateQuickLaunch = { quickLaunchMode = true },
                     onRelaunchOnboarding = {
-                        prefs.edit().putBoolean("onboarding_completed", false).apply()
+                        prefs.edit().putBoolean(PrefsKeys.ONBOARDING_COMPLETED_KEY, false).apply()
                         onboardingComplete = false
                         onboardingStorageSelected = false
                         onboardingIsoSelected = false
@@ -220,7 +221,7 @@ private fun MainScreen(
                 onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
                 onSkipIso = { onboardingIsoSelected = true },
                 onComplete = {
-                    prefs.edit().putBoolean("onboarding_completed", true).apply()
+                    prefs.edit().putBoolean(PrefsKeys.ONBOARDING_COMPLETED_KEY, true).apply()
                     onboardingComplete = true
                 }
             )

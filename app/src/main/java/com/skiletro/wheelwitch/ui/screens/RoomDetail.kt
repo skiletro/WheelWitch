@@ -28,6 +28,7 @@ import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.Player
 import com.skiletro.wheelwitch.model.Room
 import com.skiletro.wheelwitch.ui.components.MiiFace
+import com.skiletro.wheelwitch.ui.components.statusColors
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
 
 @Composable
@@ -50,7 +51,7 @@ fun RoomDetail(room: Room) {
                     )
                     if (room.isJoinable) {
                         Surface(
-                            color = Color(0xFF66BB6A),
+                            color = statusColors().ok,
                             shape = RoundedCornerShape(6.dp)
                         ) {
                             Text(

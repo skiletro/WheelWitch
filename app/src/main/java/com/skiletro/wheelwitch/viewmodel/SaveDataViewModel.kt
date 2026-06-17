@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.data.RksysParser
 import com.skiletro.wheelwitch.data.SaveManager
 import com.skiletro.wheelwitch.model.LicenseInfo
@@ -197,7 +198,7 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
                     }
                 }
             } catch (e: Exception) {
-                _saveInfoState.value = SaveInfoState.Error(e.message ?: "Failed to read save data")
+                _saveInfoState.value = SaveInfoState.Error(e.message ?: getApplication<Application>().getString(R.string.vm_save_info_failed))
             }
         }
     }

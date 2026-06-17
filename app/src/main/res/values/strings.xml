@@ -1,5 +1,10 @@
 <resources>
     <string name="app_name">Wheel Witch</string>
+    <string name="cd_back">Back</string>
+    <string name="cd_settings">Settings</string>
+    <string name="cd_mii_maker">Mii Maker</string>
+    <string name="cd_save_data">Licenses</string>
+    <string name="cd_online_menu">Online Menu</string>
 
     <!-- home -->
     <string name="home_checking">Checking...</string>
@@ -16,7 +21,7 @@
     <string name="home_up_to_date">Up to date (v%s)</string>
     <string name="home_version_installed">v%s installed</string>
     <string name="home_update_format">v%s → v%s</string>
-    <string name="home_player_default">Player</string>
+    <string name="player_default">Player</string>
     <string name="home_vr_active_format">%1$d VR · %2$sx active</string>
     <string name="home_vr_format">%d VR</string>
     <string name="home_active_license">Active license</string>
@@ -222,7 +227,6 @@
     <string name="save_info_title">Licenses</string>
     <string name="save_info_try_again">Try Again</string>
     <string name="save_info_empty">Empty</string>
-    <string name="save_info_player_default">Player</string>
     <string name="save_info_race_format">Race: W %d / L %d</string>
 
     <!-- quick launch -->
@@ -242,6 +246,11 @@
     <string name="vm_no_internet">No internet connection. Please connect to the internet and try again.</string>
     <string name="vm_mii_install_failed">Failed to install Mii Maker WAD</string>
     <string name="vm_mii_launch_failed">Failed to launch Mii Maker</string>
+    <string name="vm_rooms_failed">Failed to load rooms</string>
+    <string name="vm_leaderboard_failed">Failed to load leaderboard</string>
+    <string name="vm_health_failed">Failed to fetch server health</string>
+    <string name="vm_race_stats_failed">Failed to fetch race stats</string>
+    <string name="vm_save_info_failed">Failed to read save data</string>
 
     <!-- version history -->
     <string name="version_history_loading">Loading version history...</string>

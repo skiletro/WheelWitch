@@ -11,6 +11,7 @@ import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.model.ServerHealth
 import com.skiletro.wheelwitch.model.TimeTrialTrack
 import com.skiletro.wheelwitch.network.VersionFileParser
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.util.PrefsKeys
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -127,7 +128,7 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
                     _leaderboardState.value = if (snapshot is LeaderboardState.Success) {
                         snapshot
                     } else {
-                        LeaderboardState.Error(e.message ?: "Failed to load leaderboard")
+                        LeaderboardState.Error(e.message ?: getApplication<Application>().getString(R.string.vm_leaderboard_failed))
                     }
                 }
             }
@@ -189,7 +190,7 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
                     serverConnectivity = connectivity
                 )
             }.onFailure { e ->
-                _roomsState.value = RoomsState.Error(e.message ?: "Failed to load rooms")
+                _roomsState.value = RoomsState.Error(e.message ?: getApplication<Application>().getString(R.string.vm_rooms_failed))
             }
         }
     }
@@ -220,14 +221,10 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
                     )
                     _healthState.value = HealthState.Success(simpleHealth)
                 } else {
-                    _healthState.value = HealthState.Error(e.message ?: "Failed to fetch server health")
+                    _healthState.value = HealthState.Error(e.message ?: getApplication<Application>().getString(R.string.vm_health_failed))
                 }
             }
         }
-    }
-
-    fun fetchRaceStats() {
-        fetchRaceStatsFromServer()
     }
 
     private fun loadRaceStats() {
@@ -236,10 +233,10 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
             _raceStatsState.value = RaceStatsState.Success(cached.first, cached.second)
             if (System.currentTimeMillis() - cached.second < MAX_CACHE_AGE_MS) return
         }
-        fetchRaceStatsFromServer()
+        fetchRaceStats()
     }
 
-    private fun fetchRaceStatsFromServer() {
+    fun fetchRaceStats() {
         viewModelScope.launch {
             _raceStatsState.value = RaceStatsState.Loading
             val result = withContext(Dispatchers.IO) {
@@ -254,7 +251,7 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
                 if (fallback != null) {
                     _raceStatsState.value = RaceStatsState.Success(fallback.first, fallback.second)
                 } else {
-                    _raceStatsState.value = RaceStatsState.Error(e.message ?: "Failed to fetch race stats")
+                    _raceStatsState.value = RaceStatsState.Error(e.message ?: getApplication<Application>().getString(R.string.vm_race_stats_failed))
                 }
             }
         }
@@ -290,10 +287,6 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
                 _tracks.value = tracks
             }
         }
-    }
-
-    fun refreshHealth() {
-        fetchHealth()
     }
 
     companion object {

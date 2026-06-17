@@ -33,8 +33,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.ui.components.SparkleHat
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -97,14 +99,14 @@ fun TopBar(
         IconButton(onClick = onOpenOnlineMenu, enabled = onlineMenuEnabled) {
             Icon(
                 imageVector = Icons.Filled.Dns,
-                contentDescription = "Online Menu",
+                contentDescription = stringResource(R.string.cd_online_menu),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         IconButton(onClick = onOpenSaveInfo) {
             Icon(
                 imageVector = Icons.Default.Person,
-                contentDescription = "Save Data",
+                contentDescription = stringResource(R.string.cd_save_data),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -114,7 +116,7 @@ fun TopBar(
         ) {
             Icon(
                 imageVector = Icons.Filled.Checkroom,
-                contentDescription = "Mii Maker",
+                contentDescription = stringResource(R.string.cd_mii_maker),
                 tint = if (miiMakerEnabled) MaterialTheme.colorScheme.onSurfaceVariant
                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
                 modifier = Modifier.size(24.dp)
@@ -123,7 +125,7 @@ fun TopBar(
         IconButton(onClick = onOpenSettings) {
             Icon(
                 imageVector = Icons.Default.Settings,
-                contentDescription = "Settings",
+                contentDescription = stringResource(R.string.cd_settings),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

@@ -56,7 +56,7 @@ object VersionFileParser {
     private const val FULL_ZIP_URL = "${RR_BASE}RetroRewind/zip/RetroRewind.zip"
     private const val RWFC_API = "https://rwfc.net"
     private const val ROOM_STATUS_URL = "$RWFC_API/api/roomstatus"
-    private const val MULTIPLIER_URL = "https://rwfc.net/updates/RetroRewind/multiplier.txt"
+    private const val MULTIPLIER_URL = "$RWFC_API/updates/RetroRewind/multiplier.txt"
     private const val LEADERBOARD_URL = "$RWFC_API/api/leaderboard"
     private const val HEALTH_URL = "$RWFC_API/api/health"
     private const val HEALTH_LIVE_URL = "$RWFC_API/api/health/live"
@@ -127,7 +127,7 @@ object VersionFileParser {
 
     /** Fetches leaderboard data (VR, Mii image) for a given friend code. */
     fun fetchPlayerLeaderboard(friendCode: String): Result<Pair<Int, String?>> = runCatching {
-        val url = "https://rwfc.net/api/leaderboard/player/$friendCode/"
+        val url = "$RWFC_API/api/leaderboard/player/$friendCode/"
         val json = fetchUrl(url)
         val root = JSONObject(json)
         Pair(

@@ -490,7 +490,7 @@ private fun ActivePlayerCard(
         Spacer(modifier = Modifier.width(10.dp))
         Column {
             Text(
-                text = license.miiName ?: stringResource(R.string.home_player_default),
+                text = license.miiName ?: stringResource(R.string.player_default),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,

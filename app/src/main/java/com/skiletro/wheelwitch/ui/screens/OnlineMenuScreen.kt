@@ -15,7 +15,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -56,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.ui.components.FocusableSurface
 import com.skiletro.wheelwitch.ui.components.ScreenHeader
+import com.skiletro.wheelwitch.ui.components.statusColors
 import com.skiletro.wheelwitch.viewmodel.OnlineMenuPage
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 
@@ -206,7 +206,7 @@ private fun HealthIndicator(
 
     when (connectivity) {
         com.skiletro.wheelwitch.model.ServerConnectivity.Online -> {
-            dotColor = Color(0xFF4CAF50)
+            dotColor = statusColors().ok
             label = stringResource(R.string.health_indicator_online)
         }
         com.skiletro.wheelwitch.model.ServerConnectivity.Offline -> {

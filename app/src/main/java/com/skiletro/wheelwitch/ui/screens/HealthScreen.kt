@@ -65,7 +65,7 @@ fun HealthScreen(
         ScreenHeader(
             title = stringResource(R.string.health_title),
             onBack = { viewModel.goBack() },
-            onRefresh = { viewModel.refreshHealth() },
+            onRefresh = { viewModel.fetchHealth() },
             titleModifier = com.skiletro.wheelwitch.ui.components.sharedTitleModifier(
                 key = "online_title_Health",
                 sharedTransitionScope = sharedTransitionScope,
@@ -105,7 +105,7 @@ fun HealthScreen(
                         Spacer(modifier = Modifier.height(16.dp))
                         PrimaryActionButton(
                             text = stringResource(R.string.health_retry),
-                            onClick = { viewModel.refreshHealth() }
+                            onClick = { viewModel.fetchHealth() }
                         )
                     }
                 }

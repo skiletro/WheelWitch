@@ -169,7 +169,7 @@ private fun LicenseCard(
                     Spacer(modifier = Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = info.miiName ?: stringResource(R.string.save_info_player_default),
+                            text = info.miiName ?: stringResource(R.string.player_default),
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleLarge,
                             maxLines = 1,
