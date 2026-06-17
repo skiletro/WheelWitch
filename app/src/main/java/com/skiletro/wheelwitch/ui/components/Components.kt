@@ -1,4 +1,4 @@
-package com.skiletro.wheelwitch.ui.screens
+package com.skiletro.wheelwitch.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

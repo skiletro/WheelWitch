@@ -1,4 +1,4 @@
-package com.skiletro.wheelwitch.ui.screens
+package com.skiletro.wheelwitch.ui.components
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
