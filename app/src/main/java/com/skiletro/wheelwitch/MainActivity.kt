@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skiletro.wheelwitch.ui.screens.HomeScreen
 import com.skiletro.wheelwitch.ui.screens.OnboardingScreen
+import com.skiletro.wheelwitch.ui.screens.QuickLaunchScreen
 import com.skiletro.wheelwitch.ui.screens.SettingsScreen
 import com.skiletro.wheelwitch.ui.theme.ThemeMode
 import com.skiletro.wheelwitch.ui.theme.WheelWitchTheme
@@ -38,6 +39,7 @@ import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val initialQuickLaunch = intent?.action == ACTION_QUICK_LAUNCH
         @Suppress("DEPRECATION")
         window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
         setContent {
@@ -52,6 +54,7 @@ class MainActivity : ComponentActivity() {
                 dynamicColor = useDynamicColor
             ) {
                 MainScreen(
+                    quickLaunchFromIntent = initialQuickLaunch,
                     useDynamicColor = useDynamicColor,
                     onToggleDynamicColor = { enabled ->
                         useDynamicColor = enabled
@@ -66,10 +69,22 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        if (intent.action == ACTION_QUICK_LAUNCH) {
+            recreate()
+        }
+    }
+
+    companion object {
+        const val ACTION_QUICK_LAUNCH = "com.skiletro.wheelwitch.action.QUICK_LAUNCH"
+    }
 }
 
 @Composable
 private fun MainScreen(
+    quickLaunchFromIntent: Boolean = false,
     viewModel: UpdateViewModel = viewModel(),
     onlineViewModel: OnlineViewModel = viewModel(),
     useDynamicColor: Boolean = false,
@@ -79,6 +94,7 @@ private fun MainScreen(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val prefs = remember { context.getSharedPreferences("settings", Context.MODE_PRIVATE) }
+    var quickLaunchMode by remember { mutableStateOf(quickLaunchFromIntent) }
     var onboardingComplete by remember { mutableStateOf(prefs.getBoolean("onboarding_completed", false)) }
     var onboardingStorageSelected by remember { mutableStateOf(false) }
     var onboardingIsoSelected by remember { mutableStateOf(false) }
@@ -136,7 +152,12 @@ private fun MainScreen(
     }
 
     Box(Modifier.fillMaxSize()) {
-        if (onboardingComplete) {
+        if (quickLaunchMode) {
+            QuickLaunchScreen(
+                viewModel = viewModel,
+                onFinish = { (context as? android.app.Activity)?.finish() }
+            )
+        } else if (onboardingComplete) {
             if (!showSettings) {
                 HomeScreen(
                     viewModel = viewModel,
@@ -161,7 +182,8 @@ private fun MainScreen(
                     onToggleDynamicColor = onToggleDynamicColor,
                     themeMode = themeMode,
                     onChangeThemeMode = onChangeThemeMode,
-                    onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) }
+                    onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
+                    onSimulateQuickLaunch = { quickLaunchMode = true }
                 )
             }
         } else {

@@ -1,6 +1,7 @@
 package com.skiletro.wheelwitch.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,6 +32,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import android.content.Intent
+import android.content.pm.ShortcutInfo
+import android.content.pm.ShortcutManager
+import android.graphics.drawable.Icon
+import android.os.Build
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.platform.LocalContext
 import com.skiletro.wheelwitch.ui.theme.ThemeMode
 import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
 
@@ -45,7 +53,8 @@ fun SettingsScreen(
     onToggleDynamicColor: (Boolean) -> Unit,
     themeMode: ThemeMode,
     onChangeThemeMode: (ThemeMode) -> Unit,
-    onPickIso: () -> Unit
+    onPickIso: () -> Unit,
+    onSimulateQuickLaunch: () -> Unit
 ) {
     val saveState by viewModel.saveState.collectAsState()
     val miiMakerState by viewModel.miiMakerState.collectAsState()
@@ -179,7 +188,66 @@ fun SettingsScreen(
 
             AboutSection()
 
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(16.dp))
+
+            QuickLaunchSection(onSimulate = onSimulateQuickLaunch)
+
             Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+@Composable
+private fun QuickLaunchSection(onSimulate: () -> Unit) {
+    val context = LocalContext.current
+
+    Text(
+        text = "Quick Launch",
+        style = MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurface
+    )
+    Spacer(modifier = Modifier.height(4.dp))
+    Text(
+        text = "Test the quick-launch intent flow from a game launcher.",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+    Spacer(modifier = Modifier.height(12.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        OutlinedButton(
+            onClick = onSimulate,
+            shape = buttonShape,
+            modifier = Modifier.height(48.dp).weight(1f)
+        ) {
+            Text("Simulate Quick Launch", fontWeight = FontWeight.Medium)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val shortcutManager = remember { context.getSystemService(ShortcutManager::class.java) }
+            val canPin = remember { shortcutManager?.isRequestPinShortcutSupported == true }
+            if (canPin) {
+                OutlinedButton(
+                    onClick = {
+                        val intent = Intent("com.skiletro.wheelwitch.action.QUICK_LAUNCH").apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                            `package` = context.packageName
+                        }
+                        val shortcut = ShortcutInfo.Builder(context, "quick_launch")
+                            .setShortLabel("Quick Launch")
+                            .setLongLabel("Launch Retro Rewind")
+                            .setIcon(Icon.createWithResource(context, com.skiletro.wheelwitch.R.mipmap.ic_launcher))
+                            .setIntent(intent)
+                            .build()
+                            shortcutManager?.requestPinShortcut(shortcut, null)
+                    },
+                    shape = buttonShape,
+                    modifier = Modifier.height(48.dp).weight(1f)
+                ) {
+                    Text("Add Shortcut", fontWeight = FontWeight.Medium)
+                }
+            }
         }
     }
 }
