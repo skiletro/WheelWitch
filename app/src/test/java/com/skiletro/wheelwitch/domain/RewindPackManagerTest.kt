@@ -9,6 +9,7 @@ import com.skiletro.wheelwitch.model.ServerInfo
 import com.skiletro.wheelwitch.model.UpdateEntry
 import com.skiletro.wheelwitch.network.VersionFileParser
 import com.skiletro.wheelwitch.util.FileDownloader
+import io.mockk.Ordering
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
@@ -205,6 +206,40 @@ class RewindPackManagerTest {
         assertThat(result.getOrNull()).isEqualTo(SemVersion(3, 2, 7))
         verify(exactly = 2) { FileDownloader.downloadToFile(any(), any(), any()) }
         verify(exactly = 2) { storage.extractZip(any(), any()) }
+        verify(ordering = Ordering.ORDERED) {
+            storage.writeFile(RewindPackManager.VERSION_FILE, "3.2.6")
+            storage.writeFile(RewindPackManager.VERSION_FILE, "3.2.7")
+        }
+
+        cacheDir.deleteRecursively()
+    }
+
+    @Test
+    fun `incrementalUpdate writes version file after each step`() = runBlocking {
+        val cacheDir = createTempDir()
+        RewindPackManager.initCacheDir(cacheDir)
+
+        val steps = listOf(
+            UpdateEntry(SemVersion(3, 2, 6), "https://a.zip", "/path", "Fix A"),
+            UpdateEntry(SemVersion(3, 2, 7), "https://b.zip", "/path", "Fix B"),
+            UpdateEntry(SemVersion(3, 2, 8), "https://c.zip", "/path", "Fix C"),
+        )
+        val info = ServerInfo(SemVersion(3, 2, 8), steps, emptyList())
+
+        every { FileDownloader.downloadToFile(any(), any(), any()) } answers {
+            secondArg<File>().writeText("fake")
+            secondArg<File>()
+        }
+        every { storage.extractZip(any(), any()) } returns Result.success(Unit)
+
+        val result = RewindPackManager.incrementalUpdate(
+            storage, info, SemVersion(3, 2, 5)
+        ) {}
+
+        assertThat(result.isSuccess).isTrue()
+        verify(exactly = 1) { storage.writeFile(RewindPackManager.VERSION_FILE, "3.2.6") }
+        verify(exactly = 1) { storage.writeFile(RewindPackManager.VERSION_FILE, "3.2.7") }
+        verify(exactly = 1) { storage.writeFile(RewindPackManager.VERSION_FILE, "3.2.8") }
 
         cacheDir.deleteRecursively()
     }

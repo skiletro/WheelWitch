@@ -82,7 +82,7 @@ object RewindPackManager {
         targetVersion
     }
 
-    /** Downloads incremental update zips, applies file deletions, then extracts each zip in order. Falls back to [freshInstall] for versions below 3.2.6. */
+    /** Downloads incremental update zips, applies file deletions, then extracts each zip in order, writing `version.txt` after every successful step. Falls back to [freshInstall] for versions below 3.2.6. */
     suspend fun incrementalUpdate(
         storage: PackStorage,
         serverInfo: ServerInfo,
@@ -135,9 +135,9 @@ object RewindPackManager {
                 storage.extractZip(zipFile) { progress ->
                     onProgress(ProgressInfo.ApplyingUpdate(i + 1, results.size, step.description, progress))
                 }
+                writeLocalVersion(storage, step.version)
                 zipFile.delete()
             }
-            writeLocalVersion(storage, serverInfo.latestVersion)
         }
 
         serverInfo.latestVersion
