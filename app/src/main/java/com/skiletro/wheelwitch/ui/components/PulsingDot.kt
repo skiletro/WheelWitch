@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -23,8 +24,8 @@ import androidx.compose.ui.unit.dp
  * Animated status indicator dot.
  *
  * - The fill color smoothly transitions to [target] over [transitionMs].
- * - When [pulse] is true, the dot's alpha is animated by an
- *   [infiniteTransition] to give a subtle "alive" heartbeat feel.
+ * - When [pulse] is true, the dot pulses (alpha 0.55→1.0 and scale
+ *   0.85→1.15) on a 1100ms reverse cycle for a clear "alive" feel.
  */
 @Composable
 fun PulsingDot(
@@ -41,20 +42,24 @@ fun PulsingDot(
     )
 
     val transition = rememberInfiniteTransition(label = "dot_pulse")
-    val pulseAlpha by transition.animateFloat(
-        initialValue = 0.65f,
-        targetValue = 1.0f,
+    val pulseFraction by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1500, easing = LinearEasing),
+            animation = tween(durationMillis = 1100, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "dot_alpha"
+        label = "dot_pulse_fraction"
     )
+
+    val alpha = if (pulse) 0.55f + pulseFraction * 0.45f else 1f
+    val scale = if (pulse) 0.85f + pulseFraction * 0.3f else 1f
 
     Box(
         modifier = modifier
             .size(sizeDp)
+            .scale(scale)
             .clip(CircleShape)
-            .background(color.copy(alpha = if (pulse) pulseAlpha else 1f))
+            .background(color.copy(alpha = alpha))
     )
 }

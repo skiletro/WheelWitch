@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Checkroom
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,9 +29,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -62,6 +65,8 @@ fun TopBar(
     miiMakerEnabled: Boolean,
     onOpenOnlineMenu: () -> Unit,
     onlineMenuEnabled: Boolean,
+    onCheckForUpdates: () -> Unit = {},
+    checkInProgress: Boolean = false,
     onOpenSaveInfo: () -> Unit = {}
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "bob")
@@ -121,6 +126,26 @@ fun TopBar(
             imageVector = Icons.Default.Person,
             contentDescription = "Save Data",
             tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+    IconButton(onClick = onCheckForUpdates, enabled = !checkInProgress) {
+        val spin by rememberInfiniteTransition(label = "refresh_spin").animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "refresh_rotation"
+        )
+        Icon(
+            imageVector = Icons.Filled.Refresh,
+            contentDescription = "Check for updates",
+            tint = if (checkInProgress) MaterialTheme.colorScheme.primary
+                   else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .size(24.dp)
+                .then(if (checkInProgress) Modifier.rotate(spin) else Modifier)
         )
     }
     IconButton(

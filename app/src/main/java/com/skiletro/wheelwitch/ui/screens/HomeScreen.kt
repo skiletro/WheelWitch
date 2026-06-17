@@ -170,6 +170,8 @@ fun HomeScreen(
                             showOnlineMenu = true
                         },
                         onlineMenuEnabled = serverConnectivity is ServerConnectivity.Online,
+                        onCheckForUpdates = { packUpdate.checkStatus() },
+                        checkInProgress = state is UiState.Checking,
                         onOpenSaveInfo = {
                             saveData.refreshSaveFileInfo()
                             showSaveInfo = true
