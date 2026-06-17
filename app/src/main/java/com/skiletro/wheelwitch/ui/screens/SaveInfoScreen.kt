@@ -6,6 +6,8 @@ import android.util.Base64
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -170,8 +173,18 @@ private fun LicenseCard(
     modifier: Modifier = Modifier
 ) {
     val info = license
+    var isFocused by remember { mutableStateOf(false) }
     Surface(
-        modifier = modifier,
+        modifier = modifier
+            .focusable()
+            .onFocusChanged { isFocused = it.isFocused }
+            .then(
+                if (isFocused) Modifier.border(
+                    width = 3.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = cardShape
+                ) else Modifier
+            ),
         shape = cardShape,
         color = if (info?.exists == true) MaterialTheme.colorScheme.surfaceVariant
                 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)

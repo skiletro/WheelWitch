@@ -2,6 +2,7 @@ package com.skiletro.wheelwitch.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
@@ -38,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -160,7 +162,8 @@ fun RoomsScreen(
                             LazyColumn(
                                 modifier = Modifier
                                     .weight(0.35f)
-                                    .fillMaxHeight(),
+                                    .fillMaxHeight()
+                                    .focusRequester(listFocusRequester),
                                 verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 items(rooms, key = { it.id }) { room ->
@@ -220,6 +223,7 @@ fun RoomListItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var isFocused by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier
             .height(IntrinsicSize.Min)
@@ -242,6 +246,14 @@ fun RoomListItem(
                 .weight(1f)
                 .clickable(onClick = onClick)
                 .focusable()
+                .onFocusChanged { isFocused = it.isFocused }
+                .then(
+                    if (isFocused) Modifier.border(
+                        width = 3.dp,
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = sidebarShape
+                    ) else Modifier
+                )
         ) {
             Row(
                 modifier = Modifier.padding(12.dp),

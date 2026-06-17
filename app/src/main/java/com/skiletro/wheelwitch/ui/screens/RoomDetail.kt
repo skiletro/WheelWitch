@@ -3,6 +3,7 @@ package com.skiletro.wheelwitch.ui.screens
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -31,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
@@ -121,6 +123,7 @@ fun RoomDetail(room: Room) {
 @Composable
 fun MiiPlayerCard(player: Player) {
     var miiBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var isFocused by remember { mutableStateOf(false) }
     LaunchedEffect(player.mii?.data) {
         if (player.mii?.data != null) {
             withContext(Dispatchers.IO) {
@@ -137,10 +140,21 @@ fun MiiPlayerCard(player: Player) {
         }
     }
 
+    val cardShape = RoundedCornerShape(10.dp)
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(10.dp),
-        modifier = Modifier.fillMaxWidth().focusable()
+        shape = cardShape,
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusable()
+            .onFocusChanged { isFocused = it.isFocused }
+            .then(
+                if (isFocused) Modifier.border(
+                    width = 3.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = cardShape
+                ) else Modifier
+            )
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
