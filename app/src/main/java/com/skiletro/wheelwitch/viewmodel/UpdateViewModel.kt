@@ -33,23 +33,6 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 @Immutable
-sealed class UiState {
-    data object NoStorage : UiState()
-    data class Ready(val status: PackStatus) : UiState()
-    data object Checking : UiState()
-    data class Downloading(val progress: Float, val message: String) : UiState()
-    data class Extracting(val progress: Float) : UiState()
-    data class ApplyingUpdate(
-        val index: Int,
-        val total: Int,
-        val description: String,
-        val progress: Float
-    ) : UiState()
-
-    data class Error(val message: String) : UiState()
-}
-
-@Immutable
 data class SaveState(
     val hasSave: Boolean = false,
 )
