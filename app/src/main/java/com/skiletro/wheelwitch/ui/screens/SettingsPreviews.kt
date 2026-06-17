@@ -21,13 +21,13 @@ private fun SaveDataSectionNoSavePreview() {
 @Preview(showBackground = true)
 @Composable
 private fun MiiMakerSectionInstalledPreview() {
-    MiiMakerSection(miiMakerState = MiiMakerState(hasWad = true), isInstallingWad = false, onInstallWad = {}, onDeleteWad = {})
+    MiiMakerSection(miiMakerState = MiiMakerState(hasWad = true), isInstallingWad = false, miiMakerError = null, onInstallWad = {}, onDeleteWad = {})
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun MiiMakerSectionNotInstalledPreview() {
-    MiiMakerSection(miiMakerState = MiiMakerState(hasWad = false), isInstallingWad = false, onInstallWad = {}, onDeleteWad = {})
+    MiiMakerSection(miiMakerState = MiiMakerState(hasWad = false), isInstallingWad = false, miiMakerError = null, onInstallWad = {}, onDeleteWad = {})
 }
 
 @Preview(showBackground = true, widthDp = 400)

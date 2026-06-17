@@ -50,6 +50,7 @@ fun SettingsScreen(
     val saveState by viewModel.saveState.collectAsState()
     val miiMakerState by viewModel.miiMakerState.collectAsState()
     val isInstallingWad by viewModel.isInstallingWad.collectAsState()
+    val miiMakerError by viewModel.miiMakerError.collectAsState()
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showWadDeleteConfirm by remember { mutableStateOf(false) }
 
@@ -138,6 +139,7 @@ fun SettingsScreen(
             MiiMakerSection(
                 miiMakerState = miiMakerState,
                 isInstallingWad = isInstallingWad,
+                miiMakerError = miiMakerError,
                 onInstallWad = { viewModel.installMiiMakerWad() },
                 onDeleteWad = { showWadDeleteConfirm = true }
             )

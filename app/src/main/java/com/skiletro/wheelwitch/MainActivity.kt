@@ -18,16 +18,15 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skiletro.wheelwitch.ui.screens.HomeScreen
+import com.skiletro.wheelwitch.ui.screens.OnboardingScreen
 import com.skiletro.wheelwitch.ui.screens.SettingsScreen
 import com.skiletro.wheelwitch.ui.theme.ThemeMode
 import com.skiletro.wheelwitch.ui.theme.WheelWitchTheme
@@ -75,7 +74,11 @@ private fun MainScreen(
     themeMode: ThemeMode = ThemeMode.System,
     onChangeThemeMode: (ThemeMode) -> Unit = {}
 ) {
-    val context = LocalContext.current
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val prefs = remember { context.getSharedPreferences("settings", Context.MODE_PRIVATE) }
+    var onboardingComplete by remember { mutableStateOf(prefs.getBoolean("onboarding_completed", false)) }
+    var onboardingStorageSelected by remember { mutableStateOf(false) }
+    var onboardingIsoSelected by remember { mutableStateOf(false) }
 
     val storagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
@@ -87,6 +90,7 @@ private fun MainScreen(
                         Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             )
             viewModel.setStorageUri(uri)
+            onboardingStorageSelected = true
         }
     }
 
@@ -97,6 +101,7 @@ private fun MainScreen(
             val path = resolveContentUriToPath(uri)
             if (path != null) {
                 viewModel.setGameIsoPath(path)
+                onboardingIsoSelected = true
             }
         }
     }
@@ -123,11 +128,10 @@ private fun MainScreen(
         showSettings = false
     }
 
-    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-        Box(Modifier.fillMaxSize().padding(innerPadding)) {
+    Box(Modifier.fillMaxSize()) {
+        if (onboardingComplete) {
             HomeScreen(
                 viewModel = viewModel,
-                onPickStorage = { storagePicker.launch(null) },
                 onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
                 onOpenSettings = { showSettings = true }
             )
@@ -150,6 +154,17 @@ private fun MainScreen(
                     onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) }
                 )
             }
+        } else {
+            OnboardingScreen(
+                storageSelected = onboardingStorageSelected,
+                isoSelected = onboardingIsoSelected,
+                onPickStorage = { storagePicker.launch(null) },
+                onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
+                onComplete = {
+                    prefs.edit().putBoolean("onboarding_completed", true).apply()
+                    onboardingComplete = true
+                }
+            )
         }
     }
 }

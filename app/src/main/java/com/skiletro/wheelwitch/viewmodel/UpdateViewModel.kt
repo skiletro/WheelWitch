@@ -89,6 +89,9 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
     private val _isInstallingWad = MutableStateFlow(false)
     val isInstallingWad: StateFlow<Boolean> = _isInstallingWad.asStateFlow()
 
+    private val _miiMakerError = MutableStateFlow<String?>(null)
+    val miiMakerError: StateFlow<String?> = _miiMakerError.asStateFlow()
+
     private val _successMessage = MutableStateFlow<String?>(null)
     val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
 
@@ -307,8 +310,7 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
                 if (cached != null) {
                     MiiWadInstaller.launchWadFile(app, cached).getOrThrow()
                 }
-            } catch (e: Exception) {
-                _state.value = UiState.Error(e.message ?: "Failed to launch Mii Maker")
+            } catch (_: Exception) {
             }
         }
     }
@@ -318,10 +320,11 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
 
         viewModelScope.launch {
             _isInstallingWad.value = true
+            _miiMakerError.value = null
             try {
                 if (!isNetworkAvailable(app)) {
                     _isInstallingWad.value = false
-                    _state.value = UiState.Error("No internet connection. Please connect to the internet and try again.")
+                    _miiMakerError.value = "No internet connection. Please connect to the internet and try again."
                     return@launch
                 }
                 withContext(Dispatchers.IO) {
@@ -329,7 +332,7 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
                 }
                 refreshMiiMakerState()
             } catch (e: Exception) {
-                _state.value = UiState.Error(e.message ?: "Failed to install Mii Maker WAD")
+                _miiMakerError.value = e.message ?: "Failed to install Mii Maker WAD"
             }
             _isInstallingWad.value = false
         }

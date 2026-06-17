@@ -2,6 +2,7 @@ package com.skiletro.wheelwitch.util
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -13,6 +14,21 @@ object DolphinLauncher {
     private const val RIIVOLUTION_FOLDER = "riivolution"
     private const val XML_FILE_NAME = "RetroRewind6.xml"
     private const val GAME_ISO_PREFS_KEY = "game_iso_path"
+
+    fun isDolphinInstalled(context: Context): Boolean {
+        return try {
+            context.packageManager.getPackageInfo(DOLPHIN_PACKAGE, 0)
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    fun openDolphinDownload(context: Context) {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://dolphin-emu.org/download/"))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
+    }
 
     fun setGameIsoPath(context: Context, path: String) {
         context.getSharedPreferences("wheelwitch", Context.MODE_PRIVATE)

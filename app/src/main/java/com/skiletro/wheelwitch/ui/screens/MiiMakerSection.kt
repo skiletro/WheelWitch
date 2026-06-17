@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -40,6 +41,7 @@ private val buttonShape = RoundedCornerShape(14.dp)
 fun MiiMakerSection(
     miiMakerState: MiiMakerState,
     isInstallingWad: Boolean,
+    miiMakerError: String?,
     onInstallWad: () -> Unit,
     onDeleteWad: () -> Unit
 ) {
@@ -63,6 +65,14 @@ fun MiiMakerSection(
         )
     }
     Spacer(modifier = Modifier.height(16.dp))
+    if (miiMakerError != null) {
+        Text(
+            text = miiMakerError,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+    }
     if (isInstallingWad) {
         val infiniteTransition = rememberInfiniteTransition(label = "wad")
         val rotation by infiniteTransition.animateFloat(
