@@ -28,9 +28,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.model.LicenseInfo
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -170,8 +171,6 @@ fun HomeScreen(
                             showOnlineMenu = true
                         },
                         onlineMenuEnabled = serverConnectivity is ServerConnectivity.Online,
-                        onCheckForUpdates = { packUpdate.checkStatus() },
-                        checkInProgress = state is UiState.Checking,
                         onOpenSaveInfo = {
                             saveData.refreshSaveFileInfo()
                             showSaveInfo = true
@@ -361,7 +360,7 @@ private fun HomeBottomBar(
                     ProgressButton(currentState.progress, stringResource(R.string.home_update_step_format, currentState.index, currentState.total, currentState.description))
                 }
                 is UiState.Checking -> {
-                    OutlinedButton(
+                    FilledTonalButton(
                         onClick = {},
                         enabled = false,
                         shape = buttonShape,
@@ -375,7 +374,7 @@ private fun HomeBottomBar(
                     }
                 }
                 is UiState.Error -> {
-                    OutlinedButton(
+                    FilledTonalButton(
                         onClick = onRetry,
                         shape = buttonShape,
                         modifier = Modifier.height(56.dp)
@@ -396,66 +395,71 @@ private fun HomeBottomBar(
                         is PackStatus.Installed -> stringResource(R.string.home_version_installed, status.version)
                         else -> null
                     }
-                    OutlinedButton(
-                        onClick = onCheck,
-                        enabled = !isBusy,
-                        shape = buttonShape,
-                        modifier = Modifier
-                            .height(56.dp)
-                            .onFocusChanged { checkButtonFocused = it.isFocused }
-                            .focusBorder(checkButtonFocused)
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = stringResource(R.string.home_check_for_updates),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Medium
-                            )
-                            if (checkSubtitle != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        FilledTonalButton(
+                            onClick = onCheck,
+                            enabled = !isBusy,
+                            shape = buttonShape,
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            ),
+                            modifier = Modifier
+                                .height(56.dp)
+                                .onFocusChanged { checkButtonFocused = it.isFocused }
+                                .focusBorder(checkButtonFocused)
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    text = checkSubtitle,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Normal,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    text = stringResource(R.string.home_check_for_updates),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Medium
                                 )
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    when (status) {
-                        is PackStatus.NotInstalled -> {
-                            PrimaryActionButton(
-                                text = stringResource(R.string.home_install),
-                                onClick = onInstallOrUpdate ?: {}
-                            )
-                        }
-                        is PackStatus.UpdateAvailable -> {
-                            PrimaryActionButton(
-                                text = stringResource(R.string.home_update_to, status.latestVersion),
-                                onClick = onInstallOrUpdate ?: {}
-                            )
-                        }
-                        else -> {
-                            val launchSubText = when (serverConnectivity) {
-                                ServerConnectivity.Online -> {
-                                    val count = playerCount
-                                    if (count != null) stringResource(R.string.home_racers_online, count) else null
+                                if (checkSubtitle != null) {
+                                    Text(
+                                        text = checkSubtitle,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Normal
+                                    )
                                 }
-                                ServerConnectivity.Offline -> stringResource(R.string.home_offline)
-                                ServerConnectivity.NoInternet -> stringResource(R.string.home_no_internet)
-                                ServerConnectivity.Unknown -> null
                             }
-                            if (hasIso) {
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        when (status) {
+                            is PackStatus.NotInstalled -> {
                                 PrimaryActionButton(
-                                    text = stringResource(R.string.home_launch_retro_rewind),
-                                    onClick = onLaunch,
-                                    subText = launchSubText
+                                    text = stringResource(R.string.home_install),
+                                    onClick = onInstallOrUpdate ?: {}
                                 )
-                            } else {
+                            }
+                            is PackStatus.UpdateAvailable -> {
                                 PrimaryActionButton(
-                                    text = stringResource(R.string.home_select_rom),
-                                    onClick = onPickIso
+                                    text = stringResource(R.string.home_update_to, status.latestVersion),
+                                    onClick = onInstallOrUpdate ?: {}
                                 )
+                            }
+                            else -> {
+                                val launchSubText = when (serverConnectivity) {
+                                    ServerConnectivity.Online -> {
+                                        val count = playerCount
+                                        if (count != null) stringResource(R.string.home_racers_online, count) else null
+                                    }
+                                    ServerConnectivity.Offline -> stringResource(R.string.home_offline)
+                                    ServerConnectivity.NoInternet -> stringResource(R.string.home_no_internet)
+                                    ServerConnectivity.Unknown -> null
+                                }
+                                if (hasIso) {
+                                    PrimaryActionButton(
+                                        text = stringResource(R.string.home_launch_retro_rewind),
+                                        onClick = onLaunch,
+                                        subText = launchSubText
+                                    )
+                                } else {
+                                    PrimaryActionButton(
+                                        text = stringResource(R.string.home_select_rom),
+                                        onClick = onPickIso
+                                    )
+                                }
                             }
                         }
                     }

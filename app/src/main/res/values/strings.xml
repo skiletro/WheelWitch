@@ -2,7 +2,6 @@
     <string name="app_name">Wheel Witch</string>
     <string name="app_subtitle">Retro Rewind Pack Manager</string>
     <string name="cd_back">Back</string>
-    <string name="cd_check_for_updates">Check for updates</string>
     <string name="cd_settings">Settings</string>
     <string name="cd_mii_maker">Mii Maker</string>
     <string name="cd_save_data">Save Data</string>
