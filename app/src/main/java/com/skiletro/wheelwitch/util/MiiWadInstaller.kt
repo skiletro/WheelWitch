@@ -13,7 +13,6 @@ import java.util.zip.ZipInputStream
 object MiiWadInstaller {
     private const val MII_MAKER_ZIP_URL = "https://filecache45.gamebanana.com/mods/mii_channel_symbols_-_hacs.zip"
     private const val WAD_FILE_NAME = "Mii Channel Symbols - HACS.wad"
-    private const val EXTRACT_BUFFER = 262144
 
     /** Returns the cached WAD file from `cache/mii_maker/`, or null if not yet downloaded. */
     fun getCachedWadFile(context: Context): File? {
@@ -72,11 +71,7 @@ object MiiWadInstaller {
                 if (!entry.isDirectory && entry.name.endsWith(".wad", ignoreCase = true)) {
                     val outFile = File(destDir, entry.name.substringAfterLast("/"))
                     outFile.outputStream().use { output ->
-                        val buffer = ByteArray(EXTRACT_BUFFER)
-                        var bytesRead: Int
-                        while (zis.read(buffer).also { bytesRead = it } != -1) {
-                            output.write(buffer, 0, bytesRead)
-                        }
+                        zis.copyTo(output)
                     }
                     wadFiles.add(outFile)
                 }
