@@ -3,7 +3,6 @@ package com.skiletro.wheelwitch.ui.screens
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,9 +25,6 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
-private val sectionShape = RoundedCornerShape(20.dp)
-private val buttonShape = RoundedCornerShape(14.dp)
-
 @Composable
 fun PrimaryActionButton(
     text: String,
@@ -47,13 +43,7 @@ fun PrimaryActionButton(
             modifier = Modifier
                 .height(56.dp)
                 .onFocusChanged { isFocused = it.isFocused }
-                .then(
-                    if (isFocused) Modifier.border(
-                        width = 3.dp,
-                        color = MaterialTheme.colorScheme.primary,
-                        shape = buttonShape
-                    ) else Modifier
-                ),
+                .focusBorder(isFocused),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary

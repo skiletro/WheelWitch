@@ -73,7 +73,7 @@ com.skiletro.wheelwitch
 
 ## ViewModel (`UpdateViewModel.kt`)
 
-- **State machine**: `NoStorage → Checking → Downloading/Extracting/ApplyingUpdate → Ready/ReadyToLaunch/Error`
+- **State machine**: `NoStorage → Checking → Downloading/Extracting/ApplyingUpdate → Ready/Error`
 - `saveState` (StateFlow of `SaveState(hasSave)`) independently tracks save presence
 - `successMessage` (StateFlow of `String?`) drives a brief auto-dismiss success banner (3s)
 - `backupSave(Uri)` / `restoreSave(Uri)` / `deleteSave()` all call `refreshSaveState()` after completion

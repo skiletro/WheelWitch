@@ -1,6 +1,5 @@
 package com.skiletro.wheelwitch.ui.screens
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,8 +21,6 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.viewmodel.SaveState
-
-private val buttonShape = RoundedCornerShape(14.dp)
 
 @Composable
 fun SaveDataSection(
@@ -58,13 +55,7 @@ fun SaveDataSection(
                 .weight(1f)
                 .height(48.dp)
                 .onFocusChanged { backupFocused = it.isFocused }
-                .then(
-                    if (backupFocused) Modifier.border(
-                        width = 3.dp,
-                        color = MaterialTheme.colorScheme.primary,
-                        shape = buttonShape
-                    ) else Modifier
-                ),
+                .focusBorder(backupFocused),
             colors = ButtonDefaults.filledTonalButtonColors(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer
@@ -84,13 +75,7 @@ fun SaveDataSection(
                 .weight(1f)
                 .height(48.dp)
                 .onFocusChanged { restoreFocused = it.isFocused }
-                .then(
-                    if (restoreFocused) Modifier.border(
-                        width = 3.dp,
-                        color = MaterialTheme.colorScheme.primary,
-                        shape = buttonShape
-                    ) else Modifier
-                ),
+                .focusBorder(restoreFocused),
             colors = ButtonDefaults.filledTonalButtonColors(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer
@@ -110,13 +95,7 @@ fun SaveDataSection(
             onClick = onDelete,
             modifier = Modifier
                 .onFocusChanged { deleteFocused = it.isFocused }
-                .then(
-                    if (deleteFocused) Modifier.border(
-                        width = 3.dp,
-                        color = MaterialTheme.colorScheme.error,
-                        shape = RoundedCornerShape(8.dp)
-                    ) else Modifier
-                )
+                .focusBorder(deleteFocused, shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.error)
         ) {
             Text(
                 "Delete save data",

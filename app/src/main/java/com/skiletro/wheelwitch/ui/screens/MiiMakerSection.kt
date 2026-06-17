@@ -6,7 +6,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -34,8 +32,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.viewmodel.MiiMakerState
-
-private val buttonShape = RoundedCornerShape(14.dp)
 
 @Composable
 fun MiiMakerSection(
@@ -104,13 +100,7 @@ fun MiiMakerSection(
             shape = buttonShape,
             modifier = Modifier
                 .onFocusChanged { deleteFocused = it.isFocused }
-                .then(
-                    if (deleteFocused) Modifier.border(
-                        width = 3.dp,
-                        color = MaterialTheme.colorScheme.onError,
-                        shape = buttonShape
-                    ) else Modifier
-                ),
+                .focusBorder(deleteFocused, color = MaterialTheme.colorScheme.onError),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.error,
                 contentColor = MaterialTheme.colorScheme.onError
@@ -130,13 +120,7 @@ fun MiiMakerSection(
                 .height(56.dp)
                 .fillMaxWidth()
                 .onFocusChanged { installFocused = it.isFocused }
-                .then(
-                    if (installFocused) Modifier.border(
-                        width = 3.dp,
-                        color = MaterialTheme.colorScheme.primary,
-                        shape = buttonShape
-                    ) else Modifier
-                ),
+                .focusBorder(installFocused),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary

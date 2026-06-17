@@ -2,7 +2,6 @@ package com.skiletro.wheelwitch.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
@@ -247,13 +246,7 @@ fun RoomListItem(
                 .clickable(onClick = onClick)
                 .focusable()
                 .onFocusChanged { isFocused = it.isFocused }
-                .then(
-                    if (isFocused) Modifier.border(
-                        width = 3.dp,
-                        color = MaterialTheme.colorScheme.primary,
-                        shape = sidebarShape
-                    ) else Modifier
-                )
+                .focusBorder(isFocused, shape = sidebarShape)
         ) {
             Row(
                 modifier = Modifier.padding(12.dp),

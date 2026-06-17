@@ -6,7 +6,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,9 +51,6 @@ import com.skiletro.wheelwitch.viewmodel.UiState
 import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
 import kotlinx.coroutines.delay
 import android.view.WindowManager
-
-private val sectionShape = RoundedCornerShape(20.dp)
-private val buttonShape = RoundedCornerShape(14.dp)
 
 @Composable
 fun HomeScreen(
@@ -301,11 +297,7 @@ private fun HomeBottomBar(
                     modifier = Modifier
                         .height(56.dp)
                         .onFocusChanged { checkButtonFocused = it.isFocused }
-                        .then(
-                            if (checkButtonFocused) Modifier.border(
-                                width = 3.dp, color = MaterialTheme.colorScheme.primary, shape = buttonShape
-                            ) else Modifier
-                        )
+                        .focusBorder(checkButtonFocused)
                 ) {
                     Text(
                         text = "Check for updates",
