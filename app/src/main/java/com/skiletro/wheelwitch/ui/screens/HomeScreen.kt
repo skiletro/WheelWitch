@@ -1,7 +1,7 @@
 package com.skiletro.wheelwitch.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -12,9 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -33,13 +31,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.model.PackStatus
-import com.skiletro.wheelwitch.viewmodel.SaveState
 import com.skiletro.wheelwitch.viewmodel.UiState
 import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
 import kotlinx.coroutines.delay
@@ -56,14 +54,10 @@ fun HomeScreen(
     viewModel: UpdateViewModel,
     onPickStorage: () -> Unit,
     onPickIso: () -> Unit,
-    onBackupSave: () -> Unit,
-    onRestoreSave: () -> Unit,
-    onDeleteSave: () -> Unit
+    onOpenSettings: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-    val saveState by viewModel.saveState.collectAsState()
     val successMessage by viewModel.successMessage.collectAsState()
-    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     LaunchedEffect(successMessage) {
         if (successMessage != null) {
@@ -72,31 +66,12 @@ fun HomeScreen(
         }
     }
 
-    if (showDeleteConfirm) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete Save Data") },
-            text = { Text("Are you sure you want to delete the save file? This cannot be undone.") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        onDeleteSave()
-                        showDeleteConfirm = false
-                    }
-                ) { Text("Delete") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
-            }
-        )
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        TopBar()
+        TopBar(onOpenSettings = onOpenSettings)
 
         Box(
             modifier = Modifier
@@ -116,28 +91,10 @@ fun HomeScreen(
                 when (val currentState = state) {
                     is UiState.NoStorage -> NoStorageContent(onPickStorage)
                     is UiState.Checking -> CheckingContent()
-                    is UiState.Ready -> {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(
-                                20.dp,
-                                Alignment.CenterHorizontally
-                            )
-                        ) {
-                            ReadyContent(
-                                currentState.status,
-                                viewModel,
-                                Modifier.weight(1f)
-                            )
-                            SaveBackupContent(
-                                Modifier.weight(1f),
-                                saveState,
-                                onBackupSave,
-                                onRestoreSave,
-                                { showDeleteConfirm = true }
-                            )
-                        }
-                    }
+                    is UiState.Ready -> ReadyContent(
+                        currentState.status,
+                        viewModel
+                    )
                     is UiState.Downloading -> ProgressContent(
                         currentState.progress,
                         currentState.message
@@ -150,29 +107,11 @@ fun HomeScreen(
                         currentState.progress,
                         "Applying update ${currentState.index}/${currentState.total}: ${currentState.description}"
                     )
-                    is UiState.ReadyToLaunch -> {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(
-                                20.dp,
-                                Alignment.CenterHorizontally
-                            )
-                        ) {
-                            ReadyToLaunchContent(
-                                version = currentState.version,
-                                onLaunch = { viewModel.launchDolphin() },
-                                onCheckAgain = { viewModel.checkStatus() },
-                                modifier = Modifier.weight(1f)
-                            )
-                            SaveBackupContent(
-                                Modifier.weight(1f),
-                                saveState,
-                                onBackupSave,
-                                onRestoreSave,
-                                { showDeleteConfirm = true }
-                            )
-                        }
-                    }
+                    is UiState.ReadyToLaunch -> ReadyToLaunchContent(
+                        version = currentState.version,
+                        onLaunch = { viewModel.launchDolphin() },
+                        onCheckAgain = { viewModel.checkStatus() }
+                    )
                     is UiState.Error -> ErrorContent(
                         currentState.message,
                         onRetry = { viewModel.clearError() },
@@ -187,14 +126,16 @@ fun HomeScreen(
 }
 
 @Composable
-private fun TopBar() {
+private fun TopBar(onOpenSettings: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 28.dp, vertical = 20.dp),
+            .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column {
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
             Text(
                 text = APP_NAME,
                 style = MaterialTheme.typography.headlineLarge,
@@ -204,6 +145,13 @@ private fun TopBar() {
             Text(
                 text = SUBTITLE,
                 style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        TextButton(onClick = onOpenSettings) {
+            Text(
+                text = "\u2699",
+                style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -255,11 +203,22 @@ private fun PrimaryActionButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true
 ) {
+    var isFocused by remember { mutableStateOf(false) }
+
     Button(
         onClick = onClick,
         enabled = enabled,
         shape = buttonShape,
-        modifier = modifier.height(56.dp),
+        modifier = modifier
+            .height(56.dp)
+            .onFocusChanged { isFocused = it.isFocused }
+            .then(
+                if (isFocused) Modifier.border(
+                    width = 3.dp,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    shape = buttonShape
+                ) else Modifier
+            ),
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary
@@ -280,36 +239,23 @@ private fun SecondaryActionButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true
 ) {
+    var isFocused by remember { mutableStateOf(false) }
+
     OutlinedButton(
         onClick = onClick,
         enabled = enabled,
         shape = buttonShape,
-        modifier = modifier.height(48.dp)
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Medium
-        )
-    }
-}
-
-@Composable
-private fun TonalActionButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true
-) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        shape = buttonShape,
-        modifier = modifier.height(48.dp),
-        colors = ButtonDefaults.filledTonalButtonColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-        )
+        modifier = modifier
+            .height(48.dp)
+            .onFocusChanged { isFocused = it.isFocused }
+            .then(
+                if (isFocused) Modifier.border(
+                    width = 3.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = buttonShape
+                ) else Modifier
+            ),
+        border = if (isFocused) null else ButtonDefaults.outlinedButtonBorder(enabled)
     ) {
         Text(
             text = text,
@@ -355,8 +301,7 @@ private fun CheckingContent() {
 @Composable
 private fun ReadyContent(
     status: PackStatus,
-    viewModel: UpdateViewModel,
-    modifier: Modifier = Modifier
+    viewModel: UpdateViewModel
 ) {
     val (title, subtitle, actionText) = when (status) {
         is PackStatus.NotInstalled -> Triple(
@@ -377,7 +322,7 @@ private fun ReadyContent(
         )
     }
 
-    ContentSection(modifier = modifier) {
+    ContentSection {
         SectionTitle(title)
         Spacer(modifier = Modifier.height(6.dp))
         Text(
@@ -454,10 +399,9 @@ private fun ProgressContent(
 private fun ReadyToLaunchContent(
     version: String = "3.2.6",
     onLaunch: () -> Unit = {},
-    onCheckAgain: () -> Unit = {},
-    modifier: Modifier = Modifier
+    onCheckAgain: () -> Unit = {}
 ) {
-    ContentSection(modifier = modifier) {
+    ContentSection {
         SectionTitle("Ready to play!", color = MaterialTheme.colorScheme.primary)
         Spacer(modifier = Modifier.height(6.dp))
         BodyText("$PACK_NAME v$version")
@@ -472,50 +416,6 @@ private fun ReadyToLaunchContent(
             text = "Check Again",
             onClick = onCheckAgain
         )
-    }
-}
-
-@Composable
-private fun SaveBackupContent(
-    modifier: Modifier = Modifier,
-    saveState: SaveState,
-    onBackup: () -> Unit,
-    onRestore: () -> Unit,
-    onDelete: () -> Unit
-) {
-    ContentSection(modifier = modifier) {
-        SectionTitle("Save Data")
-        Spacer(modifier = Modifier.height(8.dp))
-        BodyText(
-            if (saveState.hasSave) "Save file found" else "No save file found"
-        )
-        Spacer(modifier = Modifier.height(20.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            TonalActionButton(
-                text = "Backup",
-                onClick = onBackup,
-                enabled = saveState.hasSave,
-                modifier = Modifier.weight(1f)
-            )
-            TonalActionButton(
-                text = "Restore",
-                onClick = onRestore,
-                modifier = Modifier.weight(1f)
-            )
-        }
-        if (saveState.hasSave) {
-            Spacer(modifier = Modifier.height(12.dp))
-            TextButton(onClick = onDelete) {
-                Text(
-                    "Delete save data",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-        }
     }
 }
 
@@ -601,17 +501,6 @@ private fun PreviewReadyContent() {
             onClick = {}
         )
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun PreviewSaveBackupContent() {
-    SaveBackupContent(
-        saveState = SaveState(hasSave = true),
-        onBackup = {},
-        onRestore = {},
-        onDelete = {}
-    )
 }
 
 @Preview(showBackground = true)

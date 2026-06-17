@@ -71,13 +71,17 @@ com.skiletro.wheelwitch
 - `backupSave(Uri)` / `restoreSave(Uri)` / `deleteSave()` all call `refreshSaveState()` after completion
 - `setStorageUri(Uri)` persists storage URI in shared prefs
 
-## UI (`HomeScreen.kt`)
+## UI (`HomeScreen.kt`, `SettingsScreen.kt`)
 
-- Single-screen app, no navigation
-- Centered `Column` with scroll, cards for each state
-- Ready/ReadyToLaunch states show main card + save card side-by-side in a `Row` (always landscape)
-- Save card has Backup (disabled if no save) + Restore buttons, plus "Delete save data" TextButton with confirmation `AlertDialog`
-- Primary action buttons (`Launch Dolphin`, `Download & Install`) are 56dp tall; secondary buttons 48dp
+- Two screens: `HomeScreen` + `SettingsScreen`, toggled via `showSettings` state in `MainScreen`
+- **Games launcher layout**: full-bleed dark background (`surface`), title top-left, content centered in remaining space
+- **No floating cards** — content sections use `Surface` with `surfaceVariant` color and rounded corners (20dp), zero elevation
+- Save data management (Backup/Restore/Delete) moved to `SettingsScreen`
+- Gear button (`\u2699`) in home TopBar opens settings; back arrow (`ArrowBack`) returns home
+- `SettingsScreen` collects `saveState` from viewmodel, handles delete confirmation dialog inline
+- **PrimaryActionButton** (`Launch Dolphin`, `Download & Install`, `Select Storage`, `Try Again`) — 56dp tall, filled `primary` color, `titleMedium` semi-bold
+- **SecondaryActionButton** (`Check Again`) — 48dp tall, outlined
+- Success messages shown as inline `Surface` banner rather than Card
 
 ## Key Constants
 
