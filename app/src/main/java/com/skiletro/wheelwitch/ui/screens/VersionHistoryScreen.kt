@@ -14,89 +14,81 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
-import com.skiletro.wheelwitch.domain.ChangelogParser
 import com.skiletro.wheelwitch.model.ChangelogEntry
 import com.skiletro.wheelwitch.ui.components.ChangelogCard
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import com.skiletro.wheelwitch.viewmodel.VersionHistoryState
+import com.skiletro.wheelwitch.viewmodel.VersionHistoryViewModel
 
 @Composable
 fun VersionHistoryContent(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: VersionHistoryViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
-    var entries by remember { mutableStateOf<List<ChangelogEntry>>(emptyList()) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var loading by remember { mutableStateOf(true) }
-    val context = LocalContext.current
-
-    LaunchedEffect(Unit) {
-        loading = true
-        error = null
-        val result = withContext(Dispatchers.IO) {
-            ChangelogParser.fetchWithCache(context)
-        }
-        result.onSuccess { entries = it }.onFailure { error = it.message }
-        loading = false
-    }
+    val state by viewModel.state.collectAsState()
 
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        when {
-            loading -> {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(48.dp),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = stringResource(R.string.version_history_loading),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            error != null -> {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = stringResource(R.string.version_history_failed),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = error ?: "",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 32.dp)
-                    )
-                }
-            }
-            else -> {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(entries, key = { it.version }) { entry ->
-                        ChangelogCard(entry, modifier = Modifier.animateItem())
-                    }
-                    item { Spacer(modifier = Modifier.height(8.dp)) }
-                }
-            }
+        when (val s = state) {
+            is VersionHistoryState.Loading -> LoadingContent()
+            is VersionHistoryState.Error -> ErrorContent(s.message)
+            is VersionHistoryState.Success -> ChangelogList(s.entries)
         }
+    }
+}
+
+@Composable
+private fun LoadingContent() {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(48.dp),
+            color = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = stringResource(R.string.version_history_loading),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun ErrorContent(message: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = stringResource(R.string.version_history_failed),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.error
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 32.dp)
+        )
+    }
+}
+
+@Composable
+private fun ChangelogList(entries: List<ChangelogEntry>) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        items(entries, key = { it.version }) { entry ->
+            ChangelogCard(entry, modifier = Modifier.animateItem())
+        }
+        item { Spacer(modifier = Modifier.height(8.dp)) }
     }
 }
