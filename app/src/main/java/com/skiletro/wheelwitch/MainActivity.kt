@@ -31,6 +31,7 @@ import com.skiletro.wheelwitch.ui.screens.HomeScreen
 import com.skiletro.wheelwitch.ui.screens.OnboardingScreen
 import com.skiletro.wheelwitch.ui.screens.QuickLaunchScreen
 import com.skiletro.wheelwitch.ui.screens.SettingsScreen
+import com.skiletro.wheelwitch.ui.theme.AppTheme
 import com.skiletro.wheelwitch.ui.theme.ThemeMode
 import com.skiletro.wheelwitch.ui.theme.WheelWitchTheme
 import com.skiletro.wheelwitch.data.PackStorage
@@ -54,22 +55,26 @@ class MainActivity : ComponentActivity() {
         controller.hide(WindowInsetsCompat.Type.systemBars())
         setContent {
             val prefs = remember { this@MainActivity.getSharedPreferences(PrefsKeys.SETTINGS_PREFS, Context.MODE_PRIVATE) }
-            var useDynamicColor by remember { mutableStateOf(prefs.getBoolean(PrefsKeys.DYNAMIC_COLOR_KEY, false)) }
+            var appTheme by remember {
+                val saved = prefs.getString(PrefsKeys.APP_THEME_KEY, AppTheme.Hex.name) ?: AppTheme.Hex.name
+                mutableStateOf(runCatching { AppTheme.valueOf(saved) }.getOrDefault(AppTheme.Hex))
+            }
             var themeMode by remember {
-                mutableStateOf(ThemeMode.valueOf(prefs.getString(PrefsKeys.THEME_MODE_KEY, ThemeMode.System.name) ?: ThemeMode.System.name))
+                val saved = prefs.getString(PrefsKeys.THEME_MODE_KEY, ThemeMode.System.name) ?: ThemeMode.System.name
+                mutableStateOf(runCatching { ThemeMode.valueOf(saved) }.getOrDefault(ThemeMode.System))
             }
 
             WheelWitchTheme(
                 themeMode = themeMode,
-                dynamicColor = useDynamicColor
+                appTheme = appTheme
             ) {
                 val initialQuickLaunch = pendingQuickLaunch
                 MainScreen(
                     quickLaunchFromIntent = initialQuickLaunch,
-                    useDynamicColor = useDynamicColor,
-                    onToggleDynamicColor = { enabled ->
-                        useDynamicColor = enabled
-                        prefs.edit().putBoolean(PrefsKeys.DYNAMIC_COLOR_KEY, enabled).apply()
+                    appTheme = appTheme,
+                    onChangeAppTheme = { theme ->
+                        appTheme = theme
+                        prefs.edit().putString(PrefsKeys.APP_THEME_KEY, theme.name).apply()
                     },
                     themeMode = themeMode,
                     onChangeThemeMode = { mode ->
@@ -100,8 +105,8 @@ private fun MainScreen(
     saveData: SaveDataViewModel = viewModel(),
     miiMaker: MiiMakerViewModel = viewModel(),
     onlineViewModel: OnlineViewModel = viewModel(),
-    useDynamicColor: Boolean = false,
-    onToggleDynamicColor: (Boolean) -> Unit = {},
+    appTheme: AppTheme = AppTheme.Hex,
+    onChangeAppTheme: (AppTheme) -> Unit = {},
     themeMode: ThemeMode = ThemeMode.System,
     onChangeThemeMode: (ThemeMode) -> Unit = {}
 ) {
@@ -195,8 +200,8 @@ private fun MainScreen(
                     onRestoreSave = { restorePicker.launch(arrayOf("application/octet-stream", "*/*")) },
                     onDeleteSave = { saveData.deleteSave() },
                     onClose = { showSettings = false },
-                    useDynamicColor = useDynamicColor,
-                    onToggleDynamicColor = onToggleDynamicColor,
+                    appTheme = appTheme,
+                    onChangeAppTheme = onChangeAppTheme,
                     themeMode = themeMode,
                     onChangeThemeMode = onChangeThemeMode,
                     onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },

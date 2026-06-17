@@ -2,13 +2,25 @@ package com.skiletro.wheelwitch.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Red80 = Color(0xFFFFB3B3)
-val RedGrey80 = Color(0xFFD4A0A0)
-val LightRed80 = Color(0xFFFFD0D0)
+// Purple palette (dark)
+val Purple80 = Color(0xFFD0B0FF)
+val PurpleGrey80 = Color(0xFFB8A0CC)
+val LightPurple80 = Color(0xFFFFB3D0)
+val OnPurple80 = Color(0xFF3D0080)
 
-val Red40 = Color(0xFFB71C1C)
-val RedGrey40 = Color(0xFF8B1A1A)
-val LightRed40 = Color(0xFFD32F2F)
+// Purple palette (light)
+val Purple40 = Color(0xFF6A1B9A)
+val PurpleGrey40 = Color(0xFF7B5293)
+val LightPurple40 = Color(0xFF942D66)
+val OnPurple40 = Color.White
 
-val OnRed80 = Color(0xFF5C0000)
-val OnRed40 = Color.White
+// Swamp palette (dark)
+val SwampGreen80 = Color(0xFFA5D6A7)
+val SwampGreenGrey80 = Color(0xFF81C784)
+val SwampLightGreen80 = Color(0xFFB2FFB2)
+val OnSwampGreen80 = Color(0xFF003300)
+// Swamp palette (light)
+val SwampGreen40 = Color(0xFF2E7D32)
+val SwampGreenGrey40 = Color(0xFF388E3C)
+val SwampLightGreen40 = Color(0xFF1B5E20)
+val OnSwampGreen40 = Color.White

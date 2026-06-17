@@ -11,7 +11,7 @@ object PrefsKeys {
     const val LAST_SERVER_VERSION_KEY = "last_server_version"
     const val LAST_LEADERBOARD_VR_KEY = "last_leaderboard_vr"
     const val THEME_MODE_KEY = "theme_mode"
-    const val DYNAMIC_COLOR_KEY = "dynamic_color"
+    const val APP_THEME_KEY = "app_theme"
     const val ONBOARDING_COMPLETED_KEY = "onboarding_completed"
     const val RIIVOLUTION_MY_STUFF_MODE = "riivolution_my_stuff_mode"
 }

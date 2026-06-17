@@ -43,7 +43,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
+
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.ui.components.cacheSize
 import com.skiletro.wheelwitch.ui.components.formatBytes
+import com.skiletro.wheelwitch.ui.theme.AppTheme
 import com.skiletro.wheelwitch.ui.theme.ThemeMode
 import com.skiletro.wheelwitch.util.DolphinLauncher
 import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
@@ -77,8 +78,8 @@ fun SettingsScreen(
     onRestoreSave: () -> Unit,
     onDeleteSave: () -> Unit,
     onClose: () -> Unit,
-    useDynamicColor: Boolean,
-    onToggleDynamicColor: (Boolean) -> Unit,
+    appTheme: AppTheme,
+    onChangeAppTheme: (AppTheme) -> Unit,
     themeMode: ThemeMode,
     onChangeThemeMode: (ThemeMode) -> Unit,
     onPickIso: () -> Unit,
@@ -93,6 +94,7 @@ fun SettingsScreen(
     val context = androidx.compose.ui.platform.LocalContext.current
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showWadDeleteConfirm by remember { mutableStateOf(false) }
+    var showAppThemeDropdown by remember { mutableStateOf(false) }
     var showThemeDropdown by remember { mutableStateOf(false) }
     var showMyStuffDropdown by remember { mutableStateOf(false) }
 
@@ -215,12 +217,46 @@ fun SettingsScreen(
                 SettingsCategoryHeader(stringResource(R.string.settings_appearance))
             }
             item {
+                val appThemeLabel = when (appTheme) {
+                    AppTheme.Hex -> stringResource(R.string.settings_app_theme_purple)
+                    AppTheme.MaterialYou -> stringResource(R.string.settings_app_theme_material_you)
+                    AppTheme.Swamp -> stringResource(R.string.settings_app_theme_green)
+                }
                 SettingsItem(
                     icon = Icons.Filled.Palette,
-                    title = stringResource(R.string.settings_dynamic_color),
-                    summary = if (useDynamicColor) stringResource(R.string.settings_dynamic_color_on) else stringResource(R.string.settings_dynamic_color_off),
+                    title = stringResource(R.string.settings_app_theme),
+                    summary = appThemeLabel,
                     trailing = {
-                        Switch(checked = useDynamicColor, onCheckedChange = onToggleDynamicColor)
+                        Box {
+                            TextButton(
+                                onClick = { showAppThemeDropdown = true },
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Text(text = appThemeLabel)
+                            }
+                            DropdownMenu(
+                                expanded = showAppThemeDropdown,
+                                onDismissRequest = { showAppThemeDropdown = false }
+                            ) {
+                                AppTheme.entries.forEach { theme ->
+                                    DropdownMenuItem(
+                                        text = {
+                                        Text(
+                                            when (theme) {
+                                                AppTheme.Hex -> stringResource(R.string.settings_app_theme_purple)
+                                                AppTheme.MaterialYou -> stringResource(R.string.settings_app_theme_material_you)
+                    AppTheme.Swamp -> stringResource(R.string.settings_app_theme_green)
+                                            }
+                                        )
+                                        },
+                                        onClick = {
+                                            onChangeAppTheme(theme)
+                                            showAppThemeDropdown = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
                     }
                 )
                 SettingsItem(
