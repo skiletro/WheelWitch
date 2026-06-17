@@ -6,20 +6,35 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.skiletro.wheelwitch.model.LeaderboardEntry
 import com.skiletro.wheelwitch.model.RaceStats
+import com.skiletro.wheelwitch.model.Room
 import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.model.ServerHealth
 import com.skiletro.wheelwitch.model.TimeTrialTrack
 import com.skiletro.wheelwitch.network.VersionFileParser
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 enum class OnlineMenuPage {
     Hub, Rooms, Leaderboard, Health, RaceStats, TimeTrial
+}
+
+@Immutable
+sealed class RoomsState {
+    data object Idle : RoomsState()
+    data object Loading : RoomsState()
+    data class Success(
+        val rooms: List<Room>,
+        val playerCount: Int?,
+        val serverConnectivity: ServerConnectivity
+    ) : RoomsState()
+    data class Error(val message: String) : RoomsState()
 }
 
 @Immutable
@@ -74,6 +89,8 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
     private val _vrMultiplier = MutableStateFlow<Float?>(null)
     val vrMultiplier: StateFlow<Float?> = _vrMultiplier.asStateFlow()
 
+    private val leaderboardRequests = Channel<Unit>(Channel.CONFLATED)
+
     val playerCount: Int?
         get() = (_roomsState.value as? RoomsState.Success)?.playerCount
 
@@ -82,6 +99,41 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
 
     init {
         initialFetch()
+        launchLeaderboardConsumer()
+    }
+
+    private fun launchLeaderboardConsumer() {
+        viewModelScope.launch {
+            leaderboardRequests.consumeAsFlow().collect { _ ->
+                val currentState = _leaderboardState.value
+                if (currentState is LeaderboardState.Success && !currentState.hasMore) return@collect
+                val nextPage = when (currentState) {
+                    is LeaderboardState.Success -> currentState.page + 1
+                    else -> 1
+                }
+                if (nextPage == 1) {
+                    _leaderboardState.value = LeaderboardState.Loading
+                }
+                val result = withContext(Dispatchers.IO) {
+                    VersionFileParser.fetchLeaderboard(page = nextPage)
+                }
+                val snapshot = currentState
+                result.onSuccess { response ->
+                    val existing = (snapshot as? LeaderboardState.Success)?.entries ?: emptyList()
+                    _leaderboardState.value = LeaderboardState.Success(
+                        entries = existing + response.entries,
+                        hasMore = response.hasMore,
+                        page = nextPage
+                    )
+                }.onFailure { e ->
+                    _leaderboardState.value = if (snapshot is LeaderboardState.Success) {
+                        snapshot
+                    } else {
+                        LeaderboardState.Error(e.message ?: "Failed to load leaderboard")
+                    }
+                }
+            }
+        }
     }
 
     private fun initialFetch() {
@@ -147,38 +199,7 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
     private var isLeaderboardLoading = false
 
     fun fetchLeaderboard() {
-        if (isLeaderboardLoading) return
-        val currentState = _leaderboardState.value
-        if (currentState is LeaderboardState.Success && !currentState.hasMore) return
-
-        val nextPage = when (currentState) {
-            is LeaderboardState.Success -> currentState.page + 1
-            else -> 1
-        }
-        isLeaderboardLoading = true
-        if (nextPage == 1) {
-            _leaderboardState.value = LeaderboardState.Loading
-        }
-        viewModelScope.launch {
-            val result = withContext(Dispatchers.IO) {
-                VersionFileParser.fetchLeaderboard(page = nextPage)
-            }
-            isLeaderboardLoading = false
-            result.onSuccess { response ->
-                val existing = (currentState as? LeaderboardState.Success)?.entries ?: emptyList()
-                _leaderboardState.value = LeaderboardState.Success(
-                    entries = existing + response.entries,
-                    hasMore = response.hasMore,
-                    page = nextPage
-                )
-            }.onFailure { e ->
-                _leaderboardState.value = if (currentState is LeaderboardState.Success) {
-                    currentState
-                } else {
-                    LeaderboardState.Error(e.message ?: "Failed to load leaderboard")
-                }
-            }
-        }
+        leaderboardRequests.trySend(Unit)
     }
 
     fun fetchHealth() {

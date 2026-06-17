@@ -33,13 +33,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.ui.components.buttonShape
+import com.skiletro.wheelwitch.viewmodel.PackUpdateViewModel
 import com.skiletro.wheelwitch.viewmodel.UiState
-import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
 import kotlinx.coroutines.delay
 
 @Composable
 fun QuickLaunchScreen(
-    viewModel: UpdateViewModel,
+    viewModel: PackUpdateViewModel,
     onFinish: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()

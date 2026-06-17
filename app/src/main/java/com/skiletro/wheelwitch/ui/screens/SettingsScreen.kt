@@ -60,11 +60,15 @@ import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.ui.components.cacheSize
 import com.skiletro.wheelwitch.ui.components.formatBytes
 import com.skiletro.wheelwitch.ui.theme.ThemeMode
-import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
+import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
+import com.skiletro.wheelwitch.viewmodel.PackUpdateViewModel
+import com.skiletro.wheelwitch.viewmodel.SaveDataViewModel
 
 @Composable
 fun SettingsScreen(
-    viewModel: UpdateViewModel,
+    packUpdate: PackUpdateViewModel,
+    saveData: SaveDataViewModel,
+    miiMaker: MiiMakerViewModel,
     onBackupSave: () -> Unit,
     onRestoreSave: () -> Unit,
     onDeleteSave: () -> Unit,
@@ -77,11 +81,11 @@ fun SettingsScreen(
     onSimulateQuickLaunch: () -> Unit,
     onRelaunchOnboarding: () -> Unit
 ) {
-    val saveState by viewModel.saveState.collectAsState()
-    val miiMakerState by viewModel.miiMakerState.collectAsState()
-    val isInstallingWad by viewModel.isInstallingWad.collectAsState()
-    val miiMakerError by viewModel.miiMakerError.collectAsState()
-    val isoPath by viewModel.currentIsoPath.collectAsState()
+    val saveState by saveData.saveState.collectAsState()
+    val miiMakerState by miiMaker.miiMakerState.collectAsState()
+    val isInstallingWad by miiMaker.isInstallingWad.collectAsState()
+    val miiMakerError by miiMaker.miiMakerError.collectAsState()
+    val isoPath by packUpdate.currentIsoPath.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showWadDeleteConfirm by remember { mutableStateOf(false) }
@@ -107,7 +111,7 @@ fun SettingsScreen(
             title = { Text("Delete Mii Channel WAD") },
             text = { Text("Delete the cached Mii Channel WAD file? It will be re-downloaded the next time you use Mii Maker.") },
             confirmButton = {
-                Button(onClick = { viewModel.deleteWad(); showWadDeleteConfirm = false }) { Text("Delete") }
+                Button(onClick = { miiMaker.deleteWad(); showWadDeleteConfirm = false }) { Text("Delete") }
             },
             dismissButton = {
                 TextButton(onClick = { showWadDeleteConfirm = false }) { Text("Cancel") }
@@ -281,7 +285,7 @@ fun SettingsScreen(
                             ) { Text("Pick") }
                             if (fileName != null) {
                                 TextButton(
-                                    onClick = { viewModel.clearIsoPath() },
+                                    onClick = { packUpdate.clearIsoPath() },
                                     shape = RoundedCornerShape(14.dp)
                                 ) { Text("Clear") }
                             }
@@ -291,7 +295,7 @@ fun SettingsScreen(
                 SettingsItem(
                     icon = Icons.Filled.Dns,
                     title = "Pack storage",
-                    summary = viewModel.storageRootPath ?: "Not configured",
+                    summary = packUpdate.storageRootPath ?: "Not configured",
                     trailing = null
                 )
             }
@@ -316,7 +320,7 @@ fun SettingsScreen(
                             }
                         } else {
                             Button(
-                                onClick = { viewModel.installMiiMakerWad() },
+                                onClick = { miiMaker.installMiiMakerWad() },
                                 shape = RoundedCornerShape(14.dp),
                                 contentPadding = ButtonDefaults.TextButtonContentPadding
                             ) { Text("Install") }

@@ -48,9 +48,11 @@ import androidx.compose.ui.text.style.TextAlign
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
+import com.skiletro.wheelwitch.viewmodel.PackUpdateViewModel
 import com.skiletro.wheelwitch.viewmodel.RoomsState
+import com.skiletro.wheelwitch.viewmodel.SaveDataViewModel
 import com.skiletro.wheelwitch.viewmodel.UiState
-import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
+import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
 import com.skiletro.wheelwitch.ui.components.MiiFace
 import com.skiletro.wheelwitch.ui.components.buttonShape
 import com.skiletro.wheelwitch.ui.components.focusBorder
@@ -60,20 +62,22 @@ import android.view.WindowManager
 
 @Composable
 fun HomeScreen(
-    viewModel: UpdateViewModel,
+    packUpdate: PackUpdateViewModel,
+    saveData: SaveDataViewModel,
+    miiMaker: MiiMakerViewModel,
     onlineViewModel: OnlineViewModel,
     onPickIso: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
-    val state by viewModel.state.collectAsState()
-    val successMessage by viewModel.successMessage.collectAsState()
-    val miiMakerState by viewModel.miiMakerState.collectAsState()
+    val state by packUpdate.state.collectAsState()
+    val successMessage by packUpdate.successMessage.collectAsState()
+    val miiMakerState by miiMaker.miiMakerState.collectAsState()
     val roomsState by onlineViewModel.roomsState.collectAsState()
-    val saveInfoState by viewModel.saveInfoState.collectAsState()
-    val selectedSlotIndex by viewModel.selectedSlotIndex.collectAsState()
-    val activeLicenseInfo by viewModel.activeLicenseInfo.collectAsState()
+    val saveInfoState by saveData.saveInfoState.collectAsState()
+    val selectedSlotIndex by saveData.selectedSlotIndex.collectAsState()
+    val activeLicenseInfo by saveData.activeLicenseInfo.collectAsState()
     val vrMultiplier by onlineViewModel.vrMultiplier.collectAsState()
-    val currentIsoPath by viewModel.currentIsoPath.collectAsState()
+    val currentIsoPath by packUpdate.currentIsoPath.collectAsState()
     val hasIso = currentIsoPath != null
 
     val playerCount = (roomsState as? RoomsState.Success)?.playerCount
@@ -110,7 +114,7 @@ fun HomeScreen(
     LaunchedEffect(successMessage) {
         if (successMessage != null) {
             delay(3000)
-            viewModel.dismissSuccess()
+            packUpdate.dismissSuccess()
         }
     }
 
@@ -129,8 +133,8 @@ fun HomeScreen(
 
     val onInstallOrUpdate: (() -> Unit)? = packStatus?.let { s ->
         when (s) {
-            is PackStatus.NotInstalled -> ({ viewModel.downloadOrUpdate(s) })
-            is PackStatus.UpdateAvailable -> ({ viewModel.downloadOrUpdate(s) })
+            is PackStatus.NotInstalled -> ({ packUpdate.downloadOrUpdate(s) })
+            is PackStatus.UpdateAvailable -> ({ packUpdate.downloadOrUpdate(s) })
             else -> null
         }
     }
@@ -145,14 +149,14 @@ fun HomeScreen(
                 ) {
                     TopBar(
                         onOpenSettings = onOpenSettings,
-                        onLaunchMiiMaker = { viewModel.launchMiiMaker() },
+                        onLaunchMiiMaker = { miiMaker.launchMiiMaker() },
                         miiMakerEnabled = miiMakerState.hasWad,
                         onOpenOnlineMenu = {
                             showOnlineMenu = true
                         },
                         onlineMenuEnabled = serverConnectivity is ServerConnectivity.Online,
                         onOpenSaveInfo = {
-                            viewModel.refreshSaveFileInfo()
+                            saveData.refreshSaveFileInfo()
                             showSaveInfo = true
                         }
                     )
@@ -172,9 +176,9 @@ fun HomeScreen(
                             serverConnectivity = serverConnectivity,
                             isBusy = isBusy,
                             hasIso = hasIso,
-                            onLaunch = { viewModel.launchDolphin() },
-                            onCheck = { viewModel.checkStatus() },
-                            onRetry = { viewModel.clearError() },
+                            onLaunch = { packUpdate.launchDolphin() },
+                            onCheck = { packUpdate.checkStatus() },
+                            onRetry = { packUpdate.clearError() },
                             onInstallOrUpdate = onInstallOrUpdate,
                             onPickIso = onPickIso
                         )
@@ -255,8 +259,8 @@ fun HomeScreen(
             SaveInfoScreen(
                 saveInfoState = saveInfoState,
                 selectedSlotIndex = selectedSlotIndex,
-                onSelectSlot = { viewModel.selectSlot(it) },
-                onRefresh = { viewModel.refreshSaveFileInfo() },
+                onSelectSlot = { saveData.selectSlot(it) },
+                onRefresh = { saveData.refreshSaveFileInfo() },
                 onClose = { showSaveInfo = false }
             )
         }

@@ -33,8 +33,10 @@ import com.skiletro.wheelwitch.ui.theme.ThemeMode
 import com.skiletro.wheelwitch.ui.theme.WheelWitchTheme
 import com.skiletro.wheelwitch.data.PackStorage
 import com.skiletro.wheelwitch.util.DolphinLauncher
+import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
-import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
+import com.skiletro.wheelwitch.viewmodel.PackUpdateViewModel
+import com.skiletro.wheelwitch.viewmodel.SaveDataViewModel
 
 /** Single-activity entry point. Hosts [HomeScreen] with onboarding wizard, settings navigation, and save info/rooms overlays. */
 class MainActivity : ComponentActivity() {
@@ -86,7 +88,9 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun MainScreen(
     quickLaunchFromIntent: Boolean = false,
-    viewModel: UpdateViewModel = viewModel(),
+    packUpdate: PackUpdateViewModel = viewModel(),
+    saveData: SaveDataViewModel = viewModel(),
+    miiMaker: MiiMakerViewModel = viewModel(),
     onlineViewModel: OnlineViewModel = viewModel(),
     useDynamicColor: Boolean = false,
     onToggleDynamicColor: (Boolean) -> Unit = {},
@@ -113,7 +117,7 @@ private fun MainScreen(
             } catch (_: SecurityException) {
                 return@rememberLauncherForActivityResult
             }
-            viewModel.setStorageUri(uri)
+            packUpdate.setStorageUri(uri)
             onboardingStorageSelected = true
         }
     }
@@ -124,7 +128,7 @@ private fun MainScreen(
         if (uri != null) {
             val path = PackStorage.resolveContentUriToPath(uri)
             if (path != null) {
-                viewModel.setGameIsoPath(path)
+                packUpdate.setGameIsoPath(path)
                 onboardingIsoSelected = true
             }
         }
@@ -134,7 +138,7 @@ private fun MainScreen(
         contract = ActivityResultContracts.CreateDocument("application/octet-stream")
     ) { uri: Uri? ->
         if (uri != null) {
-            viewModel.backupSave(uri)
+            saveData.backupSave(uri)
         }
     }
 
@@ -142,7 +146,7 @@ private fun MainScreen(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         if (uri != null) {
-            viewModel.restoreSave(uri)
+            saveData.restoreSave(uri)
         }
     }
 
@@ -155,13 +159,15 @@ private fun MainScreen(
     Box(Modifier.fillMaxSize()) {
         if (quickLaunchMode) {
             QuickLaunchScreen(
-                viewModel = viewModel,
+                viewModel = packUpdate,
                 onFinish = { (context as? android.app.Activity)?.finish() }
             )
         } else if (onboardingComplete) {
             if (!showSettings) {
                 HomeScreen(
-                    viewModel = viewModel,
+                    packUpdate = packUpdate,
+                    saveData = saveData,
+                    miiMaker = miiMaker,
                     onlineViewModel = onlineViewModel,
                     onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
                     onOpenSettings = { showSettings = true }
@@ -174,10 +180,12 @@ private fun MainScreen(
                 exit = slideOutVertically() + fadeOut()
             ) {
                 SettingsScreen(
-                    viewModel = viewModel,
+                    packUpdate = packUpdate,
+                    saveData = saveData,
+                    miiMaker = miiMaker,
                     onBackupSave = { backupPicker.launch("rksys.dat") },
                     onRestoreSave = { restorePicker.launch(arrayOf("application/octet-stream", "*/*")) },
-                    onDeleteSave = { viewModel.deleteSave() },
+                    onDeleteSave = { saveData.deleteSave() },
                     onClose = { showSettings = false },
                     useDynamicColor = useDynamicColor,
                     onToggleDynamicColor = onToggleDynamicColor,
@@ -198,7 +206,7 @@ private fun MainScreen(
             OnboardingScreen(
                 storageSelected = onboardingStorageSelected,
                 isoSelected = onboardingIsoSelected,
-                storageConfigured = viewModel.storageRootPath != null,
+                storageConfigured = packUpdate.storageRootPath != null,
                 isoConfigured = DolphinLauncher.getGameIsoPath(context) != null,
                 onPickStorage = { storagePicker.launch(null) },
                 onSkipStorage = { onboardingStorageSelected = true },
