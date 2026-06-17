@@ -10,6 +10,7 @@ import com.skiletro.wheelwitch.data.SaveManager
 import com.skiletro.wheelwitch.model.LicenseInfo
 import com.skiletro.wheelwitch.model.SaveFileInfo
 import com.skiletro.wheelwitch.network.VersionFileParser
+import com.skiletro.wheelwitch.util.PrefsKeys
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -38,7 +39,7 @@ sealed class SaveInfoState {
  * and the license currently active in the selected slot.
  */
 class SaveDataViewModel(application: Application) : AndroidViewModel(application), SaveDataDelegate {
-    private val prefs = application.getSharedPreferences("wheelwitch", Application.MODE_PRIVATE)
+    private val prefs = application.getSharedPreferences(PrefsKeys.PREFS_NAME, Application.MODE_PRIVATE)
 
     private val _saveState = MutableStateFlow(SaveState())
     val saveState: StateFlow<SaveState> = _saveState.asStateFlow()
@@ -46,7 +47,7 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
     private val _saveInfoState = MutableStateFlow<SaveInfoState>(SaveInfoState.Idle)
     val saveInfoState: StateFlow<SaveInfoState> = _saveInfoState.asStateFlow()
 
-    private val _selectedSlotIndex = MutableStateFlow(prefs.getInt(SELECTED_SLOT_KEY, 0))
+    private val _selectedSlotIndex = MutableStateFlow(prefs.getInt(PrefsKeys.SELECTED_SLOT_KEY, 0))
     val selectedSlotIndex: StateFlow<Int> = _selectedSlotIndex.asStateFlow()
 
     private val _activeLicenseInfo = MutableStateFlow<LicenseInfo?>(null)
@@ -116,7 +117,7 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun selectSlot(index: Int) {
-        prefs.edit().putInt(SELECTED_SLOT_KEY, index).apply()
+        prefs.edit().putInt(PrefsKeys.SELECTED_SLOT_KEY, index).apply()
         _selectedSlotIndex.value = index
         refreshActiveLicense()
     }
@@ -197,10 +198,5 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
                 _saveInfoState.value = SaveInfoState.Error(e.message ?: "Failed to read save data")
             }
         }
-    }
-
-    companion object {
-        /** SharedPreferences key for the user's active license slot. */
-        private const val SELECTED_SLOT_KEY = "selected_slot"
     }
 }

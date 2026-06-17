@@ -11,6 +11,7 @@ import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.model.ServerHealth
 import com.skiletro.wheelwitch.model.TimeTrialTrack
 import com.skiletro.wheelwitch.network.VersionFileParser
+import com.skiletro.wheelwitch.util.PrefsKeys
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -66,7 +67,7 @@ sealed class RaceStatsState {
 }
 
 class OnlineViewModel(application: Application) : AndroidViewModel(application) {
-    private val prefs = application.getSharedPreferences("race_stats_cache", Application.MODE_PRIVATE)
+    private val prefs = application.getSharedPreferences(PrefsKeys.RACE_STATS_PREFS, Application.MODE_PRIVATE)
 
     private val _currentPage = MutableStateFlow(OnlineMenuPage.Hub)
     val currentPage: StateFlow<OnlineMenuPage> = _currentPage.asStateFlow()
@@ -264,11 +265,11 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
             put("json", rawJson)
             put("_cachedAt", timestamp)
         }
-        prefs.edit().putString(KEY_RACE_STATS, wrapper.toString()).apply()
+        prefs.edit().putString(PrefsKeys.RACE_STATS_KEY, wrapper.toString()).apply()
     }
 
     private fun loadRaceStatsCache(): Pair<RaceStats, Long>? {
-        val raw = prefs.getString(KEY_RACE_STATS, null) ?: return null
+        val raw = prefs.getString(PrefsKeys.RACE_STATS_KEY, null) ?: return null
         return try {
             val wrapper = JSONObject(raw)
             val json = wrapper.getString("json")
@@ -296,7 +297,6 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     companion object {
-        private const val KEY_RACE_STATS = "race_stats_json"
         private const val MAX_CACHE_AGE_MS = 24 * 60 * 60 * 1000L
     }
 }

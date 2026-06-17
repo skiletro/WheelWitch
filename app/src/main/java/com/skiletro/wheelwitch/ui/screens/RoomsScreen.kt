@@ -2,8 +2,6 @@ package com.skiletro.wheelwitch.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,7 +36,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -47,8 +44,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.Room
+import com.skiletro.wheelwitch.ui.components.FocusableSurface
 import com.skiletro.wheelwitch.ui.components.ScreenHeader
-import com.skiletro.wheelwitch.ui.components.focusBorder
 import com.skiletro.wheelwitch.ui.components.statusColors
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
 import com.skiletro.wheelwitch.viewmodel.RoomsState
@@ -214,7 +211,6 @@ fun RoomListItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isFocused by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier
             .height(IntrinsicSize.Min)
@@ -230,15 +226,11 @@ fun RoomListItem(
                     shape = RoundedCornerShape(topEnd = 0.dp, bottomEnd = 0.dp, topStart = 12.dp, bottomStart = 12.dp)
                 )
         )
-        Surface(
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            shape = sidebarShape,
-            modifier = Modifier
-                .weight(1f)
-                .clickable(onClick = onClick)
-                .focusable()
-                .onFocusChanged { isFocused = it.isFocused }
-                .focusBorder(isFocused, shape = sidebarShape)
+        FocusableSurface(
+            modifier = Modifier.weight(1f),
+            onClick = onClick,
+            selected = isSelected,
+            shape = sidebarShape
         ) {
             Row(
                 modifier = Modifier.padding(12.dp),

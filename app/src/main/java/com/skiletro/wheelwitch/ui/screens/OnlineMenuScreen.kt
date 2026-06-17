@@ -12,8 +12,6 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,13 +43,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -60,9 +54,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
-import com.skiletro.wheelwitch.model.Room
+import com.skiletro.wheelwitch.ui.components.FocusableSurface
 import com.skiletro.wheelwitch.ui.components.ScreenHeader
-import com.skiletro.wheelwitch.ui.components.focusBorder
 import com.skiletro.wheelwitch.viewmodel.OnlineMenuPage
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 
@@ -269,19 +262,12 @@ private fun HubOption(
     val shape = RoundedCornerShape(16.dp)
     val baseColor = if (enabled) MaterialTheme.colorScheme.surfaceVariant
                     else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-    val effectiveClick = if (enabled) onClick else null
-    var focused by remember { mutableStateOf(false) }
-    Surface(
+    FocusableSurface(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+        enabled = enabled,
         shape = shape,
-        color = baseColor,
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(
-                if (effectiveClick != null) Modifier.clickable(onClick = effectiveClick)
-                else Modifier.focusable()
-            )
-            .onFocusChanged { focused = it.isFocused }
-            .focusBorder(focused, shape = shape)
+        color = baseColor
     ) {
         Row(
             modifier = Modifier.padding(16.dp),

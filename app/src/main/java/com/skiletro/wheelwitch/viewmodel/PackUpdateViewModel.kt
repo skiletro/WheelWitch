@@ -15,6 +15,7 @@ import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.ProgressInfo
 import com.skiletro.wheelwitch.util.DolphinLauncher
 import com.skiletro.wheelwitch.util.MiiFaceCache
+import com.skiletro.wheelwitch.util.PrefsKeys
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,7 +32,7 @@ import java.io.File
  */
 class PackUpdateViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application
-    private val prefs = application.getSharedPreferences("wheelwitch", Application.MODE_PRIVATE)
+    private val prefs = application.getSharedPreferences(PrefsKeys.PREFS_NAME, Application.MODE_PRIVATE)
 
     private val _state = MutableStateFlow<UiState>(UiState.NoStorage)
     val state: StateFlow<UiState> = _state.asStateFlow()
@@ -53,7 +54,7 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     private fun restoreStorageUri() {
-        val uriString = prefs.getString(STORAGE_URI_KEY, null)
+        val uriString = prefs.getString(PrefsKeys.STORAGE_URI_KEY, null)
         if (uriString != null) {
             storageUri = Uri.parse(uriString)
             storage = PackStorage(getApplication(), storageUri!!)
@@ -71,7 +72,7 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun setStorageUri(uri: Uri) {
-        prefs.edit().putString(STORAGE_URI_KEY, uri.toString()).apply()
+        prefs.edit().putString(PrefsKeys.STORAGE_URI_KEY, uri.toString()).apply()
         storageUri = uri
         storage = PackStorage(getApplication(), uri)
         currentStorage = storage
@@ -94,7 +95,7 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
                 else -> null
             }
             if (serverVersion != null) {
-                prefs.edit().putString("last_server_version", serverVersion).apply()
+                prefs.edit().putString(PrefsKeys.LAST_SERVER_VERSION_KEY, serverVersion).apply()
             }
             _state.value = UiState.Ready(status)
             saveDataDelegate?.onPackStatusChanged()
@@ -240,9 +241,6 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     companion object {
-        /** SharedPreferences key for the SAF storage tree URI. */
-        private const val STORAGE_URI_KEY = "storage_tree_uri"
-
         /**
          * The currently active [PackStorage] instance, shared with other
          * ViewModels (e.g. [SaveDataViewModel]) so they can read/write the

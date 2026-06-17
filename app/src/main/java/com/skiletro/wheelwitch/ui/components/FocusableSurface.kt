@@ -24,6 +24,8 @@ import androidx.compose.ui.graphics.Shape
  *
  * - When [onClick] is non-null and [enabled] is true, the surface is
  *   clickable; otherwise it is focusable only.
+ * - When [selected] is true, the focus border is shown regardless of focus
+ *   state (used for things like a currently-selected license slot).
  * - Focus state is hoisted to a `remember` scope (NOT inside the clickable
  *   lambda) so the state survives recomposition correctly.
  */
@@ -32,6 +34,7 @@ fun FocusableSurface(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     enabled: Boolean = true,
+    selected: Boolean = false,
     shape: Shape = buttonShape,
     color: Color = MaterialTheme.colorScheme.surfaceVariant,
     content: @Composable () -> Unit
@@ -52,7 +55,7 @@ fun FocusableSurface(
             .focusable(enabled = enabled)
             .onFocusChanged { isFocused = it.isFocused }
             .focusBorder(
-                isFocused = isFocused,
+                isFocused = isFocused || selected,
                 shape = shape as? RoundedCornerShape ?: buttonShape
             )
     ) {

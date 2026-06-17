@@ -66,14 +66,13 @@ object MiiFaceCache {
 
     @Synchronized
     fun cacheSize(): Long {
-        return cacheSize(cacheDir)
+        return com.skiletro.wheelwitch.ui.components.cacheSize(cacheDir)
     }
 
     /** Static helper: sum of file lengths in [dir], or 0 if it doesn't exist. */
     @JvmStatic
     fun cacheSize(dir: File): Long {
-        if (!dir.exists()) return 0
-        return dir.listFiles()?.sumOf { it.length() } ?: 0
+        return com.skiletro.wheelwitch.ui.components.cacheSize(dir)
     }
 
     private fun fileFor(rflDataBase64: String): File {

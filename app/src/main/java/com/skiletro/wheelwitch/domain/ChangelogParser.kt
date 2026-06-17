@@ -3,6 +3,7 @@ package com.skiletro.wheelwitch.domain
 import android.content.Context
 import com.skiletro.wheelwitch.model.ChangelogEntry
 import com.skiletro.wheelwitch.util.HttpClientProvider
+import com.skiletro.wheelwitch.util.PrefsKeys
 import okhttp3.Request
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
@@ -23,8 +24,8 @@ object ChangelogParser {
     fun fetchWithCache(context: Context): Result<List<ChangelogEntry>> {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val cachedVersion = prefs.getString(KEY_VERSION, null)
-        val serverVersion = context.getSharedPreferences("wheelwitch", Context.MODE_PRIVATE)
-            .getString("last_server_version", null)
+        val serverVersion = context.getSharedPreferences(PrefsKeys.PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(PrefsKeys.LAST_SERVER_VERSION_KEY, null)
 
         if (cachedVersion != null && cachedVersion == serverVersion) {
             val cached = readCache(prefs)

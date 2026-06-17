@@ -2,9 +2,6 @@ package com.skiletro.wheelwitch.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,25 +21,19 @@ import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.LicenseInfo
+import com.skiletro.wheelwitch.ui.components.FocusableSurface
 import com.skiletro.wheelwitch.ui.components.MiiFace
 import com.skiletro.wheelwitch.ui.components.ScreenHeader
-import com.skiletro.wheelwitch.ui.components.focusBorder
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
 import com.skiletro.wheelwitch.viewmodel.SaveInfoState
 
@@ -148,27 +139,17 @@ private fun LicenseCard(
     modifier: Modifier = Modifier
 ) {
     val info = license
-    var isFocused by remember { mutableStateOf(false) }
 
     val backgroundColor = when {
         info?.exists != true -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         else -> MaterialTheme.colorScheme.surfaceVariant
     }
 
-    val showBorder = isFocused || isSelected
-
-    Surface(
-        modifier = modifier
-            .clickable(enabled = info?.exists == true) { onSelect() }
-            .focusable()
-            .onFocusChanged { isFocused = it.isFocused }
-            .then(
-                if (showBorder) Modifier.border(
-                    width = 3.dp,
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = cardShape
-                ) else Modifier
-            ),
+    FocusableSurface(
+        modifier = modifier,
+        onClick = onSelect,
+        enabled = info?.exists == true,
+        selected = isSelected,
         shape = cardShape,
         color = backgroundColor
     ) {

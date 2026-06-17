@@ -36,7 +36,7 @@ object DolphinLauncher {
 
     /** Persists the selected Mario Kart Wii ISO path to SharedPreferences. */
     fun setGameIsoPath(context: Context, path: String) {
-        context.getSharedPreferences("wheelwitch", Context.MODE_PRIVATE)
+        context.getSharedPreferences(PrefsKeys.PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
             .putString(GAME_ISO_PREFS_KEY, path)
             .apply()
@@ -44,7 +44,7 @@ object DolphinLauncher {
 
     /** Returns the saved ISO path, or null if none was set. */
     fun getGameIsoPath(context: Context): String? {
-        return context.getSharedPreferences("wheelwitch", Context.MODE_PRIVATE)
+        return context.getSharedPreferences(PrefsKeys.PREFS_NAME, Context.MODE_PRIVATE)
             .getString(GAME_ISO_PREFS_KEY, null)
     }
 

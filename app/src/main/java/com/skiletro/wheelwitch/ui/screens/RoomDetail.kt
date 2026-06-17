@@ -1,10 +1,5 @@
 package com.skiletro.wheelwitch.ui.screens
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,38 +13,22 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.Player
 import com.skiletro.wheelwitch.model.Room
+import com.skiletro.wheelwitch.ui.components.MiiFace
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
-import com.skiletro.wheelwitch.util.HttpClientProvider
-import com.skiletro.wheelwitch.util.MII_IMAGE_BASE_URL
-import java.net.URLEncoder
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import okhttp3.Request
-
-private val httpClient get() = HttpClientProvider.client
 
 @Composable
 fun RoomDetail(room: Room) {
@@ -125,71 +104,22 @@ fun RoomDetail(room: Room) {
 
 @Composable
 fun MiiPlayerCard(player: Player) {
-    var miiBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var isFocused by remember { mutableStateOf(false) }
-    LaunchedEffect(player.mii?.data) {
-        if (player.mii?.data != null) {
-            val cached = withContext(Dispatchers.IO) {
-                com.skiletro.wheelwitch.util.MiiFaceCache.get(player.mii.data)
-            }
-            if (cached != null) {
-                miiBitmap = cached
-            } else {
-                withContext(Dispatchers.IO) {
-                    val url = "$MII_IMAGE_BASE_URL?data=${
-                        URLEncoder.encode(player.mii.data, "UTF-8")
-                    }&width=96&type=face"
-                    val request = Request.Builder().url(url).build()
-                    val response = httpClient.newCall(request).execute()
-                    val bytes = response.body?.bytes()
-                    if (bytes != null) {
-                        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                        if (bitmap != null) {
-                            com.skiletro.wheelwitch.util.MiiFaceCache.put(player.mii.data, bitmap)
-                        }
-                        miiBitmap = bitmap
-                    }
-                }
-            }
-        }
-    }
-
     val cardShape = RoundedCornerShape(10.dp)
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
         shape = cardShape,
-        modifier = Modifier
-            .fillMaxWidth()
-            .focusable()
-            .onFocusChanged { isFocused = it.isFocused }
-            .then(
-                if (isFocused) Modifier.border(
-                    width = 3.dp,
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = cardShape
-                ) else Modifier
-            )
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (player.mii?.data != null) {
-                val bitmap = miiBitmap
-                if (bitmap != null) {
-                    Image(
-                        bitmap = bitmap.asImageBitmap(),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                    )
-                } else {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(44.dp),
-                        strokeWidth = 3.dp
-                    )
-                }
+                MiiFace(
+                    imageBase64 = null,
+                    miiDataBase64 = player.mii.data,
+                    modifier = Modifier.size(44.dp)
+                )
                 Spacer(modifier = Modifier.width(10.dp))
             }
             Column(modifier = Modifier.weight(1f)) {
