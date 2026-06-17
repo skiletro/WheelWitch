@@ -69,6 +69,7 @@ dependencies {
     testImplementation(libs.junit.jupiter.params)
     testImplementation(libs.mockk)
     testImplementation(libs.truth)
+    testImplementation(libs.okhttp.mockwebserver)
     testImplementation("org.json:json:20250107")
     testRuntimeOnly(libs.junit.jupiter.engine)
     testRuntimeOnly(libs.junit.platform.launcher)
