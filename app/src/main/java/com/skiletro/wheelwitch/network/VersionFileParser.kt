@@ -129,6 +129,12 @@ object VersionFileParser {
         parseRaceStats(json)
     }
 
+    /** Fetches global race statistics and returns the raw JSON for caching. */
+    fun fetchGlobalRaceStatsRaw(): Result<Pair<RaceStats, String>> = runCatching {
+        val json = fetchUrl(RACE_STATS_URL)
+        Pair(parseRaceStats(json), json)
+    }
+
     /** Fetches the list of time trial tracks. */
     fun fetchTracks(): Result<List<TimeTrialTrack>> = runCatching {
         val json = fetchUrl(TIME_TRIAL_TRACKS_URL)

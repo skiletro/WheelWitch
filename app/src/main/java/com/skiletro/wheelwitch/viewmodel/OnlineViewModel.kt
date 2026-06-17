@@ -1,7 +1,8 @@
 package com.skiletro.wheelwitch.viewmodel
 
+import android.app.Application
 import androidx.compose.runtime.Immutable
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.skiletro.wheelwitch.model.LeaderboardEntry
 import com.skiletro.wheelwitch.model.RaceStats
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 
 enum class OnlineMenuPage {
     Hub, Rooms, Leaderboard, Health, RaceStats, TimeTrial
@@ -44,11 +46,13 @@ sealed class HealthState {
 sealed class RaceStatsState {
     data object Idle : RaceStatsState()
     data object Loading : RaceStatsState()
-    data class Success(val stats: RaceStats) : RaceStatsState()
+    data class Success(val stats: RaceStats, val lastRefreshedAt: Long) : RaceStatsState()
     data class Error(val message: String) : RaceStatsState()
 }
 
-class OnlineViewModel : ViewModel() {
+class OnlineViewModel(application: Application) : AndroidViewModel(application) {
+    private val prefs = application.getSharedPreferences("race_stats_cache", Application.MODE_PRIVATE)
+
     private val _currentPage = MutableStateFlow(OnlineMenuPage.Hub)
     val currentPage: StateFlow<OnlineMenuPage> = _currentPage.asStateFlow()
 
@@ -109,7 +113,7 @@ class OnlineViewModel : ViewModel() {
             OnlineMenuPage.Rooms -> fetchRooms()
             OnlineMenuPage.Leaderboard -> fetchLeaderboard()
             OnlineMenuPage.Health -> fetchHealth()
-            OnlineMenuPage.RaceStats -> fetchRaceStats()
+            OnlineMenuPage.RaceStats -> loadRaceStats()
             OnlineMenuPage.TimeTrial -> fetchTracks()
             else -> {}
         }
@@ -207,16 +211,57 @@ class OnlineViewModel : ViewModel() {
     }
 
     fun fetchRaceStats() {
+        fetchRaceStatsFromServer()
+    }
+
+    private fun loadRaceStats() {
+        val cached = loadRaceStatsCache()
+        if (cached != null) {
+            _raceStatsState.value = RaceStatsState.Success(cached.first, cached.second)
+            if (System.currentTimeMillis() - cached.second < MAX_CACHE_AGE_MS) return
+        }
+        fetchRaceStatsFromServer()
+    }
+
+    private fun fetchRaceStatsFromServer() {
         viewModelScope.launch {
             _raceStatsState.value = RaceStatsState.Loading
             val result = withContext(Dispatchers.IO) {
-                VersionFileParser.fetchGlobalRaceStats()
+                VersionFileParser.fetchGlobalRaceStatsRaw()
             }
-            result.onSuccess { stats ->
-                _raceStatsState.value = RaceStatsState.Success(stats)
+            result.onSuccess { (stats, rawJson) ->
+                val now = System.currentTimeMillis()
+                saveRaceStatsCache(rawJson, now)
+                _raceStatsState.value = RaceStatsState.Success(stats, now)
             }.onFailure { e ->
-                _raceStatsState.value = RaceStatsState.Error(e.message ?: "Failed to fetch race stats")
+                val fallback = loadRaceStatsCache()
+                if (fallback != null) {
+                    _raceStatsState.value = RaceStatsState.Success(fallback.first, fallback.second)
+                } else {
+                    _raceStatsState.value = RaceStatsState.Error(e.message ?: "Failed to fetch race stats")
+                }
             }
+        }
+    }
+
+    private fun saveRaceStatsCache(rawJson: String, timestamp: Long) {
+        val wrapper = JSONObject().apply {
+            put("json", rawJson)
+            put("_cachedAt", timestamp)
+        }
+        prefs.edit().putString(KEY_RACE_STATS, wrapper.toString()).apply()
+    }
+
+    private fun loadRaceStatsCache(): Pair<RaceStats, Long>? {
+        val raw = prefs.getString(KEY_RACE_STATS, null) ?: return null
+        return try {
+            val wrapper = JSONObject(raw)
+            val json = wrapper.getString("json")
+            val stats = com.skiletro.wheelwitch.model.parseRaceStats(json)
+            val timestamp = wrapper.optLong("_cachedAt", 0L)
+            Pair(stats, timestamp)
+        } catch (_: Exception) {
+            null
         }
     }
 
@@ -233,5 +278,10 @@ class OnlineViewModel : ViewModel() {
 
     fun refreshHealth() {
         fetchHealth()
+    }
+
+    companion object {
+        private const val KEY_RACE_STATS = "race_stats_json"
+        private const val MAX_CACHE_AGE_MS = 24 * 60 * 60 * 1000L
     }
 }
