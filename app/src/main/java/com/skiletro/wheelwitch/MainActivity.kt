@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skiletro.wheelwitch.ui.screens.HomeScreen
 import com.skiletro.wheelwitch.ui.screens.SettingsScreen
+import com.skiletro.wheelwitch.ui.theme.ThemeMode
 import com.skiletro.wheelwitch.ui.theme.WheelWitchTheme
 import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
 
@@ -40,13 +41,24 @@ class MainActivity : ComponentActivity() {
         setContent {
             val prefs = remember { this@MainActivity.getSharedPreferences("settings", Context.MODE_PRIVATE) }
             var useDynamicColor by remember { mutableStateOf(prefs.getBoolean("dynamic_color", false)) }
+            var themeMode by remember {
+                mutableStateOf(ThemeMode.valueOf(prefs.getString("theme_mode", ThemeMode.System.name) ?: ThemeMode.System.name))
+            }
 
-            WheelWitchTheme(dynamicColor = useDynamicColor) {
+            WheelWitchTheme(
+                themeMode = themeMode,
+                dynamicColor = useDynamicColor
+            ) {
                 MainScreen(
                     useDynamicColor = useDynamicColor,
                     onToggleDynamicColor = { enabled ->
                         useDynamicColor = enabled
                         prefs.edit().putBoolean("dynamic_color", enabled).apply()
+                    },
+                    themeMode = themeMode,
+                    onChangeThemeMode = { mode ->
+                        themeMode = mode
+                        prefs.edit().putString("theme_mode", mode.name).apply()
                     }
                 )
             }
@@ -58,7 +70,9 @@ class MainActivity : ComponentActivity() {
 private fun MainScreen(
     viewModel: UpdateViewModel = viewModel(),
     useDynamicColor: Boolean = false,
-    onToggleDynamicColor: (Boolean) -> Unit = {}
+    onToggleDynamicColor: (Boolean) -> Unit = {},
+    themeMode: ThemeMode = ThemeMode.System,
+    onChangeThemeMode: (ThemeMode) -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -129,7 +143,9 @@ private fun MainScreen(
                     onDeleteSave = { viewModel.deleteSave() },
                     onClose = { showSettings = false },
                     useDynamicColor = useDynamicColor,
-                    onToggleDynamicColor = onToggleDynamicColor
+                    onToggleDynamicColor = onToggleDynamicColor,
+                    themeMode = themeMode,
+                    onChangeThemeMode = onChangeThemeMode
                 )
             }
         }

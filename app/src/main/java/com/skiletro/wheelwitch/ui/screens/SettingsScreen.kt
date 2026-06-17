@@ -26,10 +26,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -49,6 +52,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.BuildConfig
+import com.skiletro.wheelwitch.ui.theme.ThemeMode
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import com.skiletro.wheelwitch.viewmodel.MiiMakerState
@@ -65,7 +69,9 @@ fun SettingsScreen(
     onDeleteSave: () -> Unit,
     onClose: () -> Unit,
     useDynamicColor: Boolean,
-    onToggleDynamicColor: (Boolean) -> Unit
+    onToggleDynamicColor: (Boolean) -> Unit,
+    themeMode: ThemeMode,
+    onChangeThemeMode: (ThemeMode) -> Unit
 ) {
     val saveState by viewModel.saveState.collectAsState()
     val miiMakerState by viewModel.miiMakerState.collectAsState()
@@ -168,7 +174,9 @@ fun SettingsScreen(
 
             ThemeSection(
                 useDynamicColor = useDynamicColor,
-                onToggleDynamicColor = onToggleDynamicColor
+                onToggleDynamicColor = onToggleDynamicColor,
+                themeMode = themeMode,
+                onChangeThemeMode = onChangeThemeMode
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -392,7 +400,9 @@ private fun MiiMakerSection(
 @Composable
 private fun ThemeSection(
     useDynamicColor: Boolean,
-    onToggleDynamicColor: (Boolean) -> Unit
+    onToggleDynamicColor: (Boolean) -> Unit,
+    themeMode: ThemeMode,
+    onChangeThemeMode: (ThemeMode) -> Unit
 ) {
     Text(
         text = "Theme",
@@ -423,6 +433,57 @@ private fun ThemeSection(
             checked = useDynamicColor,
             onCheckedChange = onToggleDynamicColor
         )
+    }
+    Spacer(modifier = Modifier.height(12.dp))
+    var expanded by remember { mutableStateOf(false) }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Dark Mode",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
+        )
+        Box {
+            OutlinedButton(
+                onClick = { expanded = true },
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text(
+                    text = when (themeMode) {
+                        ThemeMode.Light -> "Light"
+                        ThemeMode.Dark -> "Dark"
+                        ThemeMode.System -> "System"
+                    },
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(text = "\u25BC", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+            ThemeMode.entries.forEach { mode ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = when (mode) {
+                                ThemeMode.Light -> "Light"
+                                ThemeMode.Dark -> "Dark"
+                                ThemeMode.System -> "System"
+                            }
+                        )
+                    },
+                    onClick = {
+                        onChangeThemeMode(mode)
+                        expanded = false
+                    }
+                )
+            }
+            }
+        }
     }
 }
 

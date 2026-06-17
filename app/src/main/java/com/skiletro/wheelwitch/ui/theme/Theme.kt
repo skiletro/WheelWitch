@@ -21,12 +21,19 @@ private val LightColorScheme = lightColorScheme(
     tertiary = LightRed40
 )
 
+enum class ThemeMode { Light, Dark, System }
+
 @Composable
 fun WheelWitchTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    themeMode: ThemeMode = ThemeMode.System,
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    val darkTheme = when (themeMode) {
+        ThemeMode.Light -> false
+        ThemeMode.Dark -> true
+        ThemeMode.System -> isSystemInDarkTheme()
+    }
     val colorScheme = if (dynamicColor) {
         val context = LocalContext.current
         if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
