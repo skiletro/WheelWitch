@@ -1,7 +1,6 @@
 package com.skiletro.wheelwitch.network
 
 import com.skiletro.wheelwitch.model.DeletionEntry
-import com.skiletro.wheelwitch.model.LeaderboardPlayerData
 import com.skiletro.wheelwitch.model.LeaderboardResponse
 import com.skiletro.wheelwitch.model.RaceStats
 import com.skiletro.wheelwitch.model.Room
@@ -127,13 +126,13 @@ object VersionFileParser {
     }
 
     /** Fetches leaderboard data (VR, Mii image) for a given friend code. */
-    fun fetchPlayerLeaderboard(friendCode: String): Result<LeaderboardPlayerData> = runCatching {
+    fun fetchPlayerLeaderboard(friendCode: String): Result<Pair<Int, String?>> = runCatching {
         val url = "https://rwfc.net/api/leaderboard/player/$friendCode/"
         val json = fetchUrl(url)
         val root = JSONObject(json)
-        LeaderboardPlayerData(
-            vr = root.optInt("vr", 0),
-            miiImageBase64 = root.optString("miiImageBase64", "").takeIf { it.isNotEmpty() }
+        Pair(
+            root.optInt("vr", 0),
+            root.optString("miiImageBase64", "").takeIf { it.isNotEmpty() }
         )
     }
 

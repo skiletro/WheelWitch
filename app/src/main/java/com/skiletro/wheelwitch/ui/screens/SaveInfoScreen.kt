@@ -162,7 +162,7 @@ private fun LicenseCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     MiiFace(
-                        imageBase64 = info.leaderboard?.miiImageBase64,
+                        imageBase64 = info.leaderboardMiiImageBase64,
                         miiDataBase64 = info.miiDataBase64,
                         modifier = Modifier.size(84.dp)
                     )
@@ -187,7 +187,7 @@ private fun LicenseCard(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            val displayVr = info.leaderboard?.vr ?: info.vr
+                            val displayVr = info.leaderboardVr ?: info.vr
                             StatLabel("VR", displayVr)
                         }
                         Spacer(modifier = Modifier.height(2.dp))

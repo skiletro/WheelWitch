@@ -83,8 +83,8 @@ fun SettingsScreen(
     onSimulateQuickLaunch: () -> Unit,
     onRelaunchOnboarding: () -> Unit
 ) {
-    val saveState by saveData.saveState.collectAsState()
-    val miiMakerState by miiMaker.miiMakerState.collectAsState()
+    val hasSave by saveData.hasSave.collectAsState()
+    val hasWad by miiMaker.hasWad.collectAsState()
     val isInstallingWad by miiMaker.isInstallingWad.collectAsState()
     val miiMakerError by miiMaker.miiMakerError.collectAsState()
     val isoPath by packUpdate.currentIsoPath.collectAsState()
@@ -162,11 +162,11 @@ fun SettingsScreen(
                 SettingsItem(
                     icon = Icons.Filled.SaveAlt,
                     title = stringResource(R.string.settings_backup),
-                    summary = if (saveState.hasSave) stringResource(R.string.settings_save_found) else stringResource(R.string.settings_save_missing),
+                    summary = if (hasSave) stringResource(R.string.settings_save_found) else stringResource(R.string.settings_save_missing),
                     trailing = {
                         Button(
                             onClick = onBackupSave,
-                            enabled = saveState.hasSave,
+                            enabled = hasSave,
                             shape = RoundedCornerShape(14.dp),
                             contentPadding = ButtonDefaults.TextButtonContentPadding,
                             colors = ButtonDefaults.filledTonalButtonColors(
@@ -192,7 +192,7 @@ fun SettingsScreen(
                         ) { Text(stringResource(R.string.settings_restore), fontWeight = FontWeight.Medium) }
                     }
                 )
-                if (saveState.hasSave) {
+                if (hasSave) {
                     SettingsItem(
                         icon = Icons.Filled.Delete,
                         title = stringResource(R.string.settings_delete_save),
@@ -307,7 +307,7 @@ fun SettingsScreen(
                 SettingsCategoryHeader(stringResource(R.string.settings_mii_maker_section))
             }
             item {
-                val wadStatus = if (miiMakerState.hasWad) stringResource(R.string.settings_installed) else stringResource(R.string.settings_not_installed)
+                val wadStatus = if (hasWad) stringResource(R.string.settings_installed) else stringResource(R.string.settings_not_installed)
                 SettingsItem(
                     icon = Icons.Filled.Checkroom,
                     title = stringResource(R.string.settings_mii_channel_wad),
@@ -316,7 +316,7 @@ fun SettingsScreen(
                     trailing = {
                         if (isInstallingWad) {
                             Text(stringResource(R.string.settings_installing), style = MaterialTheme.typography.bodySmall)
-                        } else if (miiMakerState.hasWad) {
+                        } else if (hasWad) {
                             TextButton(onClick = { showWadDeleteConfirm = true }) {
                                 Text(stringResource(R.string.settings_delete), color = MaterialTheme.colorScheme.error)
                             }

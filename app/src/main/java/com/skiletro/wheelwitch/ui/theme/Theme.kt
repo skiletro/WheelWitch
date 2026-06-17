@@ -60,7 +60,7 @@ fun WheelWitchTheme(
 
     CompositionLocalProvider(LocalStatusColors provides statusColors) {
         MaterialTheme(
-            colorScheme = rememberAnimatedColorScheme(colorScheme),
+            colorScheme = colorScheme,
             typography = Typography,
             content = content
         )

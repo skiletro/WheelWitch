@@ -1,7 +1,6 @@
 package com.skiletro.wheelwitch.viewmodel
 
 import android.app.Application
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.skiletro.wheelwitch.R
@@ -16,11 +15,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 
-@Immutable
-data class MiiMakerState(
-    val hasWad: Boolean = false,
-)
-
 /**
  * Owns the Mii Channel WAD install / launch / delete state.
  *
@@ -29,8 +23,8 @@ data class MiiMakerState(
  */
 class MiiMakerViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application
-    private val _miiMakerState = MutableStateFlow(MiiMakerState())
-    val miiMakerState: StateFlow<MiiMakerState> = _miiMakerState.asStateFlow()
+    private val _hasWad = MutableStateFlow(false)
+    val hasWad: StateFlow<Boolean> = _hasWad.asStateFlow()
 
     private val _isInstallingWad = MutableStateFlow(false)
     val isInstallingWad: StateFlow<Boolean> = _isInstallingWad.asStateFlow()
@@ -45,8 +39,7 @@ class MiiMakerViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun refreshMiiMakerState() {
-        val hasWad = MiiWadInstaller.getCachedWadFile(getApplication()) != null
-        _miiMakerState.value = MiiMakerState(hasWad)
+        _hasWad.value = MiiWadInstaller.getCachedWadFile(getApplication()) != null
     }
 
     fun clearError() {

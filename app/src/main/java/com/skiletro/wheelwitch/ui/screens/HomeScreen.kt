@@ -80,7 +80,7 @@ fun HomeScreen(
 ) {
     val state by packUpdate.state.collectAsState()
     val successMessage by packUpdate.successMessage.collectAsState()
-    val miiMakerState by miiMaker.miiMakerState.collectAsState()
+    val hasWad by miiMaker.hasWad.collectAsState()
     val roomsState by onlineViewModel.roomsState.collectAsState()
     val saveInfoState by saveData.saveInfoState.collectAsState()
     val selectedSlotIndex by saveData.selectedSlotIndex.collectAsState()
@@ -166,7 +166,7 @@ fun HomeScreen(
                     TopBar(
                         onOpenSettings = onOpenSettings,
                         onLaunchMiiMaker = { miiMaker.launchMiiMaker() },
-                        miiMakerEnabled = miiMakerState.hasWad,
+                        miiMakerEnabled = hasWad,
                         onOpenOnlineMenu = {
                             showOnlineMenu = true
                         },
@@ -483,7 +483,7 @@ private fun ActivePlayerCard(
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         MiiFace(
-            imageBase64 = license.leaderboard?.miiImageBase64,
+            imageBase64 = license.leaderboardMiiImageBase64,
             miiDataBase64 = license.miiDataBase64,
             modifier = Modifier.size(40.dp)
         )
@@ -496,7 +496,7 @@ private fun ActivePlayerCard(
                 maxLines = 1,
                 fontFamily = CtmkfFontFamily
             )
-            val vr = license.leaderboard?.vr ?: license.vr
+            val vr = license.leaderboardVr ?: license.vr
             val vrText = if (vr != null && vrMultiplier != null && vrMultiplier > 1.0f) {
                 val mult = if (vrMultiplier == vrMultiplier.toInt().toFloat()) {
                     vrMultiplier.toInt().toString()

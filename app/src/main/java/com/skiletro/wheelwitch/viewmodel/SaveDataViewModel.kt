@@ -22,11 +22,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Immutable
-data class SaveState(
-    val hasSave: Boolean = false,
-)
-
-@Immutable
 sealed class SaveInfoState {
     data object Idle : SaveInfoState()
     data object Loading : SaveInfoState()
@@ -41,8 +36,8 @@ sealed class SaveInfoState {
 class SaveDataViewModel(application: Application) : AndroidViewModel(application), SaveDataDelegate {
     private val prefs = application.getSharedPreferences(PrefsKeys.PREFS_NAME, Application.MODE_PRIVATE)
 
-    private val _saveState = MutableStateFlow(SaveState())
-    val saveState: StateFlow<SaveState> = _saveState.asStateFlow()
+    private val _hasSave = MutableStateFlow(false)
+    val hasSave: StateFlow<Boolean> = _hasSave.asStateFlow()
 
     private val _saveInfoState = MutableStateFlow<SaveInfoState>(SaveInfoState.Idle)
     val saveInfoState: StateFlow<SaveInfoState> = _saveInfoState.asStateFlow()
@@ -69,12 +64,11 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             try {
                 val storage = PackUpdateViewModel.currentStorage ?: return@launch
-                val hasSave = withContext(Dispatchers.IO) {
+                _hasSave.value = withContext(Dispatchers.IO) {
                     SaveManager.hasSaveFile(storage)
                 }
-                _saveState.value = SaveState(hasSave)
             } catch (_: Exception) {
-                _saveState.value = SaveState(false)
+                _hasSave.value = false
             }
         }
     }
@@ -143,7 +137,11 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
                         VersionFileParser.fetchPlayerLeaderboard(license.friendCode)
                     }
                     if (result.isSuccess) {
-                        _activeLicenseInfo.value = license.copy(leaderboard = result.getOrNull())
+                        val (leaderboardVr, leaderboardMii) = result.getOrThrow()
+                        _activeLicenseInfo.value = license.copy(
+                            leaderboardVr = leaderboardVr,
+                            leaderboardMiiImageBase64 = leaderboardMii
+                        )
                     }
                 }
             } else {
@@ -188,7 +186,11 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
                         val updatedLicenses = current.info.licenses.map { lic ->
                             val result = leaderboardResults.find { it.first == lic.slotIndex }?.second
                             if (result?.isSuccess == true) {
-                                lic.copy(leaderboard = result.getOrNull())
+                                val (leaderboardVr, leaderboardMii) = result.getOrThrow()
+                                lic.copy(
+                                    leaderboardVr = leaderboardVr,
+                                    leaderboardMiiImageBase64 = leaderboardMii
+                                )
                             } else lic
                         }
                         _saveInfoState.value = SaveInfoState.Success(current.info.copy(licenses = updatedLicenses))
