@@ -5,11 +5,11 @@ An Android app that downloads/updates the Retro Rewind Mario Kart Wii Pack and l
 ## Build & Dev
 
 ```bash
-./gradlew assembleDebug     # build APK
-./gradlew assembleDebug --build-cache  # cached build
+./gradlew assembleDebug                  # build APK
+./gradlew assembleDebug --build-cache    # cached build
+./gradlew testDebugUnitTest              # run all unit tests
+./gradlew testDebugUnitTest --tests "com.skiletro.wheelwitch.model.SemVersionTest"  # single test class
 ```
-
-No test framework — test sources deleted.
 
 ## Git
 
@@ -31,6 +31,10 @@ No test framework — test sources deleted.
 - **SAF folder picker** for pack storage location; direct `java.io.File` path resolution for I/O with `DocumentFile` fallback for metadata
 - **OkHttp 4.12.0** for HTTP (connection pooling, progress tracking)
 - **Dolphin launch**: uses `AutoStartFile` intent extra with kebab-case JSON fields; RR.json read/written via `DolphinLauncher` methods (`readIsoPathFromLaunchJson`/`writeLaunchJson`/`deleteLaunchJson`)
+- **Screen navigation**: flat overlay pattern via `AnimatedVisibility` inside `Box` — no NavHost/routes; `MainScreen` orchestrates `HomeScreen`/`SettingsScreen`/`OnboardingScreen`, `HomeScreen` orchestrates `OnlineMenuScreen`/`SaveInfoScreen`; internal pages within `OnlineMenuScreen` use `AnimatedContent` with `OnlineMenuPage` enum
+- **Gamepad focus isolation**: background screens are conditionally composed (not just visually hidden) when overlays are active — `if (!showSettings)` for `HomeScreen`, `if (!(showOnlineMenu || showSaveInfo))` for `Scaffold` — prevents d-pad focus leaking through overlays
+- **Leaderboard rows**: use `.clickable { }` (not just `.focusable()`) for proper Compose focus engagement; 5dp `primary` border on focus
+- **Leaderboard pagination**: one-shot `hasRequestedFocus` guard prevents focus-stealing when more data loads
 - **File downloads**: consolidated in `FileDownloader.downloadToFile()` with optional progress callback and HTTP status validation (used by both `RewindPackManager` and `MiiWadInstaller`)
 - **Mii Maker (WAD install)**: downloads `https://filecache45.gamebanana.com/mods/mii_channel_symbols_-_hacs.zip` to app cache, extracts the `.wad` file, and launches Dolphin via `ACTION_VIEW` intent with FileProvider content URI
 - **Update server**: `https://update.rwfc.net/` (same as WheelWizard); version file manifest, deletion list, fallback to full reinstall if version < 3.2.6
@@ -57,7 +61,7 @@ com.skiletro.wheelwitch
 │   ├── SaveManager.kt   — Save file management
 │   └── RksysParser.kt   — RKPD save data parser
 ├── network/             — HTTP layer
-│   └── VersionFileParser.kt — Version + delete file fetching, leaderboard API, rooms API
+│   └── VersionFileParser.kt — Version + delete file fetching, leaderboard API, rooms API; exposes `parseUpdatesText()`/`parseDeletionsText()` as package-visible top-level functions for testing
 ├── domain/              — Business logic
 │   └── RewindPackManager.kt — Install/update orchestration
 ├── util/                — Utilities
@@ -129,7 +133,15 @@ com.skiletro.wheelwitch
 
 ## State
 
-All changes committed on `master`. No uncommitted work.
+Most changes committed on `master`. Uncommitted work: test infrastructure, RksysParser Base64 refactor, VersionFileParser text parsing extraction.
+
+## Gamepad Focus Navigation
+
+The app uses several patterns to support gamepad/d-pad navigation:
+
+- **Overlay focus isolation**: Background screens are removed from composition (not just visually hidden) when overlays are active. `MainScreen` composes `HomeScreen` only when `!showSettings`; `HomeScreen` composes `Scaffold` only when `!(showOnlineMenu || showSaveInfo)`. This prevents d-pad focus from leaking through overlays.
+- **Leaderboard rows**: Each row uses `.clickable { }` + `.focusable()` + `.onFocusChanged {}` for proper Compose focus engagement. When focused, a 5dp `primary` border is drawn via `Modifier.border()`. A one-shot `hasRequestedFocus` guard in `LaunchedEffect(entries)` prevents focus from being stolen back to the container on pagination.
+- **Header controls**: Back and Refresh `IconButton`s on leaderboard/rooms screens use `.focusable()` + `.onFocusChanged {}` + `.focusBorder()` so gamepad users can navigate to them.
 
 ## Large Items Evaluation
 
@@ -138,3 +150,35 @@ Collect all `async` results with `awaitAll` before a single atomic state write. 
 
 ### 2. Shared download-to-file utility — LOW complexity (~30 min)
 Consolidate duplicate private `downloadToFile` functions from `RewindPackManager` and `MiiWadInstaller` into `FileDownloader`. Readability impact: high (MiiWadInstaller call site drops from 25 lines to 1; MiiWadInstaller gains HTTP error checking for free).
+
+## Tests
+
+### Test stack
+- **JUnit 5 (Jupiter)** — test framework
+- **MockK 1.13.x** — Kotlin mocking (`mockkObject()` for static object singletons)
+- **Truth 1.4.x** — readable assertions
+- **`org.json:json`** test dependency — real `org.json` implementation for tests (Android stubs throw "not mocked")
+
+### Running
+```bash
+./gradlew testDebugUnitTest                                         # all unit tests
+./gradlew testDebugUnitTest --tests "com.skiletro.wheelwitch.model.SemVersionTest"  # single class
+```
+
+### Test files
+
+| File | Tests | What it covers |
+|---|---|---|
+| `model/SemVersionTest.kt` | 26 | `parse()` valid/invalid, `compareTo()` ordering, `toString()` |
+| `model/RoomStatusTest.kt` | 7 | `parseRooms()` — full room, null race, empty array, missing fields |
+| `util/DolphinLauncherTest.kt` | 9 | `generateLaunchJson()` JSON structure, `readIsoPathFromLaunchJson()` file I/O |
+| `data/RksysParserTest.kt` | 7 | Binary RKPD parsing — single/mixed/multiple slots, short data, friend code |
+| `network/VersionFileParserTest.kt` | 8 | `parseUpdatesText()` / `parseDeletionsText()` — valid/malformed/blank input |
+| `domain/RewindPackManagerTest.kt` | 10 | `checkStatus()` all 5 variants, `freshInstall()` flow, `incrementalUpdate()` ordering |
+
+### Testability notes
+- Pure functions (no Android deps) are tested directly: `SemVersion`, `parseRooms()`, `generateLaunchJson()`
+- `RksysParser` uses `java.util.Base64` (not `android.util.Base64`) so it's testable on JVM
+- Static `object` singletons (`VersionFileParser`, `FileDownloader`) are mocked via `mockkObject()` — no interface extraction needed for testing
+- `PackStorage` is already a class with constructor injection; mocked via `mockk()`
+- `RewindPackManager` is a stateful `object` singleton — `initCacheDir()` must be called in each test that touches the cache

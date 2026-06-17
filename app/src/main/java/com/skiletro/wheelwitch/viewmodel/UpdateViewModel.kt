@@ -16,6 +16,7 @@ import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.Room
 import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.model.ProgressInfo
+import com.skiletro.wheelwitch.model.LicenseInfo
 import com.skiletro.wheelwitch.model.SaveFileInfo
 import com.skiletro.wheelwitch.util.DolphinLauncher
 import com.skiletro.wheelwitch.util.MiiWadInstaller
@@ -106,6 +107,12 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
     private val _saveInfoState = MutableStateFlow<SaveInfoState>(SaveInfoState.Idle)
     val saveInfoState: StateFlow<SaveInfoState> = _saveInfoState.asStateFlow()
 
+    private val _selectedSlotIndex = MutableStateFlow(prefs.getInt(SELECTED_SLOT_KEY, 0))
+    val selectedSlotIndex: StateFlow<Int> = _selectedSlotIndex.asStateFlow()
+
+    private val _activeLicenseInfo = MutableStateFlow<LicenseInfo?>(null)
+    val activeLicenseInfo: StateFlow<LicenseInfo?> = _activeLicenseInfo.asStateFlow()
+
     private var storageUri: Uri? = null
     private var storage: PackStorage? = null
     val storageRootPath: String? get() = storage?.rootPath
@@ -152,6 +159,7 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
             }
             _state.value = UiState.Ready(status)
             refreshSaveState()
+            refreshActiveLicense()
         }
     }
 
@@ -404,6 +412,42 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
         _miiMakerState.value = MiiMakerState(hasWad)
     }
 
+    fun selectSlot(index: Int) {
+        prefs.edit().putInt(SELECTED_SLOT_KEY, index).apply()
+        _selectedSlotIndex.value = index
+        refreshActiveLicense()
+    }
+
+    private fun refreshActiveLicense() {
+        viewModelScope.launch {
+            val currentStorage = storage ?: return@launch
+            val bytes = withContext(Dispatchers.IO) {
+                currentStorage.readBytes(SaveManager.SAVE_RELATIVE)
+            }
+            if (bytes == null) {
+                _activeLicenseInfo.value = null
+                return@launch
+            }
+            val saveInfo = RksysParser.parse(bytes)
+            val selectedIndex = _selectedSlotIndex.value
+            val license = saveInfo.licenses.getOrNull(selectedIndex)?.takeIf { it.exists }
+
+            if (license != null) {
+                _activeLicenseInfo.value = license
+                if (license.friendCode != null) {
+                    val result = withContext(Dispatchers.IO) {
+                        VersionFileParser.fetchPlayerLeaderboard(license.friendCode)
+                    }
+                    if (result.isSuccess) {
+                        _activeLicenseInfo.value = license.copy(leaderboard = result.getOrNull())
+                    }
+                }
+            } else {
+                _activeLicenseInfo.value = null
+            }
+        }
+    }
+
     fun refreshSaveFileInfo() {
         saveInfoJob?.cancel()
         saveInfoJob = viewModelScope.launch {
@@ -418,6 +462,13 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
                 } else {
                     val saveInfo = RksysParser.parse(bytes)
                     _saveInfoState.value = SaveInfoState.Success(saveInfo)
+
+                    val selectedIndex = _selectedSlotIndex.value
+                    val isValid = saveInfo.licenses.getOrNull(selectedIndex)?.exists == true
+                    if (!isValid) {
+                        val fallback = saveInfo.licenses.indexOfFirst { it.exists }.let { if (it >= 0) it else 0 }
+                        selectSlot(fallback)
+                    }
 
                     val leaderboardDeferred = saveInfo.licenses.mapNotNull { license ->
                         if (license.exists && license.friendCode != null) {
@@ -459,5 +510,7 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
     companion object {
         /** SharedPreferences key for the SAF storage tree URI. */
         private const val STORAGE_URI_KEY = "storage_tree_uri"
+        /** SharedPreferences key for the user's active license slot. */
+        private const val SELECTED_SLOT_KEY = "selected_slot"
     }
 }

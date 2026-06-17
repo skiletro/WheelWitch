@@ -7,6 +7,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,10 +20,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -61,6 +64,8 @@ private val miiUrlBase = MII_IMAGE_BASE_URL
 @Composable
 fun SaveInfoScreen(
     saveInfoState: SaveInfoState,
+    selectedSlotIndex: Int,
+    onSelectSlot: (Int) -> Unit,
     onRefresh: () -> Unit,
     onClose: () -> Unit
 ) {
@@ -148,19 +153,23 @@ fun SaveInfoScreen(
                             .fillMaxWidth()
                             .weight(1f),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                val left = saveFileInfo.licenses.getOrNull(i)
-                                val right = saveFileInfo.licenses.getOrNull(i + 1)
-                                LicenseCard(
-                                    license = left,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                LicenseCard(
-                                    license = right,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
+                    ) {
+                        val left = saveFileInfo.licenses.getOrNull(i)
+                        val right = saveFileInfo.licenses.getOrNull(i + 1)
+                        LicenseCard(
+                            license = left,
+                            isSelected = left?.slotIndex == selectedSlotIndex,
+                            onSelect = { left?.let { onSelectSlot(it.slotIndex) } },
+                            modifier = Modifier.weight(1f)
+                        )
+                        LicenseCard(
+                            license = right,
+                            isSelected = right?.slotIndex == selectedSlotIndex,
+                            onSelect = { right?.let { onSelectSlot(it.slotIndex) } },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
                     }
                 }
             }
@@ -171,81 +180,111 @@ fun SaveInfoScreen(
 @Composable
 private fun LicenseCard(
     license: LicenseInfo?,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val info = license
     var isFocused by remember { mutableStateOf(false) }
+
+    val backgroundColor = when {
+        info?.exists != true -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
+
+    val showBorder = isFocused || isSelected
+
     Surface(
         modifier = modifier
+            .clickable(enabled = info?.exists == true) { onSelect() }
             .focusable()
             .onFocusChanged { isFocused = it.isFocused }
             .then(
-                if (isFocused) Modifier.border(
+                if (showBorder) Modifier.border(
                     width = 3.dp,
                     color = MaterialTheme.colorScheme.primary,
                     shape = cardShape
                 ) else Modifier
             ),
         shape = cardShape,
-        color = if (info?.exists == true) MaterialTheme.colorScheme.surfaceVariant
-                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        color = backgroundColor
     ) {
-        if (info?.exists == true) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                MiiFace(
-                    imageBase64 = info.leaderboard?.miiImageBase64,
-                    miiDataBase64 = info.miiDataBase64,
-                    modifier = Modifier.size(84.dp)
-                )
-                Spacer(modifier = Modifier.width(14.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = info.miiName ?: "Player",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleLarge,
-                        maxLines = 1,
-                        fontFamily = CtmkfFontFamily
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (info?.exists == true) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    MiiFace(
+                        imageBase64 = info.leaderboard?.miiImageBase64,
+                        miiDataBase64 = info.miiDataBase64,
+                        modifier = Modifier.size(84.dp)
                     )
-                    info.friendCode?.let { fc ->
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = fc,
+                            text = info.miiName ?: "Player",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleLarge,
+                            maxLines = 1,
+                            fontFamily = CtmkfFontFamily
+                        )
+                        info.friendCode?.let { fc ->
+                            Text(
+                                text = fc,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            val displayVr = info.leaderboard?.vr ?: info.vr
+                            StatLabel("VR", displayVr)
+                        }
+                        Spacer(modifier = Modifier.height(2.dp))
+                        val rW = info.raceWins ?: 0
+                        val rL = info.raceLosses ?: 0
+                        Text(
+                            text = "Race: W $rW / L $rL",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                }
+
+                if (isSelected) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(6.dp)
+                            .size(22.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape),
+                        contentAlignment = Alignment.Center
                     ) {
-                        val displayVr = info.leaderboard?.vr ?: info.vr
-                        StatLabel("VR", displayVr)
+                        Icon(
+                            imageVector = Icons.Default.Done,
+                            contentDescription = "Active license",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(14.dp)
+                        )
                     }
-                    Spacer(modifier = Modifier.height(2.dp))
-                    val rW = info.raceWins ?: 0
-                    val rL = info.raceLosses ?: 0
+                }
+            } else {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
-                        text = "Race: W $rW / L $rL",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "Empty",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
                 }
-            }
-        } else {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Empty",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                )
             }
         }
     }
@@ -269,7 +308,7 @@ private fun StatLabel(label: String, value: Int?) {
 }
 
 @Composable
-private fun MiiFace(
+fun MiiFace(
     imageBase64: String?,
     miiDataBase64: String?,
     modifier: Modifier = Modifier

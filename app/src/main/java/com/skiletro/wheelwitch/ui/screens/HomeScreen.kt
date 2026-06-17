@@ -18,10 +18,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.ui.unit.dp
+import com.skiletro.wheelwitch.model.LicenseInfo
+import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -39,11 +39,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
@@ -65,6 +63,8 @@ fun HomeScreen(
     val miiMakerState by viewModel.miiMakerState.collectAsState()
     val roomsState by onlineViewModel.roomsState.collectAsState()
     val saveInfoState by viewModel.saveInfoState.collectAsState()
+    val selectedSlotIndex by viewModel.selectedSlotIndex.collectAsState()
+    val activeLicenseInfo by viewModel.activeLicenseInfo.collectAsState()
     val vrMultiplier by onlineViewModel.vrMultiplier.collectAsState()
     val currentIsoPath by viewModel.currentIsoPath.collectAsState()
     val hasIso = currentIsoPath != null
@@ -134,6 +134,7 @@ fun HomeScreen(
                     Column(modifier = Modifier.padding(vertical = 12.dp)) {
                         HomeBottomBar(
                             state = state,
+                            activeLicense = activeLicenseInfo,
                             vrMultiplier = vrMultiplier,
                             playerCount = playerCount,
                             serverConnectivity = serverConnectivity,
@@ -221,6 +222,8 @@ fun HomeScreen(
         ) {
             SaveInfoScreen(
                 saveInfoState = saveInfoState,
+                selectedSlotIndex = selectedSlotIndex,
+                onSelectSlot = { viewModel.selectSlot(it) },
                 onRefresh = { viewModel.refreshSaveFileInfo() },
                 onClose = { showSaveInfo = false }
             )
@@ -231,6 +234,7 @@ fun HomeScreen(
 @Composable
 private fun HomeBottomBar(
     state: UiState,
+    activeLicense: LicenseInfo?,
     vrMultiplier: Float?,
     playerCount: Int?,
     serverConnectivity: ServerConnectivity,
@@ -248,8 +252,10 @@ private fun HomeBottomBar(
             .padding(horizontal = 32.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        ServerStatusIndicator(playerCount = playerCount, connectivity = serverConnectivity)
-        Spacer(modifier = Modifier.width(16.dp))
+        if (activeLicense != null) {
+            ActivePlayerCard(license = activeLicense, vrMultiplier = vrMultiplier)
+        }
+
         Spacer(modifier = Modifier.weight(1f))
 
         when (state) {
@@ -292,9 +298,11 @@ private fun HomeBottomBar(
             is UiState.Ready -> {
                 val status = state.status
                 var checkButtonFocused by remember { mutableStateOf(false) }
-                val latestVersion = when (status) {
-                    is PackStatus.UpToDate -> status.latestVersion
-                    is PackStatus.UpdateAvailable -> status.latestVersion
+
+                val checkSubtitle = when (status) {
+                    is PackStatus.UpToDate -> "Up to date (v${status.currentVersion})"
+                    is PackStatus.UpdateAvailable -> "v${status.currentVersion} → v${status.latestVersion}"
+                    is PackStatus.Installed -> "v${status.version} installed"
                     else -> null
                 }
                 OutlinedButton(
@@ -312,9 +320,9 @@ private fun HomeBottomBar(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Medium
                         )
-                        if (latestVersion != null) {
+                        if (checkSubtitle != null) {
                             Text(
-                                text = "Latest: v${latestVersion}",
+                                text = checkSubtitle,
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Normal,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -337,21 +345,20 @@ private fun HomeBottomBar(
                         )
                     }
                     else -> {
-                        val installedVersion = when (status) {
-                            is PackStatus.UpToDate -> status.currentVersion
-                            is PackStatus.Installed -> status.version
-                            else -> null
+                        val launchSubText = when (serverConnectivity) {
+                            ServerConnectivity.Online -> {
+                                val count = playerCount
+                                if (count != null) "● $count racers online" else null
+                            }
+                            ServerConnectivity.Offline -> "● Offline"
+                            ServerConnectivity.NoInternet -> "● No internet"
+                            ServerConnectivity.Unknown -> null
                         }
                         if (hasIso) {
                             PrimaryActionButton(
                                 text = "Launch Retro Rewind",
                                 onClick = onLaunch,
-                                subText = installedVersion?.let { "v${it} installed" },
-                                badgeText = vrMultiplier?.let { m ->
-                                    if (m > 1.0f) {
-                                        if (m == m.toInt().toFloat()) "${m.toInt()}x VR" else "${m}x VR"
-                                    } else null
-                                }
+                                subText = launchSubText
                             )
                         } else {
                             PrimaryActionButton(
@@ -366,6 +373,45 @@ private fun HomeBottomBar(
                 Text(
                     text = "Storage not configured",
                     style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActivePlayerCard(
+    license: LicenseInfo,
+    vrMultiplier: Float?
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        MiiFace(
+            imageBase64 = license.leaderboard?.miiImageBase64,
+            miiDataBase64 = license.miiDataBase64,
+            modifier = Modifier.size(40.dp)
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Column {
+            Text(
+                text = license.miiName ?: "Player",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                fontFamily = CtmkfFontFamily
+            )
+            val vr = license.leaderboard?.vr ?: license.vr
+            val vrText = buildString {
+                if (vr != null) append("$vr VR")
+                if (vr != null && vrMultiplier != null && vrMultiplier > 1.0f) {
+                    val mult = if (vrMultiplier == vrMultiplier.toInt().toFloat()) "${vrMultiplier.toInt()}x" else "${vrMultiplier}x"
+                    append(" · ${mult} active")
+                }
+            }
+            if (vrText.isNotEmpty()) {
+                Text(
+                    text = vrText,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -395,51 +441,6 @@ fun ProgressButton(progress: Float, label: String) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.End,
             fontWeight = FontWeight.Medium
-        )
-    }
-}
-
-@Composable
-fun ServerStatusIndicator(
-    playerCount: Int?,
-    connectivity: ServerConnectivity
-) {
-    val dotColor: Color
-    val label: String
-
-    when (connectivity) {
-        ServerConnectivity.Online -> {
-            val count = playerCount ?: return
-            dotColor = Color(0xFF4CAF50)
-            label = "$count racers online"
-        }
-        ServerConnectivity.Offline -> {
-            dotColor = MaterialTheme.colorScheme.error
-            label = "Server offline"
-        }
-        ServerConnectivity.NoInternet -> {
-            dotColor = MaterialTheme.colorScheme.onSurfaceVariant
-            label = "No internet"
-        }
-        ServerConnectivity.Unknown -> {
-            dotColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-            label = "Checking..."
-        }
-    }
-
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(dotColor)
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
