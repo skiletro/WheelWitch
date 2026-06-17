@@ -1,20 +1,83 @@
-# Wheel Witch
+<p align="center">
+  <img src="docs/logo/wizard-hat.png" alt="Wheel Witch" width="120">
+</p>
 
-Downloads/updates the Retro Rewind Mario Kart Wii Pack and launches Dolphin Emulator.
+<h1 align="center">Wheel Witch</h1>
+
+<p align="center">
+  Downloads/updates the Retro Rewind Mario Kart Wii Pack and launches Dolphin Emulator.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT">
+  <img src="https://img.shields.io/badge/min%20SDK-31-green.svg" alt="Min SDK 31">
+  <img src="https://img.shields.io/badge/Kotlin-1.9-purple.svg" alt="Kotlin">
+  <img src="https://img.shields.io/badge/Jetpack%20Compose-2026.02-blue.svg" alt="Compose">
+</p>
+
+## About
+
+Wheel Witch is a sideloaded Android companion app for [Retro Rewind](https://wiki.tockdom.com/wiki/Retro_Rewind), a custom Mario Kart Wii distribution. It downloads and incrementally updates the pack from the same server WheelWizard uses, then launches Dolphin Emulator with the pack pre-loaded.
+
+This is **not** a replacement for WheelWizard's PC tool — it's a phone-first way to keep your Wii's pack install fresh without booting a desktop.
+
+## Screenshots
+
+| Home | Online Menu | Quick Launch |
+|------|-------------|--------------|
+| ![Home](docs/screenshots/home.png) | ![Online Menu](docs/screenshots/online-menu.png) | ![Quick Launch](docs/screenshots/quick-launch.png) |
+
+| Licenses | Settings | Race Stats |
+|----------|----------|------------|
+| ![Licenses](docs/screenshots/licenses.png) | ![Settings](docs/screenshots/settings.png) | ![Race Stats](docs/screenshots/race-stats.png) |
+
+Drop PNGs into `docs/screenshots/` to fill in the placeholders.
+
+## Features
+
+- One-tap full install + incremental updates over OkHttp
+- Save data (license) backup/restore via file picker
+- Live in-app leaderboard, online rooms, server health, race stats
+- Home-screen quick launch shortcut for power users
+- Material You dynamic colour support, dark/light/system theme
+- Landscape-locked, fullscreen, optimised for couch play
+- 89 unit tests, full R8/ProGuard release pipeline
+- 13 hand-tuned animations: bobbing wizard hat, sparkle ring, MKWii race-start countdown, theme crossfade, pulsing online dots, animated list stagger, POW! item-box celebration, shared-element online menu transitions, and more
+
+## Download
+
+<p align="center">
+  <a href="https://example.com/add-to-obtainium"><img src="docs/badges/obtainium.png" alt="Add to Obtainium" width="220"></a>
+</p>
+
+Or grab the APK from any of these sources — pick whichever you trust:
+
+| Source | Link | Add to Obtainium |
+|--------|------|------------------|
+| GitHub Releases | [releases](https://github.com/yourname/wheel-witch/releases) | [Add →](https://example.com/obtainium?source=github) |
+| F-Droid | [f-droid.org](https://f-droid.org) | [Add →](https://example.com/obtainium?source=fdroid) |
+| IzzyOnDeck | [apt.izzysoft.de](https://apt.izzysoft.de) | [Add →](https://example.com/obtainium?source=izzy) |
+| Direct APK | [wheelwitch.app/latest.apk](https://wheelwitch.app) | [Add →](https://example.com/obtainium?source=apk) |
+
+Or [build from source](#build) with Gradle.
+
+URLs above are placeholders — swap them for real sources as you publish.
 
 ## Build
 
 ```bash
-./gradlew assembleDebug
+./gradlew assembleDebug                  # build APK
+./gradlew assembleRelease                # release build (R8/ProGuard)
+./gradlew testDebugUnitTest              # run unit tests
 ```
 
-The APK will be at `app/build/outputs/apk/debug/app-debug.apk`.
+The debug APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Requirements
 
 - Android 12+ (API 31)
-- Dolphin Emulator installed (from https://dolphinemu.com)
-- Mario Kart Wii ISO (NTSC-U)
+- [Dolphin Emulator](https://dolphinemu.com) installed
+- Mario Kart Wii ISO (NTSC-U region)
 
 ## First Time Setup
 
@@ -22,10 +85,27 @@ The APK will be at `app/build/outputs/apk/debug/app-debug.apk`.
 2. After installing the pack, select your Mario Kart Wii ISO when prompted
 3. Tap **Launch Dolphin**
 
-## Features
+For returning users, the gear icon opens Settings, and the **Quick Launch** section lets you pin a home-screen shortcut that skips onboarding entirely.
 
-- Full pack install and incremental updates (same server as WheelWizard)
-- Save data backup/restore via file picker
-- Progress bars for download and extraction
-- Material You dynamic colours
-- Landscape-locked (matching Dolphin's orientation)
+## Contributing
+
+1. Fork this repository
+2. Create a feature branch (`git checkout -b fix-the-thing`)
+3. Commit your changes with a conversational message (e.g. `add the widget`, `fix the bobble`) — match the existing style
+4. Open a pull request
+
+Build gates: `./gradlew assembleDebug testDebugUnitTest` must stay green. No formal CLA; if you contribute code, please add yourself to a credits section if we add one.
+
+## License
+
+[MIT](LICENSE) — use as you like, attribution required.
+
+## Credits
+
+- **[Retro Rewind](https://wiki.tockdom.com/wiki/Retro_Rewind)** and the **Wheel Wizard** team for the pack format and update server
+- **[Dolphin Emulator](https://dolphinemu.org)** for the runtime
+- **[Tockdom wiki](https://wiki.tockdom.com)** for the changelog source
+- **[Jetpack Compose](https://developer.android.com/jetpack/compose)**, **[Material 3](https://m3.material.io)**, and **[OkHttp](https://square.github.io/okhttp/)** for the building blocks
+- **[Obtainium](https://github.com/ImranR98/Obtainium)** for making sideloaded auto-updates painless
+
+Nintendo owns Mario Kart Wii. This project is unofficial and not affiliated with Nintendo.
