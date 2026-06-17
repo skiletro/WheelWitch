@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT">
+  <img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg" alt="License: GPL-3.0">
   <img src="https://img.shields.io/badge/min%20SDK-31-green.svg" alt="Min SDK 31">
   <img src="https://img.shields.io/badge/Kotlin-1.9-purple.svg" alt="Kotlin">
   <img src="https://img.shields.io/badge/Jetpack%20Compose-2026.02-blue.svg" alt="Compose">
@@ -98,7 +98,7 @@ Build gates: `./gradlew assembleDebug testDebugUnitTest` must stay green. No for
 
 ## License
 
-[MIT](LICENSE) — use as you like, attribution required.
+[GPL-3.0](LICENSE) — use as you like, attribution required.
 
 ## Credits
 
