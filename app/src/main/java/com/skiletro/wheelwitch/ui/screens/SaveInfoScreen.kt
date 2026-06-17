@@ -43,6 +43,7 @@ private val cardShape = RoundedCornerShape(14.dp)
 fun SaveInfoScreen(
     saveInfoState: SaveInfoState,
     selectedSlotIndex: Int,
+    cachedLeaderboardVrs: Map<Int, Int>,
     onSelectSlot: (Int) -> Unit,
     onRefresh: () -> Unit,
     onClose: () -> Unit
@@ -113,12 +114,14 @@ fun SaveInfoScreen(
                                 LicenseCard(
                                     license = left,
                                     isSelected = left?.slotIndex == selectedSlotIndex,
+                                    cachedLeaderboardVr = left?.slotIndex?.let { cachedLeaderboardVrs[it] },
                                     onSelect = { left?.let { onSelectSlot(it.slotIndex) } },
                                     modifier = Modifier.weight(1f)
                                 )
                                 LicenseCard(
                                     license = right,
                                     isSelected = right?.slotIndex == selectedSlotIndex,
+                                    cachedLeaderboardVr = right?.slotIndex?.let { cachedLeaderboardVrs[it] },
                                     onSelect = { right?.let { onSelectSlot(it.slotIndex) } },
                                     modifier = Modifier.weight(1f)
                                 )
@@ -135,6 +138,7 @@ fun SaveInfoScreen(
 private fun LicenseCard(
     license: LicenseInfo?,
     isSelected: Boolean,
+    cachedLeaderboardVr: Int?,
     onSelect: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -187,7 +191,7 @@ private fun LicenseCard(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            val displayVr = info.leaderboardVr ?: info.vr
+                            val displayVr = info.leaderboardVr ?: cachedLeaderboardVr ?: info.vr
                             StatLabel("VR", displayVr)
                         }
                         Spacer(modifier = Modifier.height(2.dp))

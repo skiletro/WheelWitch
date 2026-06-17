@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 
 @Immutable
 sealed class SaveInfoState {
@@ -48,6 +49,9 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
 
     private val _activeLicenseInfo = MutableStateFlow<LicenseInfo?>(null)
     val activeLicenseInfo: StateFlow<LicenseInfo?> = _activeLicenseInfo.asStateFlow()
+
+    private val _cachedLeaderboardVrs = MutableStateFlow(readVrCache())
+    val cachedLeaderboardVrs: StateFlow<Map<Int, Int>> = _cachedLeaderboardVrs.asStateFlow()
 
     private var saveInfoJob: Job? = null
 
@@ -143,6 +147,7 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
                             leaderboardVr = leaderboardVr,
                             leaderboardMiiImageBase64 = leaderboardMii
                         )
+                        cacheLeaderboardVr(license.slotIndex, leaderboardVr)
                     }
                 }
             } else {
@@ -188,6 +193,7 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
                             val result = leaderboardResults.find { it.first == lic.slotIndex }?.second
                             if (result?.isSuccess == true) {
                                 val (leaderboardVr, leaderboardMii) = result.getOrThrow()
+                                cacheLeaderboardVr(lic.slotIndex, leaderboardVr)
                                 lic.copy(
                                     leaderboardVr = leaderboardVr,
                                     leaderboardMiiImageBase64 = leaderboardMii
@@ -201,5 +207,28 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
                 _saveInfoState.value = SaveInfoState.Error(e.message ?: getApplication<Application>().getString(R.string.vm_save_info_failed))
             }
         }
+    }
+
+    private fun cacheLeaderboardVr(slotIndex: Int, vr: Int) {
+        val current = _cachedLeaderboardVrs.value
+        if (current[slotIndex] == vr) return
+        val updated = current + (slotIndex to vr)
+        _cachedLeaderboardVrs.value = updated
+        val obj = JSONObject()
+        updated.forEach { (slot, value) -> obj.put(slot.toString(), value) }
+        prefs.edit().putString(PrefsKeys.LAST_LEADERBOARD_VR_KEY, obj.toString()).apply()
+    }
+
+    private fun readVrCache(): Map<Int, Int> {
+        val raw = prefs.getString(PrefsKeys.LAST_LEADERBOARD_VR_KEY, null) ?: return emptyMap()
+        return runCatching {
+            val obj = JSONObject(raw)
+            buildMap {
+                obj.keys().forEach { key ->
+                    val slot = key.toIntOrNull() ?: return@forEach
+                    put(slot, obj.optInt(key, 0))
+                }
+            }
+        }.getOrElse { emptyMap() }
     }
 }

@@ -86,6 +86,7 @@ fun HomeScreen(
     val saveInfoState by saveData.saveInfoState.collectAsState()
     val selectedSlotIndex by saveData.selectedSlotIndex.collectAsState()
     val activeLicenseInfo by saveData.activeLicenseInfo.collectAsState()
+    val cachedLeaderboardVrs by saveData.cachedLeaderboardVrs.collectAsState()
     val vrMultiplier by onlineViewModel.vrMultiplier.collectAsState()
     val currentIsoPath by packUpdate.currentIsoPath.collectAsState()
     val hasIso = currentIsoPath != null
@@ -188,6 +189,7 @@ fun HomeScreen(
                         HomeBottomBar(
                             state = state,
                             activeLicense = activeLicenseInfo,
+                            cachedLeaderboardVrs = cachedLeaderboardVrs,
                             vrMultiplier = vrMultiplier,
                             playerCount = playerCount,
                             serverConnectivity = serverConnectivity,
@@ -304,6 +306,7 @@ fun HomeScreen(
             SaveInfoScreen(
                 saveInfoState = saveInfoState,
                 selectedSlotIndex = selectedSlotIndex,
+                cachedLeaderboardVrs = cachedLeaderboardVrs,
                 onSelectSlot = { saveData.selectSlot(it) },
                 onRefresh = { saveData.refreshSaveFileInfo() },
                 onClose = { showSaveInfo = false }
@@ -316,6 +319,7 @@ fun HomeScreen(
 private fun HomeBottomBar(
     state: UiState,
     activeLicense: LicenseInfo?,
+    cachedLeaderboardVrs: Map<Int, Int>,
     vrMultiplier: Float?,
     playerCount: Int?,
     serverConnectivity: ServerConnectivity,
@@ -336,7 +340,11 @@ private fun HomeBottomBar(
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (activeLicense != null) {
-            ActivePlayerCard(license = activeLicense, vrMultiplier = vrMultiplier)
+            ActivePlayerCard(
+                license = activeLicense,
+                cachedLeaderboardVr = cachedLeaderboardVrs[activeLicense.slotIndex],
+                vrMultiplier = vrMultiplier
+            )
         }
 
         Spacer(modifier = Modifier.weight(1f))
@@ -480,6 +488,7 @@ private fun HomeBottomBar(
 @Composable
 private fun ActivePlayerCard(
     license: LicenseInfo,
+    cachedLeaderboardVr: Int?,
     vrMultiplier: Float?
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -497,7 +506,7 @@ private fun ActivePlayerCard(
                 maxLines = 1,
                 fontFamily = CtmkfFontFamily
             )
-            val vr = license.leaderboardVr ?: license.vr
+            val vr = license.leaderboardVr ?: cachedLeaderboardVr ?: license.vr
             if (vr != null) {
                 val showActive = vrMultiplier != null && vrMultiplier > 1.0f
                 val multText = if (showActive) {

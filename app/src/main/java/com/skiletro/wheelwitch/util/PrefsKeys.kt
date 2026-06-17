@@ -9,6 +9,7 @@ object PrefsKeys {
     const val STORAGE_URI_KEY = "storage_tree_uri"
     const val SELECTED_SLOT_KEY = "selected_slot"
     const val LAST_SERVER_VERSION_KEY = "last_server_version"
+    const val LAST_LEADERBOARD_VR_KEY = "last_leaderboard_vr"
     const val THEME_MODE_KEY = "theme_mode"
     const val DYNAMIC_COLOR_KEY = "dynamic_color"
     const val ONBOARDING_COMPLETED_KEY = "onboarding_completed"

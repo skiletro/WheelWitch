@@ -124,19 +124,19 @@ private fun PrimaryActionButtonDisabledPreview() {
 @Preview(showBackground = true, widthDp = 600, heightDp = 400)
 @Composable
 private fun SaveInfoScreenLoadingPreview() {
-    SaveInfoScreen(saveInfoState = SaveInfoState.Loading, selectedSlotIndex = 0, onSelectSlot = {}, onRefresh = {}, onClose = {})
+    SaveInfoScreen(saveInfoState = SaveInfoState.Loading, selectedSlotIndex = 0, cachedLeaderboardVrs = emptyMap(), onSelectSlot = {}, onRefresh = {}, onClose = {})
 }
 
 @Preview(showBackground = true, widthDp = 600, heightDp = 400)
 @Composable
 private fun SaveInfoScreenErrorPreview() {
-    SaveInfoScreen(saveInfoState = SaveInfoState.Error("Failed to load save data"), selectedSlotIndex = 0, onSelectSlot = {}, onRefresh = {}, onClose = {})
+    SaveInfoScreen(saveInfoState = SaveInfoState.Error("Failed to load save data"), selectedSlotIndex = 0, cachedLeaderboardVrs = emptyMap(), onSelectSlot = {}, onRefresh = {}, onClose = {})
 }
 
 @Preview(showBackground = true, widthDp = 600, heightDp = 500)
 @Composable
 private fun SaveInfoScreenSuccessPreview() {
-    SaveInfoScreen(saveInfoState = SaveInfoState.Success(SaveFileInfo(sampleLicenses)), selectedSlotIndex = 0, onSelectSlot = {}, onRefresh = {}, onClose = {})
+    SaveInfoScreen(saveInfoState = SaveInfoState.Success(SaveFileInfo(sampleLicenses)), selectedSlotIndex = 0, cachedLeaderboardVrs = emptyMap(), onSelectSlot = {}, onRefresh = {}, onClose = {})
 }
 
 // ── Room detail previews ──
