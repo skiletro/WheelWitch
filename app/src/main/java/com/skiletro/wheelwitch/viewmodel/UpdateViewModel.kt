@@ -252,6 +252,11 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
         if (gameIsoPath.isNullOrBlank()) {
             return
         }
+        if (!File(gameIsoPath).exists()) {
+            clearIsoPath()
+            _state.value = UiState.Error("Mario Kart Wii ROM not found. Please select it again.")
+            return
+        }
         val rootPath = currentStorage.rootPath
         if (rootPath == null) {
             _state.value = UiState.Error("Cannot resolve storage path. Please pick a new storage folder.")
@@ -315,7 +320,8 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
                 if (cached != null) {
                     MiiWadInstaller.launchWadFile(app, cached).getOrThrow()
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                _miiMakerError.value = e.message ?: "Failed to launch Mii Maker"
             }
         }
     }
@@ -482,8 +488,7 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
                                         }
                                         _saveInfoState.value = SaveInfoState.Success(current.info.copy(licenses = updatedLicenses))
                                     }
-                                }.onFailure { error ->
-                                    if (error.message?.contains("not found", ignoreCase = true) == true) {
+                                }.onFailure {
                                         val current = _saveInfoState.value
                                         if (current is SaveInfoState.Success) {
                                             val updatedLicenses = current.info.licenses.map { lic ->
@@ -492,7 +497,6 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
                                             }
                                             _saveInfoState.value = SaveInfoState.Success(current.info.copy(licenses = updatedLicenses))
                                         }
-                                    }
                                 }
                             }
                         }

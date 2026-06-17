@@ -37,7 +37,18 @@ object MiiWadInstaller {
         return wadFile
     }
 
+    private fun isValidWad(file: File): Boolean {
+        return try {
+            val bytes = file.readBytes().take(4)
+            bytes.size == 4 && bytes[0] == 0x00.toByte() && bytes[1] == 0x00.toByte() &&
+                    bytes[2] == 0x00.toByte() && bytes[3] == 0x20.toByte()
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     fun launchWadFile(context: Context, wadFile: File): Result<Unit> = runCatching {
+        require(isValidWad(wadFile)) { "Cached WAD file is corrupted or incomplete" }
         val contentUri: Uri = FileProvider.getUriForFile(
             context,
             "${context.packageName}.fileprovider",
