@@ -14,7 +14,9 @@ An Android app that downloads/updates the Retro Rewind Mario Kart Wii Pack and l
 
 ## Git
 
-- Commit after each logical feature change; use descriptive messages matching the existing conversational style (e.g. "add room status thingie").
+- Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) — `<type>(<scope>): <description>`, lowercase imperative, no trailing period.
+- Common types: `feat:` (new user-facing functionality), `fix:` (bug fix), `refactor:` (neither), `perf:`, `test:`, `docs:`, `chore:`, `build:`.
+- Use scopes matching the package layout: `dolphin`, `pack`, `save`, `mii-maker`, `online`, `leaderboard`, `rooms`, `race-stats`, `changelog`, `onboarding`, `home`, `settings`, `quick-launch`, `theme`, `gamepad`, `ui`, `storage`, `i18n`, `viewmodel`.
 - Stage only the intended files with `git add <file>` and commit with `git commit -m "<message>"`.
 - Read `git status` before every commit; never use `git add -A` or `git commit -a` without first verifying the diff.
 
