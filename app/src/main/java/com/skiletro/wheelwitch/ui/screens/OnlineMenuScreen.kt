@@ -190,11 +190,9 @@ private fun HealthIndicator(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .clip(CircleShape)
-                    .background(dotColor)
+            com.skiletro.wheelwitch.ui.components.PulsingDot(
+                target = dotColor,
+                pulse = connectivity == com.skiletro.wheelwitch.model.ServerConnectivity.Online
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
