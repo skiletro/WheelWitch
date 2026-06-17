@@ -35,3 +35,14 @@ val WizardTeal40 = Color(0xFF00897B)
 val WizardTealGrey40 = Color(0xFF26A69A)
 val WizardNeutral40 = Color(0xFF5C5F73)
 val OnWizardTeal40 = Color.White
+
+// Catppuccin palette (dark) — Mocha
+val CatppuccinMauve80 = Color(0xFFCBA6F7)
+val CatppuccinLavender80 = Color(0xFFB4BEFE)
+val CatppuccinSky80 = Color(0xFF89DCEB)
+val OnCatppuccinMauve80 = Color(0xFF2D1450)
+// Catppuccin palette (light) — Latte
+val CatppuccinMauve40 = Color(0xFF8839EF)
+val CatppuccinLavender40 = Color(0xFF7287FD)
+val CatppuccinSky40 = Color(0xFF04A5E5)
+val OnCatppuccinMauve40 = Color.White

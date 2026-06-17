@@ -118,9 +118,53 @@ private val WizardLightColorScheme = lightColorScheme(
     outline = Color(0xFFB4B8C5),
 )
 
+private val CatppuccinDarkColorScheme = darkColorScheme(
+    primary = CatppuccinMauve80,
+    onPrimary = OnCatppuccinMauve80,
+    primaryContainer = Color(0xFF4A2D7A),
+    onPrimaryContainer = Color(0xFFE8D0FF),
+    secondary = CatppuccinLavender80,
+    onSecondary = Color(0xFF1C2848),
+    secondaryContainer = Color(0xFF364278),
+    onSecondaryContainer = Color(0xFFDEE0FF),
+    tertiary = CatppuccinSky80,
+    onTertiary = Color(0xFF003040),
+    tertiaryContainer = Color(0xFF005068),
+    onTertiaryContainer = Color(0xFFBBF0FF),
+    background = Color(0xFF1E1E2E),
+    onBackground = Color(0xFFCDD6F4),
+    surface = Color(0xFF181825),
+    onSurface = Color(0xFFCDD6F4),
+    surfaceVariant = Color(0xFF313244),
+    onSurfaceVariant = Color(0xFFBAC2DE),
+    outline = Color(0xFF45475A),
+)
+
+private val CatppuccinLightColorScheme = lightColorScheme(
+    primary = CatppuccinMauve40,
+    onPrimary = OnCatppuccinMauve40,
+    primaryContainer = Color(0xFFF0E0FF),
+    onPrimaryContainer = Color(0xFF2D0070),
+    secondary = CatppuccinLavender40,
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFDEE0FF),
+    onSecondaryContainer = Color(0xFF1C2848),
+    tertiary = CatppuccinSky40,
+    onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFBBF0FF),
+    onTertiaryContainer = Color(0xFF003048),
+    background = Color(0xFFEFF1F5),
+    onBackground = Color(0xFF4C4F69),
+    surface = Color(0xFFE6E9EF),
+    onSurface = Color(0xFF4C4F69),
+    surfaceVariant = Color(0xFFCCD0DA),
+    onSurfaceVariant = Color(0xFF6C6F85),
+    outline = Color(0xFF9CA0B0),
+)
+
 enum class ThemeMode { Light, Dark, Oled, System }
 
-enum class AppTheme { Hex, Swamp, Wizard, MaterialYou }
+enum class AppTheme { Hex, Swamp, Wizard, Catppuccin, MaterialYou }
 
 @Composable
 fun WheelWitchTheme(
@@ -137,6 +181,7 @@ fun WheelWitchTheme(
         AppTheme.Hex -> if (darkTheme) PurpleDarkColorScheme else PurpleLightColorScheme
         AppTheme.Swamp -> if (darkTheme) SwampDarkColorScheme else SwampLightColorScheme
         AppTheme.Wizard -> if (darkTheme) WizardDarkColorScheme else WizardLightColorScheme
+        AppTheme.Catppuccin -> if (darkTheme) CatppuccinDarkColorScheme else CatppuccinLightColorScheme
         AppTheme.MaterialYou -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)

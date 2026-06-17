@@ -221,6 +221,7 @@ fun SettingsScreen(
                     AppTheme.Hex -> stringResource(R.string.settings_app_theme_purple)
                     AppTheme.Swamp -> stringResource(R.string.settings_app_theme_green)
                     AppTheme.Wizard -> stringResource(R.string.settings_app_theme_wizard)
+                    AppTheme.Catppuccin -> stringResource(R.string.settings_app_theme_catppuccin)
                     AppTheme.MaterialYou -> stringResource(R.string.settings_app_theme_material_you)
                 }
                 SettingsItem(
@@ -247,6 +248,7 @@ fun SettingsScreen(
                                                     AppTheme.Hex -> stringResource(R.string.settings_app_theme_purple)
                                                     AppTheme.Swamp -> stringResource(R.string.settings_app_theme_green)
                                                     AppTheme.Wizard -> stringResource(R.string.settings_app_theme_wizard)
+                                                    AppTheme.Catppuccin -> stringResource(R.string.settings_app_theme_catppuccin)
                                                     AppTheme.MaterialYou -> stringResource(R.string.settings_app_theme_material_you)
                                                 }
                                             )
