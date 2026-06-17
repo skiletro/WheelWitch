@@ -17,6 +17,11 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+        val gitHash = try {
+            Runtime.getRuntime().exec("git rev-parse --short HEAD")
+                .inputStream.readBytes().decodeToString().trim()
+        } catch (_: Exception) { "unknown" }
+        buildConfigField("String", "GIT_HASH", "\"$gitHash\"")
     }
 
     buildTypes {
@@ -34,6 +39,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
