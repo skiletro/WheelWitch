@@ -239,7 +239,7 @@ private fun TopBar(
             painter = painterResource(com.skiletro.wheelwitch.R.drawable.ic_hat_wizard),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(48.dp)
+            modifier = Modifier.size(38.dp)
         )
         Spacer(modifier = Modifier.width(12.dp))
         Column(
