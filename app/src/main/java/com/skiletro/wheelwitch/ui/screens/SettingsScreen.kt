@@ -267,6 +267,7 @@ fun SettingsScreen(
                     summary = when (themeMode) {
                         ThemeMode.Light -> stringResource(R.string.settings_always_light)
                         ThemeMode.Dark -> stringResource(R.string.settings_always_dark)
+                        ThemeMode.Oled -> stringResource(R.string.settings_oled)
                         ThemeMode.System -> stringResource(R.string.settings_follow_system)
                     },
                     trailing = {
@@ -279,6 +280,7 @@ fun SettingsScreen(
                                     text = when (themeMode) {
                                         ThemeMode.Light -> stringResource(R.string.settings_theme_light)
                                         ThemeMode.Dark -> stringResource(R.string.settings_theme_dark)
+                                        ThemeMode.Oled -> stringResource(R.string.settings_theme_oled)
                                         ThemeMode.System -> stringResource(R.string.settings_theme_system)
                                     }
                                 )
@@ -294,6 +296,7 @@ fun SettingsScreen(
                                                 when (mode) {
                                                     ThemeMode.Light -> stringResource(R.string.settings_theme_light)
                                                     ThemeMode.Dark -> stringResource(R.string.settings_theme_dark)
+                                                    ThemeMode.Oled -> stringResource(R.string.settings_theme_oled)
                                                     ThemeMode.System -> stringResource(R.string.settings_theme_system)
                                                 }
                                             )

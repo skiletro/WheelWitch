@@ -118,7 +118,7 @@ private val WizardLightColorScheme = lightColorScheme(
     outline = Color(0xFFB4B8C5),
 )
 
-enum class ThemeMode { Light, Dark, System }
+enum class ThemeMode { Light, Dark, Oled, System }
 
 enum class AppTheme { Hex, Swamp, Wizard, MaterialYou }
 
@@ -130,7 +130,7 @@ fun WheelWitchTheme(
 ) {
     val darkTheme = when (themeMode) {
         ThemeMode.Light -> false
-        ThemeMode.Dark -> true
+        ThemeMode.Dark, ThemeMode.Oled -> true
         ThemeMode.System -> isSystemInDarkTheme()
     }
     val colorScheme = when (appTheme) {
@@ -141,6 +141,15 @@ fun WheelWitchTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
+    }.let { scheme ->
+        if (themeMode == ThemeMode.Oled) scheme.copy(
+            background = Color.Black,
+            surface = Color.Black,
+            surfaceVariant = Color(0xFF121212),
+            onBackground = Color(0xFFE0E0E0),
+            onSurface = Color(0xFFE0E0E0),
+            onSurfaceVariant = Color(0xFFB0B0B0),
+        ) else scheme
     }
 
     val statusColors = if (darkTheme) DarkStatusColors else LightStatusColors
