@@ -30,6 +30,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -62,7 +63,9 @@ fun SettingsScreen(
     onBackupSave: () -> Unit,
     onRestoreSave: () -> Unit,
     onDeleteSave: () -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    useDynamicColor: Boolean,
+    onToggleDynamicColor: (Boolean) -> Unit
 ) {
     val saveState by viewModel.saveState.collectAsState()
     val miiMakerState by viewModel.miiMakerState.collectAsState()
@@ -157,6 +160,15 @@ fun SettingsScreen(
                 isInstallingWad = isInstallingWad,
                 onInstallWad = { viewModel.installMiiMakerWad() },
                 onDeleteWad = { showWadDeleteConfirm = true }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(16.dp))
+
+            ThemeSection(
+                useDynamicColor = useDynamicColor,
+                onToggleDynamicColor = onToggleDynamicColor
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -374,6 +386,43 @@ private fun MiiMakerSection(
                 fontWeight = FontWeight.SemiBold
             )
         }
+    }
+}
+
+@Composable
+private fun ThemeSection(
+    useDynamicColor: Boolean,
+    onToggleDynamicColor: (Boolean) -> Unit
+) {
+    Text(
+        text = "Theme",
+        style = MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurface
+    )
+    Spacer(modifier = Modifier.height(4.dp))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onToggleDynamicColor(!useDynamicColor) },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Material You",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = "Use dynamic colors from your wallpaper",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Switch(
+            checked = useDynamicColor,
+            onCheckedChange = onToggleDynamicColor
+        )
     }
 }
 

@@ -1,5 +1,6 @@
 package com.skiletro.wheelwitch
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -37,15 +38,28 @@ class MainActivity : ComponentActivity() {
         @Suppress("DEPRECATION")
         window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
         setContent {
-            WheelWitchTheme {
-                MainScreen()
+            val prefs = remember { this@MainActivity.getSharedPreferences("settings", Context.MODE_PRIVATE) }
+            var useDynamicColor by remember { mutableStateOf(prefs.getBoolean("dynamic_color", false)) }
+
+            WheelWitchTheme(dynamicColor = useDynamicColor) {
+                MainScreen(
+                    useDynamicColor = useDynamicColor,
+                    onToggleDynamicColor = { enabled ->
+                        useDynamicColor = enabled
+                        prefs.edit().putBoolean("dynamic_color", enabled).apply()
+                    }
+                )
             }
         }
     }
 }
 
 @Composable
-private fun MainScreen(viewModel: UpdateViewModel = viewModel()) {
+private fun MainScreen(
+    viewModel: UpdateViewModel = viewModel(),
+    useDynamicColor: Boolean = false,
+    onToggleDynamicColor: (Boolean) -> Unit = {}
+) {
     val context = LocalContext.current
 
     val storagePicker = rememberLauncherForActivityResult(
@@ -113,7 +127,9 @@ private fun MainScreen(viewModel: UpdateViewModel = viewModel()) {
                     onBackupSave = { backupPicker.launch("rksys.dat") },
                     onRestoreSave = { restorePicker.launch(arrayOf("application/octet-stream", "*/*")) },
                     onDeleteSave = { viewModel.deleteSave() },
-                    onClose = { showSettings = false }
+                    onClose = { showSettings = false },
+                    useDynamicColor = useDynamicColor,
+                    onToggleDynamicColor = onToggleDynamicColor
                 )
             }
         }

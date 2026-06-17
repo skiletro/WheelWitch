@@ -110,9 +110,11 @@ fun HomeScreen(
         viewModel.refreshMiiMakerState()
     }
 
+    val isChecking = state is UiState.Checking
     val showBottomLaunch = when (val s = state) {
         is UiState.ReadyToLaunch -> true
         is UiState.Ready -> isInstalled(s.status)
+        is UiState.Checking -> true
         else -> false
     }
 
@@ -158,7 +160,8 @@ fun HomeScreen(
                             onRefresh = { viewModel.checkStatus() },
                             versionInfo = versionInfo,
                             playerCount = playerCount,
-                            serverConnectivity = serverConnectivity
+                            serverConnectivity = serverConnectivity,
+                            isChecking = isChecking
                         )
                     }
                 }
@@ -210,7 +213,6 @@ fun HomeScreen(
                     ) { currentState ->
                         when (currentState) {
                             is UiState.NoStorage -> NoStorageContent(onPickStorage)
-                            is UiState.Checking -> CheckingContent()
                             is UiState.Ready -> ReadyContent(
                                 status = currentState.status,
                                 viewModel = viewModel
@@ -235,6 +237,7 @@ fun HomeScreen(
                                 onRetry = { viewModel.clearError() },
                                 onPickIso = onPickIso
                             )
+                            else -> {}
                         }
                     }
                 }
@@ -500,7 +503,8 @@ private fun BottomLaunchBar(
     onRefresh: () -> Unit,
     versionInfo: String? = null,
     playerCount: Int? = null,
-    serverConnectivity: ServerConnectivity = ServerConnectivity.Unknown
+    serverConnectivity: ServerConnectivity = ServerConnectivity.Unknown,
+    isChecking: Boolean = false
 ) {
     Row(
         modifier = Modifier
@@ -515,12 +519,13 @@ private fun BottomLaunchBar(
         Spacer(modifier = Modifier.weight(1f))
         OutlinedButton(
             onClick = onRefresh,
+            enabled = !isChecking,
             shape = buttonShape,
             modifier = Modifier.height(56.dp)
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "Check for updates",
+                    text = if (isChecking) "Checking..." else "Check for updates",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium
                 )
@@ -534,7 +539,7 @@ private fun BottomLaunchBar(
             }
         }
         Spacer(modifier = Modifier.width(12.dp))
-        PrimaryActionButton(text = "Launch", onClick = onLaunch)
+        PrimaryActionButton(text = "Launch", onClick = onLaunch, enabled = !isChecking)
     }
 }
 
@@ -630,20 +635,6 @@ private fun NoStorageContent(onPickStorage: () -> Unit = {}) {
             onClick = onPickStorage,
             modifier = Modifier.fillMaxWidth()
         )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun CheckingContent() {
-    ContentSection {
-        CircularProgressIndicator(
-            modifier = Modifier.size(36.dp),
-            strokeWidth = 3.dp,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.height(20.dp))
-        BodyText("Checking for updates...")
     }
 }
 
