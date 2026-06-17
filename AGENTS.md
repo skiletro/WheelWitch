@@ -25,6 +25,7 @@ No test framework — test sources deleted.
 - **SAF folder picker** for pack storage location; direct `java.io.File` path resolution for I/O with `DocumentFile` fallback for metadata
 - **OkHttp 4.12.0** for HTTP (connection pooling, progress tracking)
 - **Dolphin launch**: uses `AutoStartFile` intent extra with kebab-case JSON fields; RR.json generated at storage root
+- **Mii Maker (WAD install)**: downloads `https://filecache45.gamebanana.com/mods/mii_channel_symbols_-_hacs.zip` to app cache, extracts the `.wad` file, and launches Dolphin via `ACTION_VIEW` intent with FileProvider content URI
 - **Update server**: `https://update.rwfc.net/` (same as WheelWizard); version file manifest, deletion list, fallback to full reinstall if version < 3.2.6
 - **Pipelined extraction** removed (`LinkedBlockingQueue` pipe caused hang at 99%)
 - **Copy buffer**: 262144 bytes
@@ -80,7 +81,7 @@ com.skiletro.wheelwitch
 - Gear button (`\u2699`) in home TopBar opens settings; back arrow (`ArrowBack`) returns home
 - `SettingsScreen` collects `saveState` from viewmodel, handles delete confirmation dialog inline
 - **PrimaryActionButton** (`Launch Dolphin`, `Download & Install`, `Select Storage`, `Try Again`) — 56dp tall, filled `primary` color, `titleMedium` semi-bold
-- **SecondaryActionButton** (`Check Again`) — 48dp tall, outlined
+- **SecondaryActionButton** (`Check Again`, `Mii Maker`) — 48dp tall, outlined; shown side-by-side in a `Row` with `weight(1f)`
 - Success messages shown as inline `Surface` banner rather than Card
 
 ## Key Constants

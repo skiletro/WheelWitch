@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -38,6 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.model.PackStatus
+import com.skiletro.wheelwitch.viewmodel.MiiMakerState
 import com.skiletro.wheelwitch.viewmodel.UiState
 import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
 import kotlinx.coroutines.delay
@@ -58,6 +61,7 @@ fun HomeScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val successMessage by viewModel.successMessage.collectAsState()
+    val miiMakerState by viewModel.miiMakerState.collectAsState()
 
     LaunchedEffect(successMessage) {
         if (successMessage != null) {
@@ -66,18 +70,32 @@ fun HomeScreen(
         }
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.refreshMiiMakerState()
+    }
+
+    val showBottomLaunch = when (val s = state) {
+        is UiState.ReadyToLaunch -> true
+        is UiState.Ready -> isInstalled(s.status)
+        else -> false
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        TopBar(onOpenSettings = onOpenSettings)
+        TopBar(
+            onOpenSettings = onOpenSettings,
+            onLaunchMiiMaker = { viewModel.launchMiiMaker() },
+            miiMakerEnabled = miiMakerState.hasWad
+        )
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .padding(bottom = 24.dp),
+                .padding(bottom = if (showBottomLaunch) 0.dp else 24.dp),
             contentAlignment = Alignment.Center
         ) {
             Column(
@@ -92,8 +110,9 @@ fun HomeScreen(
                     is UiState.NoStorage -> NoStorageContent(onPickStorage)
                     is UiState.Checking -> CheckingContent()
                     is UiState.Ready -> ReadyContent(
-                        currentState.status,
-                        viewModel
+                        status = currentState.status,
+                        viewModel = viewModel,
+                        compact = showBottomLaunch
                     )
                     is UiState.Downloading -> ProgressContent(
                         currentState.progress,
@@ -108,9 +127,7 @@ fun HomeScreen(
                         "Applying update ${currentState.index}/${currentState.total}: ${currentState.description}"
                     )
                     is UiState.ReadyToLaunch -> ReadyToLaunchContent(
-                        version = currentState.version,
-                        onLaunch = { viewModel.launchDolphin() },
-                        onCheckAgain = { viewModel.checkStatus() }
+                        version = currentState.version
                     )
                     is UiState.Error -> ErrorContent(
                         currentState.message,
@@ -121,12 +138,42 @@ fun HomeScreen(
             }
         }
 
+        if (showBottomLaunch) {
+            val onLaunch = when (val s = state) {
+                is UiState.ReadyToLaunch -> ({ viewModel.launchDolphin() })
+                is UiState.Ready -> ({ viewModel.launchDolphin() })
+                else -> ({})
+            }
+            val versionInfo = when (val s = state) {
+                is UiState.ReadyToLaunch -> "v${s.version}"
+                is UiState.Ready -> when (val st = s.status) {
+                    is PackStatus.Installed -> "v${st.version}"
+                    is PackStatus.UpToDate -> "v${st.currentVersion} (latest v${st.latestVersion})"
+                    else -> null
+                }
+                else -> null
+            }
+            BottomLaunchBar(
+                onLaunch = onLaunch,
+                onRefresh = { viewModel.checkStatus() },
+                versionInfo = versionInfo
+            )
+        }
+
         Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
+private fun isInstalled(status: PackStatus): Boolean {
+    return status is PackStatus.Installed || status is PackStatus.UpToDate
+}
+
 @Composable
-private fun TopBar(onOpenSettings: () -> Unit) {
+private fun TopBar(
+    onOpenSettings: () -> Unit,
+    onLaunchMiiMaker: () -> Unit,
+    miiMakerEnabled: Boolean
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -146,6 +193,17 @@ private fun TopBar(onOpenSettings: () -> Unit) {
                 text = SUBTITLE,
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        TextButton(
+            onClick = onLaunchMiiMaker,
+            enabled = miiMakerEnabled
+        ) {
+            Text(
+                text = "\u270E",
+                style = MaterialTheme.typography.headlineMedium,
+                color = if (miiMakerEnabled) MaterialTheme.colorScheme.onSurfaceVariant
+                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
             )
         }
         TextButton(onClick = onOpenSettings) {
@@ -265,6 +323,44 @@ private fun SecondaryActionButton(
     }
 }
 
+@Composable
+private fun BottomLaunchBar(
+    onLaunch: () -> Unit,
+    onRefresh: () -> Unit,
+    versionInfo: String? = null
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 32.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.End
+    ) {
+        OutlinedButton(
+            onClick = onRefresh,
+            shape = buttonShape,
+            modifier = Modifier.height(56.dp)
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "Check for updates",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+                if (versionInfo != null) {
+                    Text(
+                        text = versionInfo,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        PrimaryActionButton(text = "Launch", onClick = onLaunch)
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 private fun NoStorageContent(onPickStorage: () -> Unit = {}) {
@@ -301,56 +397,55 @@ private fun CheckingContent() {
 @Composable
 private fun ReadyContent(
     status: PackStatus,
-    viewModel: UpdateViewModel
+    viewModel: UpdateViewModel,
+    compact: Boolean
 ) {
-    val (title, subtitle, actionText) = when (status) {
-        is PackStatus.NotInstalled -> Triple(
-            PACK_NAME, "Not installed", "Download & Install"
-        )
-        is PackStatus.Installed -> Triple(
-            PACK_NAME, "Version ${status.version} (offline)", ""
-        )
-        is PackStatus.UpdateAvailable -> Triple(
-            "Update Available",
-            "${status.currentVersion} \u2192 ${status.latestVersion}",
-            "Update to v${status.latestVersion}"
-        )
-        is PackStatus.UpToDate -> Triple(
-            PACK_NAME,
-            "v${status.currentVersion} (latest is v${status.latestVersion})",
-            ""
-        )
-    }
-
-    ContentSection {
-        SectionTitle(title)
-        Spacer(modifier = Modifier.height(6.dp))
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-
-        if (actionText.isNotEmpty()) {
-            PrimaryActionButton(
-                text = actionText,
-                onClick = { viewModel.downloadOrUpdate(status) },
-                modifier = Modifier.fillMaxWidth()
+    if (compact) {
+        // No center content — version info shown below Launch button
+    } else {
+        val (title, subtitle, actionText) = when (status) {
+            is PackStatus.NotInstalled -> Triple(
+                PACK_NAME, "Not installed", "Download & Install"
             )
-        } else {
-            PrimaryActionButton(
-                text = "Launch Dolphin",
-                onClick = { viewModel.launchDolphin() },
-                modifier = Modifier.fillMaxWidth()
+            is PackStatus.Installed -> Triple(
+                PACK_NAME, "Version ${status.version} (offline)", ""
+            )
+            is PackStatus.UpdateAvailable -> Triple(
+                "Update Available",
+                "${status.currentVersion} \u2192 ${status.latestVersion}",
+                "Update to v${status.latestVersion}"
+            )
+            is PackStatus.UpToDate -> Triple(
+                PACK_NAME,
+                "v${status.currentVersion} (latest is v${status.latestVersion})",
+                ""
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-        SecondaryActionButton(
-            text = "Check Again",
-            onClick = { viewModel.checkStatus() }
-        )
+        ContentSection {
+            SectionTitle(title)
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+
+            if (actionText.isNotEmpty()) {
+                PrimaryActionButton(
+                    text = actionText,
+                    onClick = { viewModel.downloadOrUpdate(status) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                PrimaryActionButton(
+                    text = "Launch Dolphin",
+                    onClick = { viewModel.launchDolphin() },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
     }
 }
 
@@ -397,25 +492,12 @@ private fun ProgressContent(
 @Preview(showBackground = true)
 @Composable
 private fun ReadyToLaunchContent(
-    version: String = "3.2.6",
-    onLaunch: () -> Unit = {},
-    onCheckAgain: () -> Unit = {}
+    version: String = "3.2.6"
 ) {
     ContentSection {
         SectionTitle("Ready to play!", color = MaterialTheme.colorScheme.primary)
         Spacer(modifier = Modifier.height(6.dp))
         BodyText("$PACK_NAME v$version")
-        Spacer(modifier = Modifier.height(24.dp))
-        PrimaryActionButton(
-            text = "Launch Dolphin",
-            onClick = onLaunch,
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        SecondaryActionButton(
-            text = "Check Again",
-            onClick = onCheckAgain
-        )
     }
 }
 

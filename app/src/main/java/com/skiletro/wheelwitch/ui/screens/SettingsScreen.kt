@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +20,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -31,11 +34,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import com.skiletro.wheelwitch.viewmodel.MiiMakerState
 import com.skiletro.wheelwitch.viewmodel.SaveState
 import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
 
@@ -51,7 +56,10 @@ fun SettingsScreen(
     onClose: () -> Unit
 ) {
     val saveState by viewModel.saveState.collectAsState()
+    val miiMakerState by viewModel.miiMakerState.collectAsState()
+    val isInstallingWad by viewModel.isInstallingWad.collectAsState()
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showWadDeleteConfirm by remember { mutableStateOf(false) }
 
     if (showDeleteConfirm) {
         AlertDialog(
@@ -68,6 +76,25 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    if (showWadDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showWadDeleteConfirm = false },
+            title = { Text("Delete Mii Channel WAD") },
+            text = {
+                Text("Delete the cached Mii Channel WAD file? It will be re-downloaded the next time you use Mii Maker.")
+            },
+            confirmButton = {
+                Button(onClick = {
+                    viewModel.deleteWad()
+                    showWadDeleteConfirm = false
+                }) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showWadDeleteConfirm = false }) { Text("Cancel") }
             }
         )
     }
@@ -109,7 +136,8 @@ fun SettingsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 32.dp),
+                    .padding(horizontal = 32.dp)
+                    .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 SaveSettingsContent(
@@ -117,6 +145,13 @@ fun SettingsScreen(
                     onBackup = onBackupSave,
                     onRestore = onRestoreSave,
                     onDelete = { showDeleteConfirm = true }
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                MiiMakerSettingsContent(
+                    miiMakerState = miiMakerState,
+                    isInstallingWad = isInstallingWad,
+                    onInstallWad = { viewModel.installMiiMakerWad() },
+                    onDeleteWad = { showWadDeleteConfirm = true }
                 )
             }
         }
@@ -221,6 +256,77 @@ private fun SaveSettingsContent(
                         "Delete save data",
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MiiMakerSettingsContent(
+    miiMakerState: MiiMakerState,
+    isInstallingWad: Boolean,
+    onInstallWad: () -> Unit,
+    onDeleteWad: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = sectionShape,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        tonalElevation = 0.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Mii Channel WAD",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Status: " + if (miiMakerState.hasWad) "Installed" else "Not installed",
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                color = if (miiMakerState.hasWad) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            if (isInstallingWad) {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            } else if (miiMakerState.hasWad) {
+                Button(
+                    onClick = onDeleteWad,
+                    shape = buttonShape,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
+                ) {
+                    Text(
+                        "Delete cached WAD",
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            } else {
+                Button(
+                    onClick = onInstallWad,
+                    shape = buttonShape,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    ),
+                    modifier = Modifier.height(56.dp)
+                ) {
+                    Text(
+                        "Install Mii Channel",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }

@@ -1,6 +1,9 @@
 package com.skiletro.wheelwitch.viewmodel
 
 import android.app.Application
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -39,6 +42,10 @@ data class SaveState(
     val hasSave: Boolean = false,
 )
 
+data class MiiMakerState(
+    val hasWad: Boolean = false,
+)
+
 class UpdateViewModel(application: Application) : AndroidViewModel(application) {
     private val prefs = application.getSharedPreferences("wheelwitch", Application.MODE_PRIVATE)
     private val _state = MutableStateFlow<UiState>(UiState.NoStorage)
@@ -46,6 +53,12 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _saveState = MutableStateFlow(SaveState())
     val saveState: StateFlow<SaveState> = _saveState.asStateFlow()
+
+    private val _miiMakerState = MutableStateFlow(MiiMakerState())
+    val miiMakerState: StateFlow<MiiMakerState> = _miiMakerState.asStateFlow()
+
+    private val _isInstallingWad = MutableStateFlow(false)
+    val isInstallingWad: StateFlow<Boolean> = _isInstallingWad.asStateFlow()
 
     private val _successMessage = MutableStateFlow<String?>(null)
     val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
@@ -56,6 +69,7 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
     init {
         RewindPackManager.initCacheDir(application.cacheDir)
         restoreStorageUri()
+        refreshMiiMakerState()
     }
 
     private fun restoreStorageUri() {
@@ -181,6 +195,53 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun launchMiiMaker() {
+        val app = getApplication<Application>()
+
+        viewModelScope.launch {
+            try {
+                val cached = withContext(Dispatchers.IO) {
+                    DolphinLauncher.getCachedWadFile(app)
+                }
+                if (cached != null) {
+                    DolphinLauncher.launchWadFile(app, cached).getOrThrow()
+                }
+            } catch (e: Exception) {
+                _state.value = UiState.Error(e.message ?: "Failed to launch Mii Maker")
+            }
+        }
+    }
+
+    fun installMiiMakerWad() {
+        val app = getApplication<Application>()
+
+        viewModelScope.launch {
+            _isInstallingWad.value = true
+            try {
+                if (!isNetworkAvailable(app)) {
+                    _isInstallingWad.value = false
+                    _state.value = UiState.Error("No internet connection. Please connect to the internet and try again.")
+                    return@launch
+                }
+                withContext(Dispatchers.IO) {
+                    DolphinLauncher.downloadAndExtractWad(app)
+                }
+                refreshMiiMakerState()
+            } catch (e: Exception) {
+                _isInstallingWad.value = false
+                _state.value = UiState.Error(e.message ?: "Failed to install Mii Maker WAD")
+            }
+            _isInstallingWad.value = false
+        }
+    }
+
+    private fun isNetworkAvailable(context: Context): Boolean {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
+        val network = cm.activeNetwork ?: return false
+        val capabilities = cm.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
     fun clearError() {
         val currentState = _state.value
         if (currentState is UiState.Error) {
@@ -245,6 +306,21 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
             }
             _saveState.value = SaveState(hasSave)
         }
+    }
+
+    fun deleteWad() {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                val dir = File(getApplication<Application>().cacheDir, "mii_maker")
+                dir.deleteRecursively()
+            }
+            refreshMiiMakerState()
+        }
+    }
+
+    fun refreshMiiMakerState() {
+        val hasWad = DolphinLauncher.getCachedWadFile(getApplication()) != null
+        _miiMakerState.value = MiiMakerState(hasWad)
     }
 
     private fun handleProgress(progress: ProgressInfo) {
