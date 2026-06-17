@@ -17,7 +17,7 @@ sealed class PackStatus {
         val serverInfo: VersionFileParser.ServerInfo
     ) : PackStatus()
 
-    data object UpToDate : PackStatus()
+    data class UpToDate(val currentVersion: SemVersion, val latestVersion: SemVersion) : PackStatus()
 }
 
 sealed class ProgressInfo {
@@ -53,7 +53,7 @@ object RewindPackManager {
         return if (localVersion == null) {
             PackStatus.NotInstalled
         } else if (localVersion >= serverInfo.latestVersion) {
-            PackStatus.UpToDate
+            PackStatus.UpToDate(localVersion, serverInfo.latestVersion)
         } else {
             PackStatus.UpdateAvailable(localVersion, serverInfo.latestVersion, serverInfo)
         }
