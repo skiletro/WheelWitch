@@ -68,6 +68,8 @@ fun HomeScreen(
     val roomsState by viewModel.roomsState.collectAsState()
     val saveInfoState by viewModel.saveInfoState.collectAsState()
     val vrMultiplier by viewModel.vrMultiplier.collectAsState()
+    val currentIsoPath by viewModel.currentIsoPath.collectAsState()
+    val hasIso = currentIsoPath != null
 
     val playerCount = (roomsState as? RoomsState.Success)?.playerCount
     val serverConnectivity = (roomsState as? RoomsState.Success)?.serverConnectivity ?: ServerConnectivity.Unknown
@@ -138,6 +140,7 @@ fun HomeScreen(
                             playerCount = playerCount,
                             serverConnectivity = serverConnectivity,
                             isBusy = isBusy,
+                            hasIso = hasIso,
                             onLaunch = { viewModel.launchDolphin() },
                             onCheck = { viewModel.checkStatus() },
                             onRetry = { viewModel.clearError() },
@@ -234,6 +237,7 @@ private fun HomeBottomBar(
     playerCount: Int?,
     serverConnectivity: ServerConnectivity,
     isBusy: Boolean,
+    hasIso: Boolean,
     onLaunch: () -> Unit,
     onCheck: () -> Unit,
     onRetry: () -> Unit,
@@ -275,24 +279,16 @@ private fun HomeBottomBar(
                 }
             }
             is UiState.Error -> {
-                if (state.message.contains("ROM file", ignoreCase = true)) {
-                    PrimaryActionButton(
-                        text = "Select Mario Kart Wii ROM",
-                        onClick = onPickIso,
-                        modifier = Modifier.height(56.dp)
+                OutlinedButton(
+                    onClick = onRetry,
+                    shape = buttonShape,
+                    modifier = Modifier.height(56.dp)
+                ) {
+                    Text(
+                        text = "Try Again",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium
                     )
-                } else {
-                    OutlinedButton(
-                        onClick = onRetry,
-                        shape = buttonShape,
-                        modifier = Modifier.height(56.dp)
-                    ) {
-                        Text(
-                            text = "Try Again",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
                 }
             }
             is UiState.Ready -> {
@@ -332,15 +328,22 @@ private fun HomeBottomBar(
                         )
                     }
                     else -> {
-                        PrimaryActionButton(
-                            text = "Launch Dolphin",
-                            onClick = onLaunch,
-                            badgeText = vrMultiplier?.let { m ->
-                                if (m > 1.0f) {
-                                    if (m == m.toInt().toFloat()) "${m.toInt()}x VR" else "${m}x VR"
-                                } else null
-                            }
-                        )
+                        if (hasIso) {
+                            PrimaryActionButton(
+                                text = "Launch Retro Rewind",
+                                onClick = onLaunch,
+                                badgeText = vrMultiplier?.let { m ->
+                                    if (m > 1.0f) {
+                                        if (m == m.toInt().toFloat()) "${m.toInt()}x VR" else "${m}x VR"
+                                    } else null
+                                }
+                            )
+                        } else {
+                            PrimaryActionButton(
+                                text = "Select Mario Kart Wii ROM",
+                                onClick = onPickIso
+                            )
+                        }
                     }
                 }
             }
@@ -365,15 +368,22 @@ private fun HomeBottomBar(
                     )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
-                PrimaryActionButton(
-                    text = "Launch Dolphin",
-                    onClick = onLaunch,
-                    badgeText = vrMultiplier?.let { m ->
-                        if (m > 1.0f) {
-                            if (m == m.toInt().toFloat()) "${m.toInt()}x VR" else "${m}x VR"
-                        } else null
-                    }
-                )
+                if (hasIso) {
+                    PrimaryActionButton(
+                        text = "Launch Retro Rewind",
+                        onClick = onLaunch,
+                        badgeText = vrMultiplier?.let { m ->
+                            if (m > 1.0f) {
+                                if (m == m.toInt().toFloat()) "${m.toInt()}x VR" else "${m}x VR"
+                            } else null
+                        }
+                    )
+                } else {
+                    PrimaryActionButton(
+                        text = "Select Mario Kart Wii ROM",
+                        onClick = onPickIso
+                    )
+                }
             }
             is UiState.NoStorage -> {
                 Text(

@@ -242,9 +242,6 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
         }
         val gameIsoPath = DolphinLauncher.getGameIsoPath(app)
         if (gameIsoPath.isNullOrBlank()) {
-            _state.value = UiState.Error(
-                "Please select your Mario Kart Wii ROM file first."
-            )
             return
         }
         val rootPath = currentStorage.rootPath
