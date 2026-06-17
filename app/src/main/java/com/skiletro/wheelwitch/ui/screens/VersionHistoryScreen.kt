@@ -33,6 +33,7 @@ import com.skiletro.wheelwitch.domain.ChangelogParser
 import com.skiletro.wheelwitch.model.ChangelogEntry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun VersionHistoryContent(
@@ -41,12 +42,13 @@ fun VersionHistoryContent(
     var entries by remember { mutableStateOf<List<ChangelogEntry>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(true) }
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         loading = true
         error = null
         val result = withContext(Dispatchers.IO) {
-            ChangelogParser.fetch()
+            ChangelogParser.fetchWithCache(context)
         }
         result.onSuccess { entries = it }.onFailure { error = it.message }
         loading = false
