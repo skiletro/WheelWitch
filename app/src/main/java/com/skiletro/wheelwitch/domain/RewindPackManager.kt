@@ -24,6 +24,10 @@ object RewindPackManager {
     fun initCacheDir(cache: File) {
         tempCacheDir = File(cache, "rewind_pack_downloads")
         tempCacheDir?.mkdirs()
+        val cutoff = System.currentTimeMillis() - 86_400_000L
+        tempCacheDir?.listFiles()?.forEach { file ->
+            if (file.lastModified() < cutoff) file.delete()
+        }
     }
 
     suspend fun checkStatus(
@@ -127,6 +131,7 @@ object RewindPackManager {
     private fun downloadToFile(urlString: String, targetFile: File, onProgress: (Float) -> Unit) {
         val request = Request.Builder().url(urlString).build()
         val response = VersionFileParser.okHttpClient().newCall(request).execute()
+        if (!response.isSuccessful) error("Download failed: HTTP ${response.code} ${response.message}")
         val body = response.body ?: error("No response body")
         val totalBytes = body.contentLength()
 

@@ -21,6 +21,7 @@ import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.util.DolphinLauncher
 import com.skiletro.wheelwitch.util.MiiWadInstaller
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -90,6 +91,7 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
     private val _isInstallingWad = MutableStateFlow(false)
     val isInstallingWad: StateFlow<Boolean> = _isInstallingWad.asStateFlow()
 
+    private var saveInfoJob: Job? = null
     private val _miiMakerError = MutableStateFlow<String?>(null)
     val miiMakerError: StateFlow<String?> = _miiMakerError.asStateFlow()
 
@@ -462,7 +464,8 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun refreshSaveFileInfo() {
-        viewModelScope.launch {
+        saveInfoJob?.cancel()
+        saveInfoJob = viewModelScope.launch {
             _saveInfoState.value = SaveInfoState.Loading
             try {
                 val currentStorage = storage ?: throw Exception("Storage not configured")
