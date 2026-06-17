@@ -64,6 +64,7 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
 
     init {
         PackUpdateViewModel.saveDataDelegate = this
+        refreshActiveLicense()
     }
 
     override fun onPackStatusChanged() {
