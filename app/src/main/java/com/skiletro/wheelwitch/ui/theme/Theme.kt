@@ -7,6 +7,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
@@ -48,6 +49,8 @@ fun WheelWitchTheme(
         LightColorScheme
     }
 
+    val statusColors = if (darkTheme) DarkStatusColors else LightStatusColors
+
     val context = LocalContext.current
     SideEffect {
         (context as? Activity)?.window?.decorView?.setBackgroundColor(
@@ -55,9 +58,11 @@ fun WheelWitchTheme(
         )
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(LocalStatusColors provides statusColors) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

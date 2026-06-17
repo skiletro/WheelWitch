@@ -1,39 +1,18 @@
 package com.skiletro.wheelwitch.ui.components
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
+import com.skiletro.wheelwitch.ui.theme.LocalStatusColors
+import com.skiletro.wheelwitch.ui.theme.StatusColors
 
 /**
- * Color quadruple for an OK / Error status pair.
- *
- * - [okContainer] / [onOkContainer] are intended for filled cards (dark
- *   green background with light text).
- * - [ok] is the indicator / label color used on neutral surfaces
- *   (`surfaceVariant`).
- * - The `error*` fields are the equivalent for failure / non-OK states.
+ * Convenience accessor for the active [StatusColors] from [LocalStatusColors].
+ * Re-exports the theme-side type so callers can `import` it from one place.
  */
-data class StatusColors(
-    val okContainer: Color,
-    val onOkContainer: Color,
-    val ok: Color,
-    val errorContainer: Color,
-    val onErrorContainer: Color,
-    val error: Color
-)
-
-/**
- * Returns the standard OK / Error color quadruple.
- *
- * Phase 8 will replace this with a theme-aware composition local; for now
- * the colors are static.
- */
-fun statusColors(): StatusColors = StatusColors(
-    okContainer = Color(0xFF1B5E20),
-    onOkContainer = Color.White,
-    ok = Color(0xFF4CAF50),
-    errorContainer = Color(0xFFB71C1C),
-    onErrorContainer = Color.White,
-    error = Color(0xFFEF5350)
-)
+@Composable
+@ReadOnlyComposable
+fun statusColors(): StatusColors = LocalStatusColors.current
 
 /**
  * Returns the lighter indicator color matching the [isOk] state.
