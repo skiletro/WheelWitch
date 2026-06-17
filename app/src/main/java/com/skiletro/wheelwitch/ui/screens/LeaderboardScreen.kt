@@ -1,6 +1,9 @@
 package com.skiletro.wheelwitch.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,10 +34,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -60,7 +67,14 @@ fun LeaderboardScreen(viewModel: OnlineViewModel) {
                 .padding(horizontal = 12.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { viewModel.goBack() }) {
+            var backFocused by remember { mutableStateOf(false) }
+            IconButton(
+                onClick = { viewModel.goBack() },
+                modifier = Modifier
+                    .focusable()
+                    .onFocusChanged { backFocused = it.isFocused }
+                    .focusBorder(backFocused)
+            ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
@@ -75,9 +89,14 @@ fun LeaderboardScreen(viewModel: OnlineViewModel) {
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.weight(1f))
-            IconButton(onClick = {
-                viewModel.fetchLeaderboard()
-            }) {
+            var refreshFocused by remember { mutableStateOf(false) }
+            IconButton(
+                onClick = { viewModel.fetchLeaderboard() },
+                modifier = Modifier
+                    .focusable()
+                    .onFocusChanged { refreshFocused = it.isFocused }
+                    .focusBorder(refreshFocused)
+            ) {
                 Icon(
                     imageVector = Icons.Default.Refresh,
                     contentDescription = "Refresh",
@@ -155,6 +174,8 @@ private fun LeaderboardList(
     onLoadMore: () -> Unit
 ) {
     val listState = rememberLazyListState()
+    val focusRequester = remember { FocusRequester() }
+    var hasRequestedFocus by remember { mutableStateOf(false) }
 
     val shouldLoadMore by remember {
         derivedStateOf {
@@ -170,8 +191,17 @@ private fun LeaderboardList(
         }
     }
 
+    LaunchedEffect(entries) {
+        if (entries.isNotEmpty() && !hasRequestedFocus) {
+            focusRequester.requestFocus()
+            hasRequestedFocus = true
+        }
+    }
+
     LazyColumn(
         state = listState,
+        modifier = Modifier
+            .focusRequester(focusRequester),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         items(entries, key = { "${it.rank}_${it.friendCode}" }) { entry ->
@@ -197,53 +227,67 @@ private fun LeaderboardList(
 
 @Composable
 private fun LeaderboardRow(entry: LeaderboardEntry) {
+    var isFocused by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(8.dp)
     Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "#${entry.rank}",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (entry.rank <= 3) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.width(44.dp)
+        shape = shape,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { }
+            .focusable()
+            .onFocusChanged { isFocused = it.isFocused }
+            .then(
+                if (isFocused) Modifier.border(
+                    width = 5.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = shape
+                ) else Modifier
             )
-            Spacer(modifier = Modifier.width(8.dp))
-            Column(modifier = Modifier.weight(1f)) {
+    ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    text = entry.name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    fontFamily = CtmkfFontFamily,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = entry.friendCode,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = "${entry.vr}",
+                    text = "#${entry.rank}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = if (entry.rank <= 3) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.width(44.dp)
                 )
-                Text(
-                    text = "VR",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = entry.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        fontFamily = CtmkfFontFamily,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = entry.friendCode,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = "${entry.vr}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "VR",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
-}

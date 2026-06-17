@@ -140,24 +140,26 @@ class OnlineViewModel : ViewModel() {
         }
     }
 
+    private var isLeaderboardLoading = false
+
     fun fetchLeaderboard() {
+        if (isLeaderboardLoading) return
         val currentState = _leaderboardState.value
-        if (currentState is LeaderboardState.Loading) return
         if (currentState is LeaderboardState.Success && !currentState.hasMore) return
 
         val nextPage = when (currentState) {
             is LeaderboardState.Success -> currentState.page + 1
             else -> 1
         }
+        isLeaderboardLoading = true
+        if (nextPage == 1) {
+            _leaderboardState.value = LeaderboardState.Loading
+        }
         viewModelScope.launch {
-            _leaderboardState.value = if (nextPage == 1) {
-                LeaderboardState.Loading
-            } else {
-                LeaderboardState.Loading
-            }
             val result = withContext(Dispatchers.IO) {
                 VersionFileParser.fetchLeaderboard(page = nextPage)
             }
+            isLeaderboardLoading = false
             result.onSuccess { response ->
                 val existing = (currentState as? LeaderboardState.Success)?.entries ?: emptyList()
                 _leaderboardState.value = LeaderboardState.Success(

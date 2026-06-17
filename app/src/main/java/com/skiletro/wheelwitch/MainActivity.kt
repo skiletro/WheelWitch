@@ -137,12 +137,14 @@ private fun MainScreen(
 
     Box(Modifier.fillMaxSize()) {
         if (onboardingComplete) {
-            HomeScreen(
-                viewModel = viewModel,
-                onlineViewModel = onlineViewModel,
-                onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
-                onOpenSettings = { showSettings = true }
-            )
+            if (!showSettings) {
+                HomeScreen(
+                    viewModel = viewModel,
+                    onlineViewModel = onlineViewModel,
+                    onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
+                    onOpenSettings = { showSettings = true }
+                )
+            }
 
             AnimatedVisibility(
                 visible = showSettings,

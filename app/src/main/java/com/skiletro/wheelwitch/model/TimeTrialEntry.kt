@@ -18,8 +18,13 @@ data class TimeTrialEntry(
 )
 
 fun parseTracks(jsonString: String): List<TimeTrialTrack> {
-    val root = JSONObject(jsonString)
-    val arr = root.optJSONArray("tracks") ?: root.optJSONArray("data") ?: return emptyList()
+    val trimmed = jsonString.trim()
+    val arr = if (trimmed.startsWith("[")) {
+        JSONArray(trimmed)
+    } else {
+        val root = JSONObject(trimmed)
+        root.optJSONArray("tracks") ?: root.optJSONArray("data") ?: return emptyList()
+    }
     val tracks = mutableListOf<TimeTrialTrack>()
     for (i in 0 until arr.length()) {
         val obj = arr.getJSONObject(i)

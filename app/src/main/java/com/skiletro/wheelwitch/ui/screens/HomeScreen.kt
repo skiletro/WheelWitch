@@ -104,8 +104,9 @@ fun HomeScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(
-            topBar = {
+        if (!(showOnlineMenu || showSaveInfo)) {
+            Scaffold(
+                topBar = {
                 Surface(
                     color = MaterialTheme.colorScheme.surface,
                     tonalElevation = 0.dp
@@ -199,6 +200,7 @@ fun HomeScreen(
                     }
                 }
             }
+        }
         }
 
         AnimatedVisibility(

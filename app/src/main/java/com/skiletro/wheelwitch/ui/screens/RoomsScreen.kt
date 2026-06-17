@@ -62,6 +62,7 @@ fun RoomsScreen(
     var selectedRoomId by remember { mutableStateOf<String?>(null) }
     val selectedRoom = selectedRoomId?.let { id -> rooms.find { it.id == id } }
     val listFocusRequester = remember { FocusRequester() }
+    var hasRequestedFocus by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -208,8 +209,9 @@ fun RoomsScreen(
     }
 
     LaunchedEffect(rooms) {
-        if (rooms.isNotEmpty()) {
+        if (rooms.isNotEmpty() && !hasRequestedFocus) {
             listFocusRequester.requestFocus()
+            hasRequestedFocus = true
         }
     }
 }

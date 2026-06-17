@@ -125,16 +125,12 @@ private fun StatContent(stats: RaceStats) {
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
-        StatCard(label = "Total Races", value = formatNumber(stats.totalRaces))
+        StatCard(label = "Total Races Tracked", value = formatNumber(stats.totalRaces))
         Spacer(modifier = Modifier.height(8.dp))
-        StatCard(label = "Total Players", value = formatNumber(stats.totalPlayers))
+        StatCard(label = "Unique Players", value = formatNumber(stats.totalPlayers))
         Spacer(modifier = Modifier.height(8.dp))
-        stats.totalTimePlayed?.let {
-            StatCard(label = "Total Time Played", value = it)
-            Spacer(modifier = Modifier.height(8.dp))
-        }
-        stats.averagePlayersPerRace?.let {
-            StatCard(label = "Avg Players Per Race", value = "%.1f".format(it))
+        stats.trackedSince?.let {
+            StatCard(label = "Tracking Since", value = it.take(10))
             Spacer(modifier = Modifier.height(8.dp))
         }
     }
