@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -68,7 +67,7 @@ fun SplashScreen(
         when (val currentState = state) {
             is UiState.NoStorage -> NoStorageContent(onPickStorage)
             is UiState.Checking -> CheckingContent()
-            is UiState.Ready -> ReadyContent(currentState.status, viewModel, onPickIso)
+            is UiState.Ready -> ReadyContent(currentState.status, viewModel)
             is UiState.Downloading -> ProgressContent(
                 progress = currentState.progress,
                 message = currentState.message
@@ -145,8 +144,7 @@ private fun CheckingContent() {
 @Composable
 private fun ReadyContent(
     status: PackStatus,
-    viewModel: UpdateViewModel,
-    onPickIso: () -> Unit
+    viewModel: UpdateViewModel
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -212,12 +210,6 @@ private fun ReadyContent(
                     Button(onClick = { viewModel.downloadOrUpdate(status) }) {
                         Text(actionText)
                     }
-                }
-            }
-            if (status is PackStatus.UpToDate || status is PackStatus.Installed) {
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedButton(onClick = onPickIso) {
-                    Text("Select ISO File")
                 }
             }
         }
@@ -330,14 +322,13 @@ private fun ErrorContent(message: String, onRetry: () -> Unit, onPickIso: () -> 
                 color = MaterialTheme.colorScheme.onErrorContainer
             )
             Spacer(modifier = Modifier.height(16.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (message.contains("ROM file", ignoreCase = true)) {
+                OutlinedButton(onClick = onPickIso) {
+                    Text("Select Mario Kart Wii ROM")
+                }
+            } else {
                 Button(onClick = onRetry) {
                     Text("Retry")
-                }
-                if (message.contains("ISO", ignoreCase = true) || message.contains("select", ignoreCase = true)) {
-                    OutlinedButton(onClick = onPickIso) {
-                        Text("Select ISO")
-                    }
                 }
             }
         }

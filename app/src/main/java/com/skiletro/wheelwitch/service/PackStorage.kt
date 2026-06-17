@@ -10,7 +10,7 @@ import java.util.zip.ZipFile
 class PackStorage(private val context: Context, private val rootUri: Uri) {
     private val resolver get() = context.contentResolver
     private val rootDoc: DocumentFile by lazy { DocumentFile.fromTreeUri(context, rootUri)!! }
-    private val rootPath: String? = resolveToRealPath(rootUri)
+    val rootPath: String? = resolveToRealPath(rootUri)
 
     fun readFile(childPath: String): String? {
         val file = resolveDirect(childPath)

@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 
 sealed class UiState {
     data object NoStorage : UiState()
@@ -112,7 +113,6 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
                         return@launch
                     }
                     is PackStatus.UpToDate -> {
-                        // Nothing to do
                         _state.value = UiState.ReadyToLaunch(
                             (status as? PackStatus.UpToDate)?.let { "" } ?: ""
                         )
@@ -132,24 +132,37 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
             _state.value = UiState.Error("Storage not configured")
             return
         }
-
-        val gameIsoUri = DolphinLauncher.getGameIsoUri(app)
-        if (gameIsoUri == null) {
-            _state.value = UiState.Error("Please select your Mario Kart Wii ISO file first")
+        val gameIsoPath = DolphinLauncher.getGameIsoPath(app)
+        if (gameIsoPath.isNullOrBlank()) {
+            _state.value = UiState.Error(
+                "Please select your Mario Kart Wii ROM file first."
+            )
+            return
+        }
+        val rootPath = currentStorage.rootPath
+        if (rootPath == null) {
+            _state.value = UiState.Error("Cannot resolve storage path. Please pick a new storage folder.")
             return
         }
 
         viewModelScope.launch {
             try {
-                val rrJsonFile = withContext(Dispatchers.IO) {
-                    DolphinLauncher.generateLaunchJson(app, storageUri!!, gameIsoUri)
-                        .getOrThrow()
+                val json = withContext(Dispatchers.IO) {
+                    DolphinLauncher.generateLaunchJson(rootPath, gameIsoPath)
                 }
-                DolphinLauncher.launchDolphin(app, rrJsonFile).getOrThrow()
+                val rrJsonFile = File(rootPath, "RR.json")
+                withContext(Dispatchers.IO) {
+                    rrJsonFile.writeText(json)
+                }
+                DolphinLauncher.launchDolphin(app, rrJsonFile.absolutePath).getOrThrow()
             } catch (e: Exception) {
                 _state.value = UiState.Error(e.message ?: "Failed to launch Dolphin")
             }
         }
+    }
+
+    fun setGameIsoPath(path: String) {
+        DolphinLauncher.setGameIsoPath(getApplication(), path)
     }
 
     fun clearError() {

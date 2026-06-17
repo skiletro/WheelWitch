@@ -11,10 +11,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.skiletro.wheelwitch.service.DolphinLauncher
 import com.skiletro.wheelwitch.ui.screens.SplashScreen
 import com.skiletro.wheelwitch.ui.theme.WheelWitchTheme
 import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
@@ -34,6 +37,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun MainScreen(viewModel: UpdateViewModel = viewModel()) {
     val context = LocalContext.current
+    var isoRequestKey by remember { mutableStateOf(0) }
 
     val storagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
@@ -52,8 +56,10 @@ private fun MainScreen(viewModel: UpdateViewModel = viewModel()) {
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         if (uri != null) {
-            DolphinLauncher.setGameIsoUri(context, uri.toString())
-            viewModel.clearError()
+            val path = resolveContentUriToPath(uri)
+            if (path != null) {
+                viewModel.setGameIsoPath(path)
+            }
         }
     }
 
@@ -61,7 +67,23 @@ private fun MainScreen(viewModel: UpdateViewModel = viewModel()) {
         SplashScreen(
             viewModel = viewModel,
             onPickStorage = { storagePicker.launch(null) },
-            onPickIso = { isoPicker.launch(arrayOf("*/*")) }
+            onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) }
         )
+    }
+}
+
+private fun resolveContentUriToPath(uri: Uri): String? {
+    val docId = try {
+        android.provider.DocumentsContract.getDocumentId(uri)
+    } catch (e: Exception) {
+        return uri.path
+    }
+    val parts = docId.split(":")
+    if (parts.size < 2) return uri.path
+    return when {
+        parts[0].equals("primary", ignoreCase = true) ->
+            "/storage/emulated/0/${parts[1]}"
+        else ->
+            "/storage/${parts[0]}/${parts[1]}"
     }
 }
