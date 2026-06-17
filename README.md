@@ -47,21 +47,11 @@ Drop PNGs into `docs/screenshots/` to fill in the placeholders.
 ## Download
 
 <p align="center">
-  <a href="https://example.com/add-to-obtainium"><img src="docs/badges/obtainium.png" alt="Add to Obtainium" width="220"></a>
+  <a href="#"><img src="./docs/badges/github.webp" alt="GitHub Releases" width="220"></a>
+  <a href="#"><img src="./docs/badges/obtainium.webp" alt="Add to Obtainium" width="220"></a>
 </p>
 
-Or grab the APK from any of these sources — pick whichever you trust:
-
-| Source | Link | Add to Obtainium |
-|--------|------|------------------|
-| GitHub Releases | [releases](https://github.com/yourname/wheel-witch/releases) | [Add →](https://example.com/obtainium?source=github) |
-| F-Droid | [f-droid.org](https://f-droid.org) | [Add →](https://example.com/obtainium?source=fdroid) |
-| IzzyOnDeck | [apt.izzysoft.de](https://apt.izzysoft.de) | [Add →](https://example.com/obtainium?source=izzy) |
-| Direct APK | [wheelwitch.app/latest.apk](https://wheelwitch.app) | [Add →](https://example.com/obtainium?source=apk) |
-
 Or [build from source](#build) with Gradle.
-
-URLs above are placeholders — swap them for real sources as you publish.
 
 ## Build
 
