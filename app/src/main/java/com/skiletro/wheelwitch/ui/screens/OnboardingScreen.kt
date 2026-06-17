@@ -778,24 +778,14 @@ private fun CompleteStep(onDone: () -> Unit) {
 private fun StepDots(current: Int, total: Int) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         for (i in 0 until total) {
-            val isCompleted = i <= current
-            val isCurrent = i == current
-            val size by androidx.compose.animation.core.animateDpAsState(
-                targetValue = if (isCurrent) 10.dp else 8.dp,
-                animationSpec = androidx.compose.animation.core.tween(300),
-                label = "step_dot_size_$i"
-            )
-            val color by androidx.compose.animation.animateColorAsState(
-                targetValue = if (isCompleted) MaterialTheme.colorScheme.primary
-                              else MaterialTheme.colorScheme.surfaceVariant,
-                animationSpec = androidx.compose.animation.core.tween(300),
-                label = "step_dot_color_$i"
-            )
             Box(
                 modifier = Modifier
-                    .size(size)
+                    .size(if (i == current) 10.dp else 8.dp)
                     .clip(CircleShape)
-                    .background(color)
+                    .background(
+                        if (i <= current) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.surfaceVariant
+                    )
             )
         }
     }

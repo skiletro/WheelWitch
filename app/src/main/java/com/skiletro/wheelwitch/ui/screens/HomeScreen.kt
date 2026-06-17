@@ -196,21 +196,17 @@ fun HomeScreen(
             ) {
                 VersionHistoryContent(modifier = Modifier.fillMaxSize())
 
-                AnimatedVisibility(
-                    visible = successMessage != null,
-                    enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
-                    exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
-                    modifier = Modifier.align(Alignment.TopCenter)
-                ) {
+                if (successMessage != null) {
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .align(Alignment.TopCenter)
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         shape = sectionShape,
                         color = MaterialTheme.colorScheme.primaryContainer
                     ) {
                         Text(
-                            text = successMessage.orEmpty(),
+                            text = successMessage!!,
                             modifier = Modifier.padding(16.dp),
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
@@ -219,16 +215,12 @@ fun HomeScreen(
                     }
                 }
 
-                AnimatedVisibility(
-                    visible = state is UiState.Error,
-                    enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
-                    exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
-                    modifier = Modifier.align(Alignment.TopCenter)
-                ) {
-                    val error = (state as? UiState.Error)?.message ?: return@AnimatedVisibility
+                if (state is UiState.Error) {
+                    val error = (state as UiState.Error).message
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .align(Alignment.TopCenter)
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         shape = sectionShape,
                         color = MaterialTheme.colorScheme.errorContainer

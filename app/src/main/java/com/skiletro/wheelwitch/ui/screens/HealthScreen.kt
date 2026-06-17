@@ -142,10 +142,11 @@ private fun HealthStatusCard(title: String, status: String, isOk: Boolean) {
                 .padding(20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            com.skiletro.wheelwitch.ui.components.PulsingDot(
-                target = colors.indicator(isOk),
-                pulse = isOk,
-                sizeDp = 16.dp
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .clip(CircleShape)
+                    .background(colors.indicator(isOk))
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column {
@@ -180,9 +181,11 @@ private fun HealthCheckRow(label: String, item: HealthCheckItem) {
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            com.skiletro.wheelwitch.ui.components.PulsingDot(
-                target = colors.indicator(isOk),
-                pulse = isOk
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(colors.indicator(isOk))
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -225,9 +228,11 @@ private fun MemoryRow(memory: MemoryInfo) {
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            com.skiletro.wheelwitch.ui.components.PulsingDot(
-                target = colors.indicator(isOk),
-                pulse = isOk
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(colors.indicator(isOk))
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
