@@ -6,6 +6,21 @@
 - Android SDK (managed automatically via Gradle)
 - (Optional) Android Studio for the emulator and layout previews
 
+### Nix Devshell
+
+If you have [Nix](https://nixos.org) and [direnv](https://direnv.net) installed, the `.envrc` will automatically load a development shell containing JDK 21 and the Android SDK. Otherwise, enter it manually with `nix develop`
+
+### Justfile
+
+A [`just`](https://github.com/casey/just) command runner is provided for common tasks:
+
+```bash
+just build        # assemble debug APK
+just test         # run unit tests
+just clean        # clean build outputs
+just check        # build + test
+```
+
 ## Contributing
 
 1. Fork this repository
