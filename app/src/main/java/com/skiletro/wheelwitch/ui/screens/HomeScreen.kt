@@ -48,6 +48,9 @@ import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.viewmodel.MiiMakerState
 import com.skiletro.wheelwitch.viewmodel.UiState
 import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import kotlinx.coroutines.delay
 
 private const val APP_NAME = "Wheel Witch"
@@ -253,7 +256,29 @@ private fun TopBar(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+        Spacer(modifier = Modifier.width(8.dp))
+        ClockText()
     }
+}
+
+@Composable
+private fun ClockText() {
+    val timeText = remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            val now = LocalTime.now()
+            timeText.value = now.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
+            delay(60_000)
+        }
+    }
+
+    Text(
+        text = timeText.value,
+        style = MaterialTheme.typography.bodyMedium,
+        fontWeight = FontWeight.Medium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
 }
 
 @Composable
@@ -405,14 +430,22 @@ private fun BottomLaunchBar(
 private fun VersionHistoryWebView(modifier: Modifier = Modifier) {
     AndroidView(
         factory = { context ->
-            WebView(context).apply {
-                isFocusable = false
-                isFocusableInTouchMode = false
-                settings.javaScriptEnabled = true
-                settings.loadWithOverviewMode = true
-                settings.useWideViewPort = true
-                webViewClient = WebViewClient()
-                loadUrl("https://wiki.tockdom.com/wiki/Retro_Rewind#Version_History")
+            try {
+                WebView(context).apply {
+                    isFocusable = false
+                    isFocusableInTouchMode = false
+                    settings.javaScriptEnabled = true
+                    settings.loadWithOverviewMode = true
+                    settings.useWideViewPort = true
+                    webViewClient = WebViewClient()
+                    loadUrl("https://wiki.tockdom.com/wiki/Retro_Rewind#Version_History")
+                }
+            } catch (_: Exception) {
+                android.widget.TextView(context).apply {
+                    text = "Version history unavailable"
+                    gravity = android.view.Gravity.CENTER
+                    textSize = 14f
+                }
             }
         },
         modifier = modifier
