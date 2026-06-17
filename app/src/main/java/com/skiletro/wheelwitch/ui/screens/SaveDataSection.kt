@@ -61,7 +61,7 @@ fun SaveDataSection(
                 .then(
                     if (backupFocused) Modifier.border(
                         width = 3.dp,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        color = MaterialTheme.colorScheme.primary,
                         shape = buttonShape
                     ) else Modifier
                 ),
@@ -87,7 +87,7 @@ fun SaveDataSection(
                 .then(
                     if (restoreFocused) Modifier.border(
                         width = 3.dp,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        color = MaterialTheme.colorScheme.primary,
                         shape = buttonShape
                     ) else Modifier
                 ),

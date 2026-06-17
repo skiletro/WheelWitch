@@ -123,7 +123,7 @@ fun MiiMakerSection(
                 .then(
                     if (installFocused) Modifier.border(
                         width = 3.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
+                        color = MaterialTheme.colorScheme.primary,
                         shape = buttonShape
                     ) else Modifier
                 ),

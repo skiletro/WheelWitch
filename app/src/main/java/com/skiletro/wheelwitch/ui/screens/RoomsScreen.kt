@@ -28,7 +28,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -126,9 +125,10 @@ fun RoomsScreen(
                             modifier = Modifier.padding(horizontal = 32.dp)
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-                        TextButton(onClick = onRefresh) {
-                            Text(text = "Try Again")
-                        }
+                        PrimaryActionButton(
+                            text = "Try Again",
+                            onClick = onRefresh
+                        )
                     }
                 }
                 is RoomsState.Success -> {
@@ -146,9 +146,10 @@ fun RoomsScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
-                                TextButton(onClick = onRefresh) {
-                                    Text(text = "Refresh")
-                                }
+                                PrimaryActionButton(
+                                    text = "Refresh",
+                                    onClick = onRefresh
+                                )
                             }
                         }
                     } else {

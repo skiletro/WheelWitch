@@ -354,7 +354,7 @@ fun BottomLaunchBar(
             enabled = !isChecking,
             badgeText = vrMultiplier?.let { m ->
                 if (m > 1.0f) {
-                    if (m == m.toInt().toFloat()) "${m.toInt()}x" else "${m}x"
+                    if (m == m.toInt().toFloat()) "${m.toInt()}x VR" else "${m}x VR"
                 } else null
             }
         )
@@ -472,7 +472,7 @@ fun HomeReadyContent(
                 modifier = Modifier.fillMaxWidth(),
                 badgeText = vrMultiplier?.let { m ->
                     if (m > 1.0f) {
-                        if (m == m.toInt().toFloat()) "${m.toInt()}x" else "${m}x"
+                    if (m == m.toInt().toFloat()) "${m.toInt()}x VR" else "${m}x VR"
                     } else null
                 }
             )

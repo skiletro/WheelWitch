@@ -22,7 +22,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -117,7 +116,7 @@ fun TopBar(
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
-    TextButton(
+    IconButton(
             onClick = onLaunchMiiMaker,
             enabled = miiMakerEnabled
         ) {
@@ -129,7 +128,7 @@ fun TopBar(
                 modifier = Modifier.size(24.dp)
             )
         }
-        TextButton(onClick = onOpenSettings) {
+        IconButton(onClick = onOpenSettings) {
             Icon(
                 imageVector = Icons.Default.Settings,
                 contentDescription = "Settings",
