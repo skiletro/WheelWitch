@@ -347,6 +347,26 @@ fun SettingsScreen(
                 )
             }
             item {
+                var miiCacheSizeBytes by remember {
+                    mutableStateOf(com.skiletro.wheelwitch.util.MiiFaceCache.cacheSize())
+                }
+                SettingsItem(
+                    icon = Icons.Filled.Cached,
+                    title = "Mii face cache",
+                    summary = formatSize(miiCacheSizeBytes),
+                    trailing = {
+                        TextButton(
+                            onClick = {
+                                com.skiletro.wheelwitch.util.MiiFaceCache.clear()
+                                miiCacheSizeBytes = 0
+                            },
+                            enabled = miiCacheSizeBytes > 0,
+                            shape = RoundedCornerShape(14.dp)
+                        ) { Text("Clear") }
+                    }
+                )
+            }
+            item {
                 SettingsItem(
                     icon = Icons.AutoMirrored.Filled.Shortcut,
                     title = "Quick launch",

@@ -12,6 +12,7 @@ data class LeaderboardEntry(
     val vr: Int,
     val br: Int,
     val miiImageBase64: String?,
+    val miiData: String?,
     val country: String?
 )
 
@@ -53,6 +54,7 @@ fun parseLeaderboardResponse(jsonString: String): LeaderboardResponse {
                 vr = obj.optInt("vr", 0),
                 br = obj.optInt("br", 0),
                 miiImageBase64 = if (!obj.isNull("miiImageBase64")) obj.optString("miiImageBase64", "").takeIf { it.isNotEmpty() } else null,
+                miiData = if (!obj.isNull("miiData")) obj.optString("miiData", "").takeIf { it.isNotEmpty() } else null,
                 country = if (!obj.isNull("country")) obj.optString("country", "").takeIf { it.isNotEmpty() } else null
             )
         )

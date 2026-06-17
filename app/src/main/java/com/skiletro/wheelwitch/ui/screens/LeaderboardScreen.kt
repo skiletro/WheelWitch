@@ -259,6 +259,12 @@ private fun LeaderboardRow(entry: LeaderboardEntry) {
                     modifier = Modifier.width(44.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
+                MiiFace(
+                    imageBase64 = entry.miiImageBase64,
+                    miiDataBase64 = entry.miiData,
+                    modifier = Modifier.size(36.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = entry.name,

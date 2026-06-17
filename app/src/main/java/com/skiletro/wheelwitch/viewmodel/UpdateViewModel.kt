@@ -119,6 +119,7 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
 
     init {
         RewindPackManager.initCacheDir(application.cacheDir)
+        com.skiletro.wheelwitch.util.MiiFaceCache.init(application)
         restoreStorageUri()
         refreshMiiMakerState()
     }
@@ -156,6 +157,14 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
             }
             val status = withContext(Dispatchers.IO) {
                 RewindPackManager.checkStatus(currentStorage)
+            }
+            val serverVersion = when (status) {
+                is PackStatus.UpdateAvailable -> status.latestVersion.toString()
+                is PackStatus.UpToDate -> status.latestVersion.toString()
+                else -> null
+            }
+            if (serverVersion != null) {
+                prefs.edit().putString("last_server_version", serverVersion).apply()
             }
             _state.value = UiState.Ready(status)
             refreshSaveState()

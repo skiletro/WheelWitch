@@ -335,13 +335,24 @@ fun MiiFace(
     var miiBitmap by remember { mutableStateOf<Bitmap?>(null) }
     LaunchedEffect(miiDataBase64) {
         if (miiDataBase64 != null) {
-            withContext(Dispatchers.IO) {
-                val url = "$miiUrlBase?data=${URLEncoder.encode(miiDataBase64, "UTF-8")}&width=96&type=face"
-                val request = Request.Builder().url(url).build()
-                val response = httpClient.newCall(request).execute()
-                val bytes = response.body?.bytes()
-                if (bytes != null) {
-                    miiBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            val cached = withContext(Dispatchers.IO) {
+                com.skiletro.wheelwitch.util.MiiFaceCache.get(miiDataBase64)
+            }
+            if (cached != null) {
+                miiBitmap = cached
+            } else {
+                withContext(Dispatchers.IO) {
+                    val url = "$miiUrlBase?data=${URLEncoder.encode(miiDataBase64, "UTF-8")}&width=96&type=face"
+                    val request = Request.Builder().url(url).build()
+                    val response = httpClient.newCall(request).execute()
+                    val bytes = response.body?.bytes()
+                    if (bytes != null) {
+                        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                        if (bitmap != null) {
+                            com.skiletro.wheelwitch.util.MiiFaceCache.put(miiDataBase64, bitmap)
+                        }
+                        miiBitmap = bitmap
+                    }
                 }
             }
         }
