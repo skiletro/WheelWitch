@@ -23,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -44,6 +45,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import android.content.Intent
+import android.net.Uri
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import com.skiletro.wheelwitch.model.PackStatus
@@ -109,41 +112,45 @@ fun HomeScreen(
             else -> null
         }
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            VersionHistoryWebView(modifier = Modifier.fillMaxSize())
-
-            Surface(
-                modifier = Modifier.align(Alignment.TopStart).fillMaxWidth(),
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 0.dp
-            ) {
-                TopBar(
-                    onOpenSettings = onOpenSettings,
-                    onLaunchMiiMaker = { viewModel.launchMiiMaker() },
-                    miiMakerEnabled = miiMakerState.hasWad
-                )
-            }
-
-            Surface(
-                modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth(),
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 0.dp
-            ) {
-                Column(
-                    modifier = Modifier.padding(vertical = 12.dp)
+        Scaffold(
+            topBar = {
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 0.dp
                 ) {
-                    BottomLaunchBar(
-                        onLaunch = onLaunch,
-                        onRefresh = { viewModel.checkStatus() },
-                        versionInfo = versionInfo,
-                        playerCount = playerCount,
-                        serverConnectivity = serverConnectivity
+                    TopBar(
+                        onOpenSettings = onOpenSettings,
+                        onLaunchMiiMaker = { viewModel.launchMiiMaker() },
+                        miiMakerEnabled = miiMakerState.hasWad
                     )
                 }
+            },
+            bottomBar = {
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 0.dp
+                ) {
+                    Column(
+                        modifier = Modifier.padding(vertical = 12.dp)
+                    ) {
+                        BottomLaunchBar(
+                            onLaunch = onLaunch,
+                            onRefresh = { viewModel.checkStatus() },
+                            versionInfo = versionInfo,
+                            playerCount = playerCount,
+                            serverConnectivity = serverConnectivity
+                        )
+                    }
+                }
+            }
+        ) { padding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(padding)
+            ) {
+                VersionHistoryWebView(modifier = Modifier.fillMaxSize())
             }
         }
     } else {
@@ -490,7 +497,15 @@ private fun VersionHistoryWebView(modifier: Modifier = Modifier) {
                     settings.javaScriptEnabled = true
                     settings.loadWithOverviewMode = true
                     settings.useWideViewPort = true
-                    webViewClient = WebViewClient()
+                    webViewClient = object : WebViewClient() {
+                        override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+                            if (url.startsWith("https://wiki.tockdom.com/wiki/Retro_Rewind")) {
+                                return false
+                            }
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                            return true
+                        }
+                    }
                     loadUrl("https://wiki.tockdom.com/wiki/Retro_Rewind#Version_History")
                 }
             } catch (_: Exception) {

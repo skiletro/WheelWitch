@@ -9,7 +9,9 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -87,22 +89,24 @@ private fun MainScreen(viewModel: UpdateViewModel = viewModel()) {
         showSettings = false
     }
 
-    Scaffold(modifier = Modifier.fillMaxSize()) {
-        if (showSettings) {
-            SettingsScreen(
-                viewModel = viewModel,
-                onBackupSave = { backupPicker.launch("rksys.dat") },
-                onRestoreSave = { restorePicker.launch(arrayOf("application/octet-stream", "*/*")) },
-                onDeleteSave = { viewModel.deleteSave() },
-                onClose = { showSettings = false }
-            )
-        } else {
-            HomeScreen(
-                viewModel = viewModel,
-                onPickStorage = { storagePicker.launch(null) },
-                onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
-                onOpenSettings = { showSettings = true }
-            )
+    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+        Box(Modifier.fillMaxSize().padding(innerPadding)) {
+            if (showSettings) {
+                SettingsScreen(
+                    viewModel = viewModel,
+                    onBackupSave = { backupPicker.launch("rksys.dat") },
+                    onRestoreSave = { restorePicker.launch(arrayOf("application/octet-stream", "*/*")) },
+                    onDeleteSave = { viewModel.deleteSave() },
+                    onClose = { showSettings = false }
+                )
+            } else {
+                HomeScreen(
+                    viewModel = viewModel,
+                    onPickStorage = { storagePicker.launch(null) },
+                    onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
+                    onOpenSettings = { showSettings = true }
+                )
+            }
         }
     }
 }
