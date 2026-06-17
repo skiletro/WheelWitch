@@ -8,6 +8,18 @@ import java.security.MessageDigest
 object RksysParser {
     private val LICENSE_BASES = intArrayOf(0x08, 0x8CC8, 0x11988, 0x1A648)
 
+    private const val MII_NAME_OFFSET = 0x14
+    private const val MII_NAME_LENGTH = 20
+    private const val PID_OFFSET = 0x5C
+    private const val RACE_WINS_OFFSET = 0x88
+    private const val RACE_LOSSES_OFFSET = 0x8C
+    private const val BATTLE_WINS_OFFSET = 0x90
+    private const val BATTLE_LOSSES_OFFSET = 0x94
+    private const val VR_OFFSET = 0xB0
+    private const val BR_OFFSET = 0xB2
+    private const val MII_RFL_OFFSET = 0x5684
+    private const val MII_RFL_DATA_LENGTH = 74
+
     fun parse(bytes: ByteArray): SaveFileInfo {
         val licenses = LICENSE_BASES.mapIndexed { index, base ->
             parseLicense(bytes, base, index)
@@ -25,18 +37,17 @@ object RksysParser {
             return LicenseInfo(slotIndex = slotIndex, exists = false)
         }
 
-        val miiName = readUTF16BE(bytes, base + 0x14, 20)
-        val pid = readUInt32BE(bytes, base + 0x5C)
-        val vr = readUInt16BE(bytes, base + 0xB0)
-        val br = readUInt16BE(bytes, base + 0xB2)
-        val raceWins = readInt32BE(bytes, base + 0x88)
-        val raceLosses = readInt32BE(bytes, base + 0x8C)
-        val battleWins = readInt32BE(bytes, base + 0x90)
-        val battleLosses = readInt32BE(bytes, base + 0x94)
+        val miiName = readUTF16BE(bytes, base + MII_NAME_OFFSET, MII_NAME_LENGTH)
+        val pid = readUInt32BE(bytes, base + PID_OFFSET)
+        val vr = readUInt16BE(bytes, base + VR_OFFSET)
+        val br = readUInt16BE(bytes, base + BR_OFFSET)
+        val raceWins = readInt32BE(bytes, base + RACE_WINS_OFFSET)
+        val raceLosses = readInt32BE(bytes, base + RACE_LOSSES_OFFSET)
+        val battleWins = readInt32BE(bytes, base + BATTLE_WINS_OFFSET)
+        val battleLosses = readInt32BE(bytes, base + BATTLE_LOSSES_OFFSET)
 
-        val miiRflOffset = base + 0x5684
-        val miiDataBase64 = if (miiRflOffset + 74 <= bytes.size) {
-            val rflData = bytes.copyOfRange(miiRflOffset, miiRflOffset + 74)
+        val miiDataBase64 = if (base + MII_RFL_OFFSET + MII_RFL_DATA_LENGTH <= bytes.size) {
+            val rflData = bytes.copyOfRange(base + MII_RFL_OFFSET, base + MII_RFL_OFFSET + MII_RFL_DATA_LENGTH)
             Base64.encodeToString(rflData, Base64.NO_WRAP)
         } else null
 

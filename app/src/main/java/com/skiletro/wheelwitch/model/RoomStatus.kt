@@ -1,8 +1,10 @@
 package com.skiletro.wheelwitch.model
 
+import androidx.compose.runtime.Immutable
 import org.json.JSONArray
 import org.json.JSONObject
 
+@Immutable
 sealed interface ServerConnectivity {
     data object Online : ServerConnectivity
     data object Offline : ServerConnectivity

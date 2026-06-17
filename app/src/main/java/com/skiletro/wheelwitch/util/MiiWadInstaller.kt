@@ -5,8 +5,6 @@ import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
 import com.skiletro.wheelwitch.util.DolphinLauncher
-import com.skiletro.wheelwitch.util.HttpClientProvider
-import okhttp3.Request
 import java.io.File
 import java.io.FileInputStream
 import java.util.zip.ZipInputStream
@@ -14,9 +12,7 @@ import java.util.zip.ZipInputStream
 object MiiWadInstaller {
     private const val MII_MAKER_ZIP_URL = "https://filecache45.gamebanana.com/mods/mii_channel_symbols_-_hacs.zip"
     private const val WAD_FILE_NAME = "Mii Channel Symbols - HACS.wad"
-    private const val DOWNLOAD_BUFFER = 262144
-
-    private val httpClient get() = HttpClientProvider.client
+    private const val EXTRACT_BUFFER = 262144
 
     fun getCachedWadFile(context: Context): File? {
         val dir = File(context.cacheDir, "mii_maker")
@@ -29,7 +25,7 @@ object MiiWadInstaller {
         cacheDir.mkdirs()
 
         val zipFile = File(cacheDir, "mii_channel_symbols.zip")
-        downloadToFile(MII_MAKER_ZIP_URL, zipFile)
+        FileDownloader.downloadToFile(MII_MAKER_ZIP_URL, zipFile)
 
         val wadFile = extractWad(zipFile, cacheDir)
         zipFile.delete()
@@ -64,22 +60,6 @@ object MiiWadInstaller {
         context.startActivity(intent)
     }
 
-    private fun downloadToFile(urlString: String, targetFile: File) {
-        val request = Request.Builder().url(urlString).build()
-        val response = httpClient.newCall(request).execute()
-        val body = response.body ?: error("No response body")
-
-        body.byteStream().use { input ->
-            targetFile.outputStream().use { output ->
-                val buffer = ByteArray(DOWNLOAD_BUFFER)
-                var bytesRead: Int
-                while (input.read(buffer).also { bytesRead = it } != -1) {
-                    output.write(buffer, 0, bytesRead)
-                }
-            }
-        }
-    }
-
     private fun extractWad(zipFile: File, destDir: File): File {
         val wadFiles = mutableListOf<File>()
         ZipInputStream(FileInputStream(zipFile)).use { zis ->
@@ -88,7 +68,7 @@ object MiiWadInstaller {
                 if (!entry.isDirectory && entry.name.endsWith(".wad", ignoreCase = true)) {
                     val outFile = File(destDir, entry.name.substringAfterLast("/"))
                     outFile.outputStream().use { output ->
-                        val buffer = ByteArray(DOWNLOAD_BUFFER)
+                        val buffer = ByteArray(EXTRACT_BUFFER)
                         var bytesRead: Int
                         while (zis.read(buffer).also { bytesRead = it } != -1) {
                             output.write(buffer, 0, bytesRead)

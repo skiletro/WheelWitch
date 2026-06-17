@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
 
 object DolphinLauncher {
     const val DOLPHIN_PACKAGE = "org.dolphinemu.dolphinemu"
@@ -80,6 +81,25 @@ object DolphinLauncher {
             put("type", "dolphin-game-mod-descriptor")
             put("version", 1)
         }.toString(2)
+    }
+
+    fun readIsoPathFromLaunchJson(rootPath: String): String? {
+        val file = File(rootPath, RR_JSON_NAME)
+        return if (file.exists()) {
+            try {
+                JSONObject(file.readText()).optString("base-file", "").takeIf { it.isNotEmpty() }
+            } catch (_: Exception) {
+                null
+            }
+        } else null
+    }
+
+    fun writeLaunchJson(rootPath: String, gameIsoPath: String) {
+        File(rootPath, RR_JSON_NAME).writeText(generateLaunchJson(rootPath, gameIsoPath))
+    }
+
+    fun deleteLaunchJson(rootPath: String) {
+        File(rootPath, RR_JSON_NAME).delete()
     }
 
     fun launchDolphin(context: Context, jsonFilePath: String): Result<Unit> = runCatching {

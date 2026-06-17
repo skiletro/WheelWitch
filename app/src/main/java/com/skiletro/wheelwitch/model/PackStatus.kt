@@ -1,5 +1,8 @@
 package com.skiletro.wheelwitch.model
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 sealed class PackStatus {
     data object NotInstalled : PackStatus()
     data class Installed(val version: SemVersion) : PackStatus()

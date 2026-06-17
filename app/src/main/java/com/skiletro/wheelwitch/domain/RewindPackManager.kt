@@ -6,19 +6,17 @@ import com.skiletro.wheelwitch.model.ProgressInfo
 import com.skiletro.wheelwitch.model.SemVersion
 import com.skiletro.wheelwitch.model.ServerInfo
 import com.skiletro.wheelwitch.network.VersionFileParser
-import com.skiletro.wheelwitch.util.HttpClientProvider
+import com.skiletro.wheelwitch.util.FileDownloader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
-import okhttp3.Request
 import java.io.File
 
 object RewindPackManager {
     internal const val VERSION_FILE = "RetroRewind6/version.txt"
     private const val MIN_FULL_REINSTALL_VERSION = "3.2.6"
-    private const val DOWNLOAD_BUFFER = 262144
 
     private var tempCacheDir: File? = null
 
@@ -59,7 +57,7 @@ object RewindPackManager {
         cacheBase.mkdirs()
         val zipFile = File.createTempFile("install_", ".zip", cacheBase)
         withContext(Dispatchers.IO) {
-            downloadToFile(VersionFileParser.getFullZipUrl(), zipFile) { progress ->
+            FileDownloader.downloadToFile(VersionFileParser.getFullZipUrl(), zipFile) { progress ->
                 onProgress(ProgressInfo.Downloading(progress, "Downloading Retro Rewind Pack..."))
             }
         }
@@ -105,7 +103,7 @@ object RewindPackManager {
             val deferred = steps.map { step ->
                 async(Dispatchers.IO) {
                     val file = File.createTempFile("update_", ".zip", cacheBase)
-                    downloadToFile(step.url, file) { progress ->
+                    FileDownloader.downloadToFile(step.url, file) { progress ->
                         onProgress(ProgressInfo.Downloading(progress,
                             "${step.description} - downloading"))
                     }
@@ -127,35 +125,6 @@ object RewindPackManager {
         }
 
         serverInfo.latestVersion
-    }
-
-    private fun downloadToFile(urlString: String, targetFile: File, onProgress: (Float) -> Unit) {
-        val request = Request.Builder().url(urlString).build()
-        val response = HttpClientProvider.client.newCall(request).execute()
-        if (!response.isSuccessful) error("Download failed: HTTP ${response.code} ${response.message}")
-        val body = response.body ?: error("No response body")
-        val totalBytes = body.contentLength()
-
-        body.byteStream().use { input ->
-            targetFile.outputStream().use { output ->
-                val buffer = ByteArray(DOWNLOAD_BUFFER)
-                var bytesRead: Int
-                var totalRead = 0L
-                var lastReported = -1f
-                while (input.read(buffer).also { bytesRead = it } != -1) {
-                    output.write(buffer, 0, bytesRead)
-                    totalRead += bytesRead
-                    if (totalBytes > 0) {
-                        val p = totalRead.toFloat() / totalBytes
-                        if (p - lastReported >= 0.01f) {
-                            lastReported = p
-                            onProgress(p)
-                        }
-                    }
-                }
-                onProgress(1f)
-            }
-        }
     }
 
     private fun readLocalVersion(storage: PackStorage): SemVersion? {

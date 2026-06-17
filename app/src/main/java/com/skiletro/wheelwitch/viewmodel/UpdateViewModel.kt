@@ -19,16 +19,19 @@ import com.skiletro.wheelwitch.model.SaveFileInfo
 import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.util.DolphinLauncher
 import com.skiletro.wheelwitch.util.MiiWadInstaller
+import androidx.compose.runtime.Immutable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
 import java.io.File
 
+@Immutable
 sealed class UiState {
     data object NoStorage : UiState()
     data class Ready(val status: PackStatus) : UiState()
@@ -45,14 +48,17 @@ sealed class UiState {
     data class Error(val message: String) : UiState()
 }
 
+@Immutable
 data class SaveState(
     val hasSave: Boolean = false,
 )
 
+@Immutable
 data class MiiMakerState(
     val hasWad: Boolean = false,
 )
 
+@Immutable
 sealed class RoomsState {
     data object Idle : RoomsState()
     data object Loading : RoomsState()
@@ -64,6 +70,7 @@ sealed class RoomsState {
     data class Error(val message: String) : RoomsState()
 }
 
+@Immutable
 sealed class SaveInfoState {
     data object Idle : SaveInfoState()
     data object Loading : SaveInfoState()
@@ -129,14 +136,7 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun refreshIsoPath() {
         val rootPath = storage?.rootPath ?: return
-        val file = File(rootPath, "RR.json")
-        _currentIsoPath.value = if (file.exists()) {
-            try {
-                JSONObject(file.readText()).optString("base-file", "").takeIf { it.isNotEmpty() }
-            } catch (_: Exception) {
-                null
-            }
-        } else null
+        _currentIsoPath.value = DolphinLauncher.readIsoPathFromLaunchJson(rootPath)
     }
 
     fun setStorageUri(uri: Uri) {
@@ -285,14 +285,10 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
     fun setGameIsoPath(path: String) {
         val app = getApplication<Application>()
         DolphinLauncher.setGameIsoPath(app, path)
-        val currentStorage = storage
-        val rootPath = currentStorage?.rootPath
+        val rootPath = storage?.rootPath
         if (rootPath != null) {
-            viewModelScope.launch {
-                withContext(Dispatchers.IO) {
-                    val json = DolphinLauncher.generateLaunchJson(rootPath, path)
-                    File(rootPath, "RR.json").writeText(json)
-                }
+            viewModelScope.launch(Dispatchers.IO) {
+                DolphinLauncher.writeLaunchJson(rootPath, path)
             }
         }
         _currentIsoPath.value = path
@@ -305,10 +301,7 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
     fun clearIsoPath() {
         val app = getApplication<Application>()
         DolphinLauncher.setGameIsoPath(app, "")
-        val rootPath = storage?.rootPath
-        if (rootPath != null) {
-            File(rootPath, "RR.json").delete()
-        }
+        storage?.rootPath?.let { DolphinLauncher.deleteLaunchJson(it) }
         _currentIsoPath.value = null
     }
 
@@ -479,31 +472,24 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
                     val saveInfo = RksysParser.parse(bytes)
                     _saveInfoState.value = SaveInfoState.Success(saveInfo)
 
-                    saveInfo.licenses.forEach { license ->
+                    val leaderboardDeferred = saveInfo.licenses.mapNotNull { license ->
                         if (license.exists && license.friendCode != null) {
-                            viewModelScope.launch(Dispatchers.IO) {
-                                val result = VersionFileParser.fetchPlayerLeaderboard(license.friendCode)
-                                result.onSuccess { leaderboard ->
-                                    val current = _saveInfoState.value
-                                    if (current is SaveInfoState.Success) {
-                                        val updatedLicenses = current.info.licenses.map { lic ->
-                                            if (lic.slotIndex == license.slotIndex) lic.copy(leaderboard = leaderboard)
-                                            else lic
-                                        }
-                                        _saveInfoState.value = SaveInfoState.Success(current.info.copy(licenses = updatedLicenses))
-                                    }
-                                }.onFailure {
-                                        val current = _saveInfoState.value
-                                        if (current is SaveInfoState.Success) {
-                                            val updatedLicenses = current.info.licenses.map { lic ->
-                                                if (lic.slotIndex == license.slotIndex) lic.copy(friendCode = null, miiDataBase64 = null)
-                                                else lic
-                                            }
-                                            _saveInfoState.value = SaveInfoState.Success(current.info.copy(licenses = updatedLicenses))
-                                        }
-                                }
+                            async(Dispatchers.IO) {
+                                license.slotIndex to VersionFileParser.fetchPlayerLeaderboard(license.friendCode)
                             }
+                        } else null
+                    }
+                    val leaderboardResults = leaderboardDeferred.awaitAll()
+
+                    val current = _saveInfoState.value
+                    if (current is SaveInfoState.Success) {
+                        val updatedLicenses = current.info.licenses.map { lic ->
+                            val result = leaderboardResults.find { it.first == lic.slotIndex }?.second
+                            if (result?.isSuccess == true) {
+                                lic.copy(leaderboard = result.getOrNull())
+                            } else lic
                         }
+                        _saveInfoState.value = SaveInfoState.Success(current.info.copy(licenses = updatedLicenses))
                     }
                 }
             } catch (e: Exception) {
