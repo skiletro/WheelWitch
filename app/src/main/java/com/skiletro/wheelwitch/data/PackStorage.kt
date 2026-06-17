@@ -16,7 +16,13 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
     companion object {
         const val COPY_BUFFER_SIZE = 262144
 
-        /** Resolves a content URI to a real filesystem path (e.g. "/storage/emulated/0/RetroRewind6"). */
+        /**
+         * Resolves a content URI to a real filesystem path
+         * (e.g. "/storage/emulated/0/RetroRewind6").
+         *
+         * Note: for `raw:` URIs (e.g. USB/OTG volumes), the inferred path
+         * is best-effort and may not actually exist on the device.
+         */
         fun resolveContentUriToPath(uri: Uri): String? {
             val docId = try {
                 DocumentsContract.getDocumentId(uri)
@@ -28,6 +34,8 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
             return when {
                 parts[0].equals("primary", ignoreCase = true) ->
                     "/storage/emulated/0/${parts[1]}"
+                parts[0].equals("raw", ignoreCase = true) ->
+                    "/storage/raw/${parts[1]}"
                 else ->
                     "/storage/${parts[0]}/${parts[1]}"
             }
@@ -46,6 +54,8 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
             return when {
                 storageType.equals("primary", ignoreCase = true) ->
                     "/storage/emulated/0/$relativePath"
+                storageType.equals("raw", ignoreCase = true) ->
+                    "/storage/raw/$relativePath"
                 else ->
                     "/storage/$storageType/$relativePath"
             }
