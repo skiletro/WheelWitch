@@ -42,15 +42,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.focus.onFocusChanged
+
 import androidx.compose.ui.graphics.Color
+
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.painterResource
@@ -69,6 +75,8 @@ import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlinx.coroutines.delay
 
 private const val APP_NAME = "Wheel Witch"
@@ -264,14 +272,18 @@ private fun TopBar(
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            painter = painterResource(com.skiletro.wheelwitch.R.drawable.ic_hat_wizard),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .size(38.dp)
-                .offset(y = bobOffset.dp)
-        )
+        Box(
+            modifier = Modifier.offset(y = bobOffset.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            SparkleOverlay()
+            Icon(
+                painter = painterResource(com.skiletro.wheelwitch.R.drawable.ic_hat_wizard),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(38.dp)
+            )
+        }
         Spacer(modifier = Modifier.width(12.dp))
         Column(
             modifier = Modifier.weight(1f)
@@ -310,6 +322,50 @@ private fun TopBar(
         Spacer(modifier = Modifier.width(8.dp))
         ClockText()
     }
+}
+
+@Composable
+private fun SparkleOverlay() {
+    val phaseState = remember { mutableFloatStateOf(0f) }
+    val tint = MaterialTheme.colorScheme.primary
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            withFrameNanos { nanos ->
+                phaseState.floatValue = (nanos / 1_000_000 % 3000) / 3000f
+            }
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .size(68.dp)
+            .drawBehind {
+                val sparklePhase = phaseState.floatValue
+                val sparkleCount = 6
+                val radius = 22.dp.toPx()
+                val sparkleSize = 3.dp.toPx()
+                val centerX = size.width / 2
+                val centerY = size.height / 2
+                val strokeW = 2.dp.toPx()
+
+                for (i in 0 until sparkleCount) {
+                    val rawPhase = (sparklePhase + i.toFloat() / sparkleCount) % 1f
+                    val alpha = when {
+                        rawPhase < 0.35f -> rawPhase / 0.35f
+                        rawPhase < 0.65f -> 1f
+                        else -> 1f - (rawPhase - 0.65f) / 0.35f
+                    }
+
+                    val angle = i.toFloat() / sparkleCount * 2f * kotlin.math.PI.toFloat()
+                    val x = centerX + radius * cos(angle)
+                    val y = centerY + radius * sin(angle)
+
+                    drawLine(tint.copy(alpha = alpha), Offset(x - sparkleSize, y), Offset(x + sparkleSize, y), strokeW)
+                    drawLine(tint.copy(alpha = alpha), Offset(x, y - sparkleSize), Offset(x, y + sparkleSize), strokeW)
+                }
+            }
+    )
 }
 
 @Composable
@@ -374,7 +430,7 @@ private fun PrimaryActionButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true
+    enabled: Boolean = true,
 ) {
     var isFocused by remember { mutableStateOf(false) }
 

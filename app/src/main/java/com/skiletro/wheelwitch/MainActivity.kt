@@ -9,13 +9,11 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -98,35 +96,25 @@ private fun MainScreen(viewModel: UpdateViewModel = viewModel()) {
 
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         Box(Modifier.fillMaxSize().padding(innerPadding)) {
-            AnimatedContent(
-                targetState = showSettings,
-                transitionSpec = {
-                    if (targetState) {
-                        slideInHorizontally() + fadeIn() togetherWith
-                            slideOutHorizontally { -it } + fadeOut()
-                    } else {
-                        slideInHorizontally { -it } + fadeIn() togetherWith
-                            slideOutHorizontally() + fadeOut()
-                    }
-                },
-                label = "settingsTransition"
-            ) { settingsVisible ->
-                if (settingsVisible) {
-                    SettingsScreen(
-                        viewModel = viewModel,
-                        onBackupSave = { backupPicker.launch("rksys.dat") },
-                        onRestoreSave = { restorePicker.launch(arrayOf("application/octet-stream", "*/*")) },
-                        onDeleteSave = { viewModel.deleteSave() },
-                        onClose = { showSettings = false }
-                    )
-                } else {
-                    HomeScreen(
-                        viewModel = viewModel,
-                        onPickStorage = { storagePicker.launch(null) },
-                        onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
-                        onOpenSettings = { showSettings = true }
-                    )
-                }
+            HomeScreen(
+                viewModel = viewModel,
+                onPickStorage = { storagePicker.launch(null) },
+                onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
+                onOpenSettings = { showSettings = true }
+            )
+
+            AnimatedVisibility(
+                visible = showSettings,
+                enter = slideInHorizontally() + fadeIn(),
+                exit = slideOutHorizontally() + fadeOut()
+            ) {
+                SettingsScreen(
+                    viewModel = viewModel,
+                    onBackupSave = { backupPicker.launch("rksys.dat") },
+                    onRestoreSave = { restorePicker.launch(arrayOf("application/octet-stream", "*/*")) },
+                    onDeleteSave = { viewModel.deleteSave() },
+                    onClose = { showSettings = false }
+                )
             }
         }
     }
