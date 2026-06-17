@@ -258,6 +258,7 @@
     <string name="vm_save_info_failed">Failed to read save data</string>
 
     <!-- version history -->
+    <string name="version_history_title">Version History</string>
     <string name="version_history_loading">Loading version history...</string>
     <string name="version_history_failed">Failed to load version history</string>
 

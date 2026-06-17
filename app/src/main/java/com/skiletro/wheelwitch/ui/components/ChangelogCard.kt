@@ -17,10 +17,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.model.ChangelogEntry
 
-/**
- * Renders a single [ChangelogEntry] as a card with a version header, optional
- * date, and a bulleted list of changes.
- */
 @Composable
 fun ChangelogCard(
     entry: ChangelogEntry,

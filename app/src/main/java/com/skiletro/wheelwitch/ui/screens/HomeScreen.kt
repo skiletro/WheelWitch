@@ -11,6 +11,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -66,6 +67,8 @@ import com.skiletro.wheelwitch.ui.components.buttonShape
 import com.skiletro.wheelwitch.ui.components.focusBorder
 import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
 import com.skiletro.wheelwitch.ui.components.TopBar
+import com.skiletro.wheelwitch.ui.components.sectionShape
+import androidx.compose.foundation.focusable
 
 
 import com.dontsaybojio.rollingnumbers.RollingNumbers
@@ -98,9 +101,10 @@ fun HomeScreen(
 
     var showOnlineMenu by remember { mutableStateOf(false) }
     var showSaveInfo by remember { mutableStateOf(false) }
+    var showChangelog by remember { mutableStateOf(false) }
     var showExitDialog by remember { mutableStateOf(false) }
 
-    BackHandler(enabled = !(showOnlineMenu || showSaveInfo)) {
+    BackHandler(enabled = !(showOnlineMenu || showSaveInfo || showChangelog)) {
         showExitDialog = true
     }
 
@@ -161,7 +165,7 @@ fun HomeScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (!(showOnlineMenu || showSaveInfo)) {
+        if (!(showOnlineMenu || showSaveInfo || showChangelog)) {
             Scaffold(
                 topBar = {
                 Surface(
@@ -208,15 +212,34 @@ fun HomeScreen(
                 }
             }
         ) { padding ->
+            var changelogFocused by remember { mutableStateOf(false) }
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background)
                     .padding(padding)
+                    .clickable { showChangelog = true }
+                    .focusable()
+                    .onFocusChanged { changelogFocused = it.isFocused }
+                    .focusBorder(changelogFocused, sectionShape),
+                contentAlignment = Alignment.Center
             ) {
                 VersionHistoryContent(modifier = Modifier.fillMaxSize())
             }
         }
+        }
+
+        BackHandler(enabled = showChangelog) {
+            showChangelog = false
+        }
+
+        AnimatedVisibility(
+            visible = showChangelog,
+            enter = slideInVertically() + fadeIn(),
+            exit = slideOutVertically() + fadeOut()
+        ) {
+            ChangelogDetailScreen(onClose = { showChangelog = false })
         }
 
         AnimatedVisibility(
