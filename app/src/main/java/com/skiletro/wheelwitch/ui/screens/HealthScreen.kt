@@ -32,9 +32,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.HealthCheckItem
 import com.skiletro.wheelwitch.model.MemoryInfo
 import com.skiletro.wheelwitch.model.ServerHealth
@@ -56,7 +58,7 @@ fun HealthScreen(viewModel: OnlineViewModel) {
             .background(MaterialTheme.colorScheme.background)
     ) {
         ScreenHeader(
-            title = "Server Health",
+            title = stringResource(R.string.health_title),
             onBack = { viewModel.goBack() },
             onRefresh = { viewModel.refreshHealth() }
         )
@@ -92,7 +94,7 @@ fun HealthScreen(viewModel: OnlineViewModel) {
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         PrimaryActionButton(
-                            text = "Retry",
+                            text = stringResource(R.string.health_retry),
                             onClick = { viewModel.refreshHealth() }
                         )
                     }
@@ -114,14 +116,14 @@ private fun HealthContent(health: ServerHealth) {
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         HealthStatusCard(
-            title = "Overall Status",
+            title = stringResource(R.string.health_overall_status_title),
             status = health.status,
             isOk = health.status == "ok"
         )
 
-        health.database?.let { HealthCheckRow("Database", it) }
-        health.postgresql?.let { HealthCheckRow("PostgreSQL", it) }
-        health.retroWfcApi?.let { HealthCheckRow("Retro WFC API", it) }
+        health.database?.let { HealthCheckRow(stringResource(R.string.health_database), it) }
+        health.postgresql?.let { HealthCheckRow(stringResource(R.string.health_postgresql), it) }
+        health.retroWfcApi?.let { HealthCheckRow(stringResource(R.string.health_retro_wfc_api), it) }
         health.memory?.let { MemoryRow(it) }
     }
 }
@@ -155,7 +157,7 @@ private fun HealthStatusCard(title: String, status: String, isOk: Boolean) {
                     color = onContainer
                 )
                 Text(
-                    text = if (isOk) "All systems operational" else "Issues detected",
+                    text = if (isOk) stringResource(R.string.health_overall_status) else stringResource(R.string.health_issues_detected),
                     style = MaterialTheme.typography.bodySmall,
                     color = onContainer.copy(alpha = 0.8f)
                 )
@@ -202,7 +204,7 @@ private fun HealthCheckRow(label: String, item: HealthCheckItem) {
                 }
             }
             Text(
-                text = if (isOk) "OK" else "FAIL",
+                text = if (isOk) stringResource(R.string.health_ok) else stringResource(R.string.health_fail),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
                 color = colors.indicator(isOk)
@@ -235,18 +237,21 @@ private fun MemoryRow(memory: MemoryInfo) {
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Memory",
+                    text = stringResource(R.string.health_memory),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold
                 )
-                val usageText = buildString {
-                    append("Usage: ")
-                    if (memory.usagePercent != null) append("${"%.1f".format(memory.usagePercent)}%")
-                    if (memory.used != null && memory.total != null) {
-                        append(" (${memory.used} / ${memory.total})")
-                    } else if (memory.used != null) {
-                        append(" (${memory.used})")
-                    }
+                val usageText = when {
+                    memory.usagePercent != null && memory.used != null && memory.total != null ->
+                        stringResource(R.string.health_usage_with_total_format, memory.usagePercent, memory.used, memory.total)
+                    memory.usagePercent != null && memory.used != null ->
+                        stringResource(R.string.health_usage_with_used_format, memory.usagePercent, memory.used)
+                    memory.usagePercent != null ->
+                        stringResource(R.string.health_usage_format, memory.usagePercent)
+                    memory.used != null ->
+                        stringResource(R.string.health_usage_just_used_format, memory.used)
+                    else ->
+                        stringResource(R.string.health_usage_format, 0.0)
                 }
                 Text(
                     text = usageText,
@@ -255,7 +260,7 @@ private fun MemoryRow(memory: MemoryInfo) {
                 )
             }
             Text(
-                text = if (isOk) "OK" else "FAIL",
+                text = if (isOk) stringResource(R.string.health_ok) else stringResource(R.string.health_fail),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
                 color = colors.indicator(isOk)

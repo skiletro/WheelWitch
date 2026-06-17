@@ -40,10 +40,12 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.Room
 import com.skiletro.wheelwitch.ui.components.ScreenHeader
 import com.skiletro.wheelwitch.ui.components.focusBorder
@@ -73,7 +75,7 @@ fun RoomsScreen(
             .background(MaterialTheme.colorScheme.background)
     ) {
         ScreenHeader(
-            title = "Online Rooms",
+            title = stringResource(R.string.rooms_title),
             onBack = onClose,
             onRefresh = onRefresh
         )
@@ -107,7 +109,7 @@ fun RoomsScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         PrimaryActionButton(
-                            text = "Try Again",
+                            text = stringResource(R.string.rooms_try_again),
                             onClick = onRefresh
                         )
                     }
@@ -122,13 +124,13 @@ fun RoomsScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
-                                    text = "No rooms found.",
+                                    text = stringResource(R.string.rooms_no_rooms),
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
                                 PrimaryActionButton(
-                                    text = "Refresh",
+                                    text = stringResource(R.string.rooms_refresh),
                                     onClick = onRefresh
                                 )
                             }
@@ -172,7 +174,7 @@ fun RoomsScreen(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
-                                            text = "Select a room",
+                                            text = stringResource(R.string.rooms_select_a_room),
                                             style = MaterialTheme.typography.bodyLarge,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -234,7 +236,7 @@ fun RoomListItem(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = room.players.firstOrNull()?.name ?: "Empty",
+                        text = room.players.firstOrNull()?.name ?: stringResource(R.string.rooms_empty),
                         fontWeight = FontWeight.SemiBold,
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1,
@@ -242,7 +244,7 @@ fun RoomListItem(
                         fontFamily = CtmkfFontFamily
                     )
                     Text(
-                        text = "${room.players.size} player${if (room.players.size != 1) "s" else ""}",
+                        text = stringResource(R.string.rooms_player_count_format, room.players.size, if (room.players.size == 1) "" else "s"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -253,7 +255,7 @@ fun RoomListItem(
                         shape = RoundedCornerShape(4.dp)
                     ) {
                         Text(
-                            text = "Open",
+                            text = stringResource(R.string.rooms_open),
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
                             color = Color.White,
                             style = MaterialTheme.typography.labelSmall

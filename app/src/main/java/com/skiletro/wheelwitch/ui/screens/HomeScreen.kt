@@ -43,8 +43,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
@@ -96,16 +98,16 @@ fun HomeScreen(
     if (showExitDialog) {
         AlertDialog(
             onDismissRequest = { showExitDialog = false },
-            title = { Text("Exit Wheel Witch?") },
-            text = { Text("Are you sure you want to close the app?") },
+            title = { Text(stringResource(R.string.home_exit_title)) },
+            text = { Text(stringResource(R.string.home_exit_message)) },
             confirmButton = {
                 TextButton(onClick = { activity?.finish() }) {
-                    Text("Exit")
+                    Text(stringResource(R.string.home_exit_confirm))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showExitDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.home_exit_cancel))
                 }
             }
         )
@@ -301,10 +303,10 @@ private fun HomeBottomBar(
                 ProgressButton(state.progress, state.message)
             }
             is UiState.Extracting -> {
-                ProgressButton(state.progress, "Extracting files...")
+                ProgressButton(state.progress, stringResource(R.string.home_extracting))
             }
             is UiState.ApplyingUpdate -> {
-                ProgressButton(state.progress, "Update ${state.index}/${state.total}: ${state.description}")
+                ProgressButton(state.progress, stringResource(R.string.home_update_step_format, state.index, state.total, state.description))
             }
             is UiState.Checking -> {
                 OutlinedButton(
@@ -314,7 +316,7 @@ private fun HomeBottomBar(
                     modifier = Modifier.height(56.dp)
                 ) {
                     Text(
-                        text = "Checking...",
+                        text = stringResource(R.string.home_checking),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium
                     )
@@ -327,7 +329,7 @@ private fun HomeBottomBar(
                     modifier = Modifier.height(56.dp)
                 ) {
                     Text(
-                        text = "Try Again",
+                        text = stringResource(R.string.home_try_again),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium
                     )
@@ -337,9 +339,9 @@ private fun HomeBottomBar(
                 val status = state.status
 
                 val checkSubtitle = when (status) {
-                    is PackStatus.UpToDate -> "Up to date (v${status.currentVersion})"
-                    is PackStatus.UpdateAvailable -> "v${status.currentVersion} → v${status.latestVersion}"
-                    is PackStatus.Installed -> "v${status.version} installed"
+                    is PackStatus.UpToDate -> stringResource(R.string.home_up_to_date, status.currentVersion)
+                    is PackStatus.UpdateAvailable -> stringResource(R.string.home_update_format, status.currentVersion, status.latestVersion)
+                    is PackStatus.Installed -> stringResource(R.string.home_version_installed, status.version)
                     else -> null
                 }
                 OutlinedButton(
@@ -353,7 +355,7 @@ private fun HomeBottomBar(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "Check for updates",
+                            text = stringResource(R.string.home_check_for_updates),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Medium
                         )
@@ -371,13 +373,13 @@ private fun HomeBottomBar(
                 when (status) {
                     is PackStatus.NotInstalled -> {
                         PrimaryActionButton(
-                            text = "Install",
+                            text = stringResource(R.string.home_install),
                             onClick = onInstallOrUpdate ?: {}
                         )
                     }
                     is PackStatus.UpdateAvailable -> {
                         PrimaryActionButton(
-                            text = "Update to v${status.latestVersion}",
+                            text = stringResource(R.string.home_update_to, status.latestVersion),
                             onClick = onInstallOrUpdate ?: {}
                         )
                     }
@@ -385,21 +387,21 @@ private fun HomeBottomBar(
                         val launchSubText = when (serverConnectivity) {
                             ServerConnectivity.Online -> {
                                 val count = playerCount
-                                if (count != null) "● $count racers online" else null
+                                if (count != null) stringResource(R.string.home_racers_online, count) else null
                             }
-                            ServerConnectivity.Offline -> "● Offline"
-                            ServerConnectivity.NoInternet -> "● No internet"
+                            ServerConnectivity.Offline -> stringResource(R.string.home_offline)
+                            ServerConnectivity.NoInternet -> stringResource(R.string.home_no_internet)
                             ServerConnectivity.Unknown -> null
                         }
                         if (hasIso) {
                             PrimaryActionButton(
-                                text = "Launch Retro Rewind",
+                                text = stringResource(R.string.home_launch_retro_rewind),
                                 onClick = onLaunch,
                                 subText = launchSubText
                             )
                         } else {
                             PrimaryActionButton(
-                                text = "Select Mario Kart Wii ROM",
+                                text = stringResource(R.string.home_select_rom),
                                 onClick = onPickIso
                             )
                         }
@@ -408,7 +410,7 @@ private fun HomeBottomBar(
             }
             is UiState.NoStorage -> {
                 Text(
-                    text = "Storage not configured",
+                    text = stringResource(R.string.home_storage_not_configured),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -431,19 +433,20 @@ private fun ActivePlayerCard(
         Spacer(modifier = Modifier.width(10.dp))
         Column {
             Text(
-                text = license.miiName ?: "Player",
+                text = license.miiName ?: stringResource(R.string.home_player_default),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 fontFamily = CtmkfFontFamily
             )
             val vr = license.leaderboard?.vr ?: license.vr
-            val vrText = buildString {
-                if (vr != null) append("$vr VR")
-                if (vr != null && vrMultiplier != null && vrMultiplier > 1.0f) {
-                    val mult = if (vrMultiplier == vrMultiplier.toInt().toFloat()) "${vrMultiplier.toInt()}x" else "${vrMultiplier}x"
-                    append(" · ${mult} active")
-                }
+            val vrText = if (vr != null && vrMultiplier != null && vrMultiplier > 1.0f) {
+                val mult = if (vrMultiplier == vrMultiplier.toInt().toFloat()) "${vrMultiplier.toInt()}x" else "${vrMultiplier}x"
+                stringResource(R.string.home_vr_active_format, vr, mult)
+            } else if (vr != null) {
+                stringResource(R.string.home_vr_format, vr)
+            } else {
+                ""
             }
             if (vrText.isNotEmpty()) {
                 Text(

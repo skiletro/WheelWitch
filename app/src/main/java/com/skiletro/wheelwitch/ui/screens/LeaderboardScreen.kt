@@ -43,10 +43,12 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.LeaderboardEntry
 import com.skiletro.wheelwitch.ui.components.MiiFace
 import com.skiletro.wheelwitch.ui.components.ScreenHeader
@@ -65,7 +67,7 @@ fun LeaderboardScreen(viewModel: OnlineViewModel) {
             .background(MaterialTheme.colorScheme.background)
     ) {
         ScreenHeader(
-            title = "Leaderboard",
+            title = stringResource(R.string.leaderboard_title),
             onBack = { viewModel.goBack() },
             onRefresh = { viewModel.fetchLeaderboard() }
         )
@@ -101,7 +103,7 @@ fun LeaderboardScreen(viewModel: OnlineViewModel) {
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         PrimaryActionButton(
-                            text = "Retry",
+                            text = stringResource(R.string.leaderboard_retry),
                             onClick = { viewModel.fetchLeaderboard() }
                         )
                     }
@@ -114,7 +116,7 @@ fun LeaderboardScreen(viewModel: OnlineViewModel) {
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "No entries yet.",
+                                text = stringResource(R.string.leaderboard_no_entries),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -217,7 +219,7 @@ private fun LeaderboardRow(entry: LeaderboardEntry) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "#${entry.rank}",
+                    text = stringResource(R.string.leaderboard_rank_format, entry.rank),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = if (entry.rank <= 3) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
@@ -254,7 +256,7 @@ private fun LeaderboardRow(entry: LeaderboardEntry) {
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "VR",
+                        text = stringResource(R.string.leaderboard_vr_label),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

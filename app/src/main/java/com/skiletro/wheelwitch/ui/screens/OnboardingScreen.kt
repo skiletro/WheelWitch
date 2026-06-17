@@ -46,9 +46,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.ui.components.buttonShape
 import com.skiletro.wheelwitch.ui.components.sectionShape
 import com.skiletro.wheelwitch.util.DolphinLauncher
@@ -75,6 +77,7 @@ fun OnboardingScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var dolphinInstalled by remember { mutableStateOf<Boolean?>(null) }
+    val miiInstallFailedMessage = stringResource(R.string.onboarding_mii_install_failed)
 
     LaunchedEffect(step, dolphinRetry) {
         if (step == 1) {
@@ -165,7 +168,7 @@ fun OnboardingScreen(
                                         miiWadState = MiiWadOnboarding.Installed
                                     } catch (e: Exception) {
                                         miiWadState = MiiWadOnboarding.Error(
-                                            e.message ?: "Failed to install Mii Channel WAD"
+                                            e.message ?: miiInstallFailedMessage
                                         )
                                     }
                                 }
@@ -195,20 +198,20 @@ private fun WelcomeStep(onNext: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Welcome to",
+                text = stringResource(R.string.onboarding_welcome_to),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Wheel Witch",
+                text = stringResource(R.string.onboarding_app_name),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Your companion for installing and launching the Retro Rewind Mario Kart Wii pack with Dolphin Emulator.",
+                text = stringResource(R.string.onboarding_welcome_body),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -226,7 +229,7 @@ private fun WelcomeStep(onNext: () -> Unit) {
                 )
             ) {
                 Text(
-                    text = "Let's get started",
+                    text = stringResource(R.string.onboarding_get_started),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -252,14 +255,14 @@ private fun DolphinCheckStep(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Dolphin Emulator",
+                text = stringResource(R.string.onboarding_dolphin_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "Wheel Witch requires Dolphin Emulator to launch Retro Rewind.",
+                text = stringResource(R.string.onboarding_dolphin_body),
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -269,14 +272,14 @@ private fun DolphinCheckStep(
             when (installed) {
                 null -> {
                     Text(
-                        text = "Checking...",
+                        text = stringResource(R.string.onboarding_dolphin_checking),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 true -> {
                     Text(
-                        text = "Dolphin is installed!",
+                        text = stringResource(R.string.onboarding_dolphin_installed),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -294,7 +297,7 @@ private fun DolphinCheckStep(
                         )
                     ) {
                         Text(
-                            text = "Continue",
+                            text = stringResource(R.string.onboarding_continue),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -302,14 +305,14 @@ private fun DolphinCheckStep(
                 }
                 false -> {
                     Text(
-                        text = "Dolphin is not installed",
+                        text = stringResource(R.string.onboarding_dolphin_not_installed),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.error
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Please install Dolphin Emulator before continuing. You can download it from the official website.",
+                        text = stringResource(R.string.onboarding_dolphin_install_body),
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -327,7 +330,7 @@ private fun DolphinCheckStep(
                                 .height(48.dp)
                         ) {
                             Text(
-                                text = "Check Again",
+                                text = stringResource(R.string.onboarding_check_again),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -344,7 +347,7 @@ private fun DolphinCheckStep(
                             )
                         ) {
                             Text(
-                                text = "Download Dolphin",
+                                text = stringResource(R.string.onboarding_download_dolphin),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -368,7 +371,7 @@ private fun StorageStep(onPickStorage: () -> Unit, onContinue: () -> Unit, alrea
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Storage Location",
+                text = stringResource(R.string.onboarding_storage_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -376,7 +379,7 @@ private fun StorageStep(onPickStorage: () -> Unit, onContinue: () -> Unit, alrea
             Spacer(modifier = Modifier.height(12.dp))
             if (alreadyConfigured) {
                 Text(
-                    text = "A storage location is already configured. Continue to the next step.",
+                    text = stringResource(R.string.onboarding_storage_configured),
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -394,14 +397,14 @@ private fun StorageStep(onPickStorage: () -> Unit, onContinue: () -> Unit, alrea
                     )
                 ) {
                     Text(
-                        text = "Continue",
+                        text = stringResource(R.string.onboarding_continue),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
             } else {
                 Text(
-                    text = "Choose a folder where the Retro Rewind Pack files will be stored. Pick a location that Dolphin Emulator can access.",
+                    text = stringResource(R.string.onboarding_storage_body),
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -419,7 +422,7 @@ private fun StorageStep(onPickStorage: () -> Unit, onContinue: () -> Unit, alrea
                     )
                 ) {
                     Text(
-                        text = "Select Folder",
+                        text = stringResource(R.string.onboarding_select_folder),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -433,7 +436,7 @@ private fun StorageStep(onPickStorage: () -> Unit, onContinue: () -> Unit, alrea
                         .height(48.dp)
                 ) {
                     Text(
-                        text = "Skip",
+                        text = stringResource(R.string.onboarding_skip),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -455,7 +458,7 @@ private fun IsoStep(onPickIso: () -> Unit, onContinue: () -> Unit, alreadyConfig
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Mario Kart Wii ROM",
+                text = stringResource(R.string.onboarding_iso_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -463,7 +466,7 @@ private fun IsoStep(onPickIso: () -> Unit, onContinue: () -> Unit, alreadyConfig
             Spacer(modifier = Modifier.height(12.dp))
             if (alreadyConfigured) {
                 Text(
-                    text = "A Mario Kart Wii ROM is already configured. Continue to the next step.",
+                    text = stringResource(R.string.onboarding_iso_configured),
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -481,14 +484,14 @@ private fun IsoStep(onPickIso: () -> Unit, onContinue: () -> Unit, alreadyConfig
                     )
                 ) {
                     Text(
-                        text = "Continue",
+                        text = stringResource(R.string.onboarding_continue),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
             } else {
                 Text(
-                    text = "Select your Mario Kart Wii ROM file. Wheel Witch needs this to launch the game with Retro Rewind in Dolphin.",
+                    text = stringResource(R.string.onboarding_iso_body),
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -506,7 +509,7 @@ private fun IsoStep(onPickIso: () -> Unit, onContinue: () -> Unit, alreadyConfig
                     )
                 ) {
                     Text(
-                        text = "Select ROM File",
+                        text = stringResource(R.string.onboarding_select_rom),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -520,7 +523,7 @@ private fun IsoStep(onPickIso: () -> Unit, onContinue: () -> Unit, alreadyConfig
                         .height(48.dp)
                 ) {
                     Text(
-                        text = "Skip",
+                        text = stringResource(R.string.onboarding_skip),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -547,14 +550,14 @@ private fun MiiStep(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Mii Channel WAD",
+                text = stringResource(R.string.onboarding_mii_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "Optionally install the Mii Channel WAD to create and edit Miis within Dolphin.",
+                text = stringResource(R.string.onboarding_mii_body),
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -564,14 +567,14 @@ private fun MiiStep(
             when (state) {
                 null -> {
                     Text(
-                        text = "Checking...",
+                        text = stringResource(R.string.onboarding_mii_checking),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 is MiiWadOnboarding.Installed -> {
                     Text(
-                        text = "Mii Channel is installed!",
+                        text = stringResource(R.string.onboarding_mii_installed),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -589,7 +592,7 @@ private fun MiiStep(
                         )
                     ) {
                         Text(
-                            text = "Continue",
+                            text = stringResource(R.string.onboarding_continue),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -612,7 +615,7 @@ private fun MiiStep(
                     ) {
                         Icon(
                             painter = painterResource(com.skiletro.wheelwitch.R.drawable.ic_hat_wizard),
-                            contentDescription = "Installing",
+                            contentDescription = stringResource(R.string.cd_installing),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier
                                 .size(40.dp)
@@ -621,7 +624,7 @@ private fun MiiStep(
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Installing Mii Channel WAD...",
+                        text = stringResource(R.string.onboarding_installing),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -646,7 +649,7 @@ private fun MiiStep(
                                 .height(48.dp)
                         ) {
                             Text(
-                                text = "Skip",
+                                text = stringResource(R.string.onboarding_skip),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -663,7 +666,7 @@ private fun MiiStep(
                             )
                         ) {
                             Text(
-                                text = "Retry",
+                                text = stringResource(R.string.onboarding_retry),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -672,13 +675,13 @@ private fun MiiStep(
                 }
                 is MiiWadOnboarding.NotInstalled -> {
                     Text(
-                        text = "Not installed",
+                        text = stringResource(R.string.onboarding_mii_not_installed),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "You can skip this step and install later from Settings if you change your mind.",
+                        text = stringResource(R.string.onboarding_mii_skip_hint),
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -696,7 +699,7 @@ private fun MiiStep(
                                 .height(48.dp)
                         ) {
                             Text(
-                                text = "Skip",
+                                text = stringResource(R.string.onboarding_skip),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -713,7 +716,7 @@ private fun MiiStep(
                             )
                         ) {
                             Text(
-                                text = "Install",
+                                text = stringResource(R.string.onboarding_install),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -737,14 +740,14 @@ private fun CompleteStep(onDone: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "You're all set!",
+                text = stringResource(R.string.onboarding_complete_title),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "Everything is ready. Let's get you into the main app.",
+                text = stringResource(R.string.onboarding_complete_body),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -762,7 +765,7 @@ private fun CompleteStep(onDone: () -> Unit) {
                 )
             ) {
                 Text(
-                    text = "Open Wheel Witch",
+                    text = stringResource(R.string.onboarding_open_app),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )

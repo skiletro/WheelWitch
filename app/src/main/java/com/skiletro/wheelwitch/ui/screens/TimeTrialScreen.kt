@@ -24,9 +24,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.TimeTrialTrack
 import com.skiletro.wheelwitch.ui.components.ScreenHeader
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
@@ -41,7 +43,7 @@ fun TimeTrialScreen(viewModel: OnlineViewModel) {
             .background(MaterialTheme.colorScheme.background)
     ) {
         ScreenHeader(
-            title = "Time Trials",
+            title = stringResource(R.string.time_trial_title),
             onBack = { viewModel.goBack() }
         )
 
@@ -64,14 +66,14 @@ fun TimeTrialScreen(viewModel: OnlineViewModel) {
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Coming Soon",
+                    text = stringResource(R.string.time_trial_coming_soon),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Track-based time trial leaderboards\nare being developed.",
+                    text = stringResource(R.string.time_trial_coming_soon_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -79,7 +81,7 @@ fun TimeTrialScreen(viewModel: OnlineViewModel) {
                 if (tracks.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(24.dp))
                     Text(
-                        text = "Available Tracks",
+                        text = stringResource(R.string.time_trial_available_tracks),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface

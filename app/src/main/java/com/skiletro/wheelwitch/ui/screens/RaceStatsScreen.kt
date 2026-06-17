@@ -36,10 +36,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.NamedStat
 import com.skiletro.wheelwitch.model.RaceStats
 import com.skiletro.wheelwitch.model.WinRateStat
@@ -62,7 +64,7 @@ fun RaceStatsScreen(viewModel: OnlineViewModel) {
             else -> null
         }
         ScreenHeader(
-            title = "Race Statistics",
+            title = stringResource(R.string.race_stats_title),
             onBack = { viewModel.goBack() },
             onRefresh = { viewModel.fetchRaceStats() },
             trailing = {
@@ -107,7 +109,7 @@ fun RaceStatsScreen(viewModel: OnlineViewModel) {
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         PrimaryActionButton(
-                            text = "Retry",
+                            text = stringResource(R.string.race_stats_retry),
                             onClick = { viewModel.fetchRaceStats() }
                         )
                     }
@@ -134,10 +136,10 @@ private fun StatContent(stats: RaceStats) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.focusable()
             ) {
-                MiniStatCard(label = "Races", value = formatNumber(stats.totalRaces), modifier = Modifier.weight(1f))
-                MiniStatCard(label = "Players", value = formatNumber(stats.totalPlayers), modifier = Modifier.weight(1f))
+                MiniStatCard(label = stringResource(R.string.race_stats_races), value = formatNumber(stats.totalRaces), modifier = Modifier.weight(1f))
+                MiniStatCard(label = stringResource(R.string.race_stats_players), value = formatNumber(stats.totalPlayers), modifier = Modifier.weight(1f))
                 stats.trackedSince?.let {
-                    MiniStatCard(label = "Since", value = it.take(10), modifier = Modifier.weight(1f))
+                    MiniStatCard(label = stringResource(R.string.race_stats_since), value = it.take(10), modifier = Modifier.weight(1f))
                 }
             }
         }
@@ -146,7 +148,7 @@ private fun StatContent(stats: RaceStats) {
         if (stats.mostActivePlayers.isNotEmpty()) {
             item {
                 Column(modifier = Modifier.focusable()) {
-                    SectionHeader("Most Active Players")
+                    SectionHeader(stringResource(R.string.race_stats_active_players))
                     StatsCard {
                         stats.mostActivePlayers.take(5).forEachIndexed { index, player ->
                             if (index > 0) ThinDivider()
@@ -190,9 +192,13 @@ private fun StatContent(stats: RaceStats) {
         if (stats.topCharacters.isNotEmpty() || stats.topVehicles.isNotEmpty() || stats.topCombos.isNotEmpty()) {
             item {
                 Column(modifier = Modifier.focusable()) {
-                    SectionHeader("Most Used")
+                    SectionHeader(stringResource(R.string.race_stats_most_used))
                     var usageTab by remember { mutableIntStateOf(0) }
-                    val usageLabels = listOf("Characters", "Vehicles", "Combos")
+                    val usageLabels = listOf(
+                        stringResource(R.string.race_stats_characters),
+                        stringResource(R.string.race_stats_vehicles),
+                        stringResource(R.string.race_stats_combos)
+                    )
                     val usageData = listOf(stats.topCharacters, stats.topVehicles, stats.topCombos)
 
                     SecondaryTabRow(
@@ -226,9 +232,13 @@ private fun StatContent(stats: RaceStats) {
         if (stats.topCharactersByWinRate.isNotEmpty() || stats.topVehiclesByWinRate.isNotEmpty() || stats.topCombosByWinRate.isNotEmpty()) {
             item {
                 Column(modifier = Modifier.focusable()) {
-                    SectionHeader("Best Win Rates")
+                    SectionHeader(stringResource(R.string.race_stats_win_rates))
                     var winTab by remember { mutableIntStateOf(0) }
-                    val winLabels = listOf("Characters", "Vehicles", "Combos")
+                    val winLabels = listOf(
+                        stringResource(R.string.race_stats_characters),
+                        stringResource(R.string.race_stats_vehicles),
+                        stringResource(R.string.race_stats_combos)
+                    )
                     val winData = listOf(stats.topCharactersByWinRate, stats.topVehiclesByWinRate, stats.topCombosByWinRate)
 
                     SecondaryTabRow(
@@ -262,7 +272,7 @@ private fun StatContent(stats: RaceStats) {
         if (stats.allPlayedTracks.isNotEmpty()) {
             item {
                 Column(modifier = Modifier.focusable()) {
-                    SectionHeader("Popular Tracks")
+                    SectionHeader(stringResource(R.string.race_stats_popular_tracks))
                     StatsCard {
                         stats.allPlayedTracks.take(10).forEachIndexed { index, track ->
                             if (index > 0) ThinDivider()
@@ -303,7 +313,7 @@ private fun StatContent(stats: RaceStats) {
         if (stats.racesByDayOfWeek.isNotEmpty() || stats.racesByHour.isNotEmpty()) {
             item {
                 Column(modifier = Modifier.focusable()) {
-                    SectionHeader("Activity")
+                    SectionHeader(stringResource(R.string.race_stats_activity))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (stats.racesByDayOfWeek.isNotEmpty()) {
                             DayOfWeekChart(stats.racesByDayOfWeek, modifier = Modifier.weight(1f))
@@ -468,13 +478,13 @@ private fun WinRateList(items: List<WinRateStat>) {
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "${item.winRate}%",
+                        text = stringResource(R.string.race_stats_win_rate_format, item.winRate),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "${formatNumber(item.winCount)}W / ${formatNumber(item.raceCount)}R",
+                        text = stringResource(R.string.race_stats_win_count_format, formatNumber(item.winCount), formatNumber(item.raceCount)),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -564,23 +574,25 @@ private fun PeakHoursChart(hours: List<com.skiletro.wheelwitch.model.HourStat>, 
     }
 }
 
+@Composable
 private fun formatNumber(n: Int): String {
     return when {
-        n >= 1_000_000 -> "${"%.1f".format(n / 1_000_000f)}M"
-        n >= 1_000 -> "${"%.1f".format(n / 1_000f)}K"
+        n >= 1_000_000 -> stringResource(R.string.race_stats_number_m, n / 1_000_000f)
+        n >= 1_000 -> stringResource(R.string.race_stats_number_k, n / 1_000f)
         else -> n.toString()
     }
 }
 
+@Composable
 private fun formatRelativeTime(timestamp: Long): String {
     val diff = System.currentTimeMillis() - timestamp
     val minutes = diff / 60_000
     val hours = diff / 3_600_000
     val days = diff / 86_400_000
     return when {
-        minutes < 1 -> "just now"
-        minutes < 60 -> "${minutes}m ago"
-        hours < 24 -> "${hours}h ago"
-        else -> "${days}d ago"
+        minutes < 1 -> stringResource(R.string.race_stats_just_now)
+        minutes < 60 -> stringResource(R.string.race_stats_minutes_ago, minutes)
+        hours < 24 -> stringResource(R.string.race_stats_hours_ago, hours)
+        else -> stringResource(R.string.race_stats_days_ago, days)
     }
 }

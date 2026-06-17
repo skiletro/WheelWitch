@@ -34,9 +34,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.LicenseInfo
 import com.skiletro.wheelwitch.ui.components.MiiFace
 import com.skiletro.wheelwitch.ui.components.ScreenHeader
@@ -62,7 +64,7 @@ fun SaveInfoScreen(
             .background(MaterialTheme.colorScheme.background)
     ) {
         ScreenHeader(
-            title = "Save Data",
+            title = stringResource(R.string.save_info_title),
             onBack = onClose,
             onRefresh = onRefresh
         )
@@ -96,7 +98,7 @@ fun SaveInfoScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         PrimaryActionButton(
-                            text = "Try Again",
+                            text = stringResource(R.string.save_info_try_again),
                             onClick = onRefresh
                         )
                     }
@@ -186,7 +188,7 @@ private fun LicenseCard(
                     Spacer(modifier = Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = info.miiName ?: "Player",
+                            text = info.miiName ?: stringResource(R.string.save_info_player_default),
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleLarge,
                             maxLines = 1,
@@ -211,7 +213,7 @@ private fun LicenseCard(
                         val rW = info.raceWins ?: 0
                         val rL = info.raceLosses ?: 0
                         Text(
-                            text = "Race: W $rW / L $rL",
+                            text = stringResource(R.string.save_info_race_format, rW, rL),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -229,7 +231,7 @@ private fun LicenseCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Done,
-                            contentDescription = "Active license",
+                            contentDescription = stringResource(R.string.home_active_license),
                             tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(14.dp)
                         )
@@ -241,7 +243,7 @@ private fun LicenseCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Empty",
+                        text = stringResource(R.string.save_info_empty),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )

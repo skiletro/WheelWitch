@@ -7,6 +7,7 @@ import android.net.NetworkCapabilities
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.data.PackStorage
 import com.skiletro.wheelwitch.data.SaveManager
 import com.skiletro.wheelwitch.domain.RewindPackManager
@@ -102,7 +103,7 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
     fun downloadOrUpdate(status: PackStatus) {
         viewModelScope.launch {
             val currentStorage = storage ?: run {
-                _state.value = UiState.Error("Storage not configured")
+                _state.value = UiState.Error(app.getString(R.string.vm_storage_not_configured))
                 return@launch
             }
             try {
@@ -131,8 +132,7 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
                     }
                     is PackStatus.Installed -> {
                         _state.value = UiState.Error(
-                            "Cannot reach the update server. " +
-                                    "Please check your internet connection and try again."
+                            app.getString(R.string.home_cannot_reach_server)
                         )
                         return@launch
                     }
@@ -159,7 +159,7 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
     fun launchDolphin() {
         val app = getApplication<Application>()
         val currentStorage = storage ?: run {
-            _state.value = UiState.Error("Storage not configured")
+            _state.value = UiState.Error(app.getString(R.string.vm_storage_not_configured))
             return
         }
         val gameIsoPath = DolphinLauncher.getGameIsoPath(app)
@@ -168,12 +168,12 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
         }
         if (!File(gameIsoPath).exists()) {
             clearIsoPath()
-            _state.value = UiState.Error("Mario Kart Wii ROM not found. Please select it again.")
+            _state.value = UiState.Error(app.getString(R.string.home_rom_not_found))
             return
         }
         val rootPath = currentStorage.rootPath
         if (rootPath == null) {
-            _state.value = UiState.Error("Cannot resolve storage path. Please pick a new storage folder.")
+            _state.value = UiState.Error(app.getString(R.string.home_no_iso_cant_launch))
             return
         }
 
@@ -188,7 +188,7 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
                 }
                 DolphinLauncher.launchDolphin(app, rrJsonFile.absolutePath).getOrThrow()
             } catch (e: Exception) {
-                _state.value = UiState.Error(e.message ?: "Failed to launch Dolphin")
+                _state.value = UiState.Error(e.message ?: app.getString(R.string.home_launch_failed))
             }
         }
     }

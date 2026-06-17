@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.data.RksysParser
 import com.skiletro.wheelwitch.data.SaveManager
 import com.skiletro.wheelwitch.model.LicenseInfo
@@ -121,7 +122,9 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
             result.onSuccess {
                 _successMessage.value = "Restore successful"
             }.onFailure {
-                _state.value = UiState.Error("Restore failed: ${it.message}")
+                _state.value = UiState.Error(
+                    getApplication<Application>().getString(R.string.vm_restore_failed_format, it.message ?: "")
+                )
             }
             refreshSaveState()
         }

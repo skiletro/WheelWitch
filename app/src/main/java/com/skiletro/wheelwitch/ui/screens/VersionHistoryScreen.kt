@@ -22,8 +22,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.domain.ChangelogParser
 import com.skiletro.wheelwitch.model.ChangelogEntry
 import com.skiletro.wheelwitch.ui.components.ChangelogCard
@@ -59,7 +61,7 @@ fun VersionHistoryContent(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "Loading version history...",
+                        text = stringResource(R.string.version_history_loading),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -68,7 +70,7 @@ fun VersionHistoryContent(
             error != null -> {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "Failed to load version history",
+                        text = stringResource(R.string.version_history_failed),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.error
                     )

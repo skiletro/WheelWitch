@@ -28,9 +28,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.ui.components.buttonShape
 import com.skiletro.wheelwitch.viewmodel.PackUpdateViewModel
@@ -83,7 +85,7 @@ fun QuickLaunchScreen(
             ) {
                 when (val s = state) {
                     is UiState.NoStorage -> {
-                        StatusMessage("Storage not configured.\nOpen Wheel Witch first to set up your pack location.", isError = true)
+                        StatusMessage(stringResource(R.string.quick_launch_storage_error), isError = true)
                         Spacer(modifier = Modifier.height(24.dp))
                         ExitButton(onClick = onFinish)
                     }
@@ -93,7 +95,7 @@ fun QuickLaunchScreen(
                         ExitButton(onClick = onFinish)
                     }
                     is UiState.Checking -> {
-                        StatusMessage("Checking for updates...")
+                        StatusMessage(stringResource(R.string.quick_launch_checking))
                     }
                     is UiState.Downloading -> {
                         StatusMessage(s.message)
@@ -101,7 +103,7 @@ fun QuickLaunchScreen(
                         ProgressBar(s.progress)
                     }
                     is UiState.Extracting -> {
-                        StatusMessage("Extracting files...")
+                        StatusMessage(stringResource(R.string.quick_launch_extracting))
                         Spacer(modifier = Modifier.height(24.dp))
                         ProgressBar(s.progress)
                     }
@@ -113,11 +115,11 @@ fun QuickLaunchScreen(
                     is UiState.Ready -> {
                         when (s.status) {
                             is PackStatus.Installed -> {
-                                StatusMessage("Cannot reach the update server.\nCheck your internet connection.", isError = true)
+                                StatusMessage(stringResource(R.string.quick_launch_cannot_reach_server), isError = true)
                                 Spacer(modifier = Modifier.height(24.dp))
                                 ExitButton(onClick = onFinish)
                             }
-                            else -> StatusMessage("Preparing...")
+                            else -> StatusMessage(stringResource(R.string.quick_launch_preparing))
                         }
                     }
                 }
@@ -159,7 +161,7 @@ private fun ExitButton(onClick: () -> Unit) {
         shape = buttonShape,
         modifier = Modifier.height(48.dp)
     ) {
-        Text("Exit", fontWeight = FontWeight.Medium)
+        Text(stringResource(R.string.quick_launch_exit), fontWeight = FontWeight.Medium)
     }
 }
 
@@ -188,7 +190,7 @@ private fun CountdownPhase(onLaunch: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(20.dp))
         Text(
-            text = "Everything's up to date!",
+            text = stringResource(R.string.quick_launch_up_to_date),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
@@ -196,7 +198,7 @@ private fun CountdownPhase(onLaunch: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(32.dp))
         Text(
-            text = if (count > 0) "Starting in $count..." else "Launching!",
+            text = if (count > 0) stringResource(R.string.quick_launch_starting_in, count) else stringResource(R.string.quick_launch_launching),
             style = MaterialTheme.typography.displayLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
@@ -205,7 +207,7 @@ private fun CountdownPhase(onLaunch: () -> Unit) {
         if (count == 0) {
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Launching Dolphin Emulator...",
+                text = stringResource(R.string.quick_launch_launching_dolphin),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

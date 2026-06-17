@@ -54,9 +54,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.ui.components.cacheSize
 import com.skiletro.wheelwitch.ui.components.formatBytes
 import com.skiletro.wheelwitch.ui.theme.ThemeMode
@@ -94,13 +96,13 @@ fun SettingsScreen(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete Save Data") },
-            text = { Text("Are you sure you want to delete the save file? This cannot be undone.") },
+            title = { Text(stringResource(R.string.settings_delete_save_dialog_title)) },
+            text = { Text(stringResource(R.string.settings_delete_save_dialog_body)) },
             confirmButton = {
-                Button(onClick = { onDeleteSave(); showDeleteConfirm = false }) { Text("Delete") }
+                Button(onClick = { onDeleteSave(); showDeleteConfirm = false }) { Text(stringResource(R.string.settings_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+                TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.settings_cancel)) }
             }
         )
     }
@@ -108,13 +110,13 @@ fun SettingsScreen(
     if (showWadDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showWadDeleteConfirm = false },
-            title = { Text("Delete Mii Channel WAD") },
-            text = { Text("Delete the cached Mii Channel WAD file? It will be re-downloaded the next time you use Mii Maker.") },
+            title = { Text(stringResource(R.string.settings_delete_wad_dialog_title)) },
+            text = { Text(stringResource(R.string.settings_delete_wad_dialog_body)) },
             confirmButton = {
-                Button(onClick = { miiMaker.deleteWad(); showWadDeleteConfirm = false }) { Text("Delete") }
+                Button(onClick = { miiMaker.deleteWad(); showWadDeleteConfirm = false }) { Text(stringResource(R.string.settings_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { showWadDeleteConfirm = false }) { Text("Cancel") }
+                TextButton(onClick = { showWadDeleteConfirm = false }) { Text(stringResource(R.string.settings_cancel)) }
             }
         )
     }
@@ -133,13 +135,13 @@ fun SettingsScreen(
             IconButton(onClick = onClose) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = stringResource(R.string.cd_back),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Settings",
+                text = stringResource(R.string.settings_title),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -154,13 +156,13 @@ fun SettingsScreen(
         ) {
             // Save Data
             item {
-                SettingsCategoryHeader("Save Data")
+                SettingsCategoryHeader(stringResource(R.string.settings_save_data))
             }
             item {
                 SettingsItem(
                     icon = Icons.Filled.SaveAlt,
-                    title = "Backup",
-                    summary = if (saveState.hasSave) "Save file found" else "No save file found",
+                    title = stringResource(R.string.settings_backup),
+                    summary = if (saveState.hasSave) stringResource(R.string.settings_save_found) else stringResource(R.string.settings_save_missing),
                     trailing = {
                         Button(
                             onClick = onBackupSave,
@@ -171,13 +173,13 @@ fun SettingsScreen(
                                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                             )
-                        ) { Text("Backup", fontWeight = FontWeight.Medium) }
+                        ) { Text(stringResource(R.string.settings_backup), fontWeight = FontWeight.Medium) }
                     }
                 )
                 SettingsItem(
                     icon = Icons.Filled.Restore,
-                    title = "Restore",
-                    summary = "Replace current save with a backup",
+                    title = stringResource(R.string.settings_restore),
+                    summary = stringResource(R.string.settings_replace_save_sub),
                     trailing = {
                         Button(
                             onClick = onRestoreSave,
@@ -187,18 +189,18 @@ fun SettingsScreen(
                                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                             )
-                        ) { Text("Restore", fontWeight = FontWeight.Medium) }
+                        ) { Text(stringResource(R.string.settings_restore), fontWeight = FontWeight.Medium) }
                     }
                 )
                 if (saveState.hasSave) {
                     SettingsItem(
                         icon = Icons.Filled.Delete,
-                        title = "Delete save data",
+                        title = stringResource(R.string.settings_delete_save),
                         titleColor = MaterialTheme.colorScheme.error,
-                        summary = "This cannot be undone",
+                        summary = stringResource(R.string.settings_delete_save_sub),
                         trailing = {
                             TextButton(onClick = { showDeleteConfirm = true }) {
-                                Text("Delete", color = MaterialTheme.colorScheme.error)
+                                Text(stringResource(R.string.settings_delete), color = MaterialTheme.colorScheme.error)
                             }
                         }
                     )
@@ -207,24 +209,24 @@ fun SettingsScreen(
 
             // Appearance
             item {
-                SettingsCategoryHeader("Appearance")
+                SettingsCategoryHeader(stringResource(R.string.settings_appearance))
             }
             item {
                 SettingsItem(
                     icon = Icons.Filled.Palette,
-                    title = "Dynamic color",
-                    summary = if (useDynamicColor) "Using wallpaper colors" else "Using custom theme color",
+                    title = stringResource(R.string.settings_dynamic_color),
+                    summary = if (useDynamicColor) stringResource(R.string.settings_dynamic_color_on) else stringResource(R.string.settings_dynamic_color_off),
                     trailing = {
                         Switch(checked = useDynamicColor, onCheckedChange = onToggleDynamicColor)
                     }
                 )
                 SettingsItem(
                     icon = Icons.Filled.Nightlight,
-                    title = "Dark mode",
+                    title = stringResource(R.string.settings_dark_mode),
                     summary = when (themeMode) {
-                        ThemeMode.Light -> "Always light"
-                        ThemeMode.Dark -> "Always dark"
-                        ThemeMode.System -> "Follow system"
+                        ThemeMode.Light -> stringResource(R.string.settings_always_light)
+                        ThemeMode.Dark -> stringResource(R.string.settings_always_dark)
+                        ThemeMode.System -> stringResource(R.string.settings_follow_system)
                     },
                     trailing = {
                         Box {
@@ -234,9 +236,9 @@ fun SettingsScreen(
                             ) {
                                 Text(
                                     text = when (themeMode) {
-                                        ThemeMode.Light -> "Light"
-                                        ThemeMode.Dark -> "Dark"
-                                        ThemeMode.System -> "System"
+                                        ThemeMode.Light -> stringResource(R.string.settings_theme_light)
+                                        ThemeMode.Dark -> stringResource(R.string.settings_theme_dark)
+                                        ThemeMode.System -> stringResource(R.string.settings_theme_system)
                                     }
                                 )
                             }
@@ -249,9 +251,9 @@ fun SettingsScreen(
                                         text = {
                                             Text(
                                                 when (mode) {
-                                                    ThemeMode.Light -> "Light"
-                                                    ThemeMode.Dark -> "Dark"
-                                                    ThemeMode.System -> "System"
+                                                    ThemeMode.Light -> stringResource(R.string.settings_theme_light)
+                                                    ThemeMode.Dark -> stringResource(R.string.settings_theme_dark)
+                                                    ThemeMode.System -> stringResource(R.string.settings_theme_system)
                                                 }
                                             )
                                         },
@@ -269,61 +271,61 @@ fun SettingsScreen(
 
             // Retro Rewind
             item {
-                SettingsCategoryHeader("Retro Rewind")
+                SettingsCategoryHeader(stringResource(R.string.settings_retro_rewind))
             }
             item {
                 val fileName = isoPath?.substringAfterLast('/')?.ifBlank { null }
                 SettingsItem(
                     icon = Icons.Filled.Gamepad,
-                    title = "Mario Kart Wii",
-                    summary = fileName ?: "ROM not selected",
+                    title = stringResource(R.string.settings_mario_kart_wii),
+                    summary = fileName ?: stringResource(R.string.settings_rom_not_selected),
                     trailing = {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             TextButton(
                                 onClick = onPickIso,
                                 shape = RoundedCornerShape(14.dp)
-                            ) { Text("Pick") }
+                            ) { Text(stringResource(R.string.settings_pick)) }
                             if (fileName != null) {
                                 TextButton(
                                     onClick = { packUpdate.clearIsoPath() },
                                     shape = RoundedCornerShape(14.dp)
-                                ) { Text("Clear") }
+                                ) { Text(stringResource(R.string.settings_clear)) }
                             }
                         }
                     }
                 )
                 SettingsItem(
                     icon = Icons.Filled.Dns,
-                    title = "Pack storage",
-                    summary = packUpdate.storageRootPath ?: "Not configured",
+                    title = stringResource(R.string.settings_pack_storage),
+                    summary = packUpdate.storageRootPath ?: stringResource(R.string.settings_not_configured),
                     trailing = null
                 )
             }
 
             // Mii Maker
             item {
-                SettingsCategoryHeader("Mii Maker")
+                SettingsCategoryHeader(stringResource(R.string.settings_mii_maker_section))
             }
             item {
-                val wadStatus = if (miiMakerState.hasWad) "Installed" else "Not installed"
+                val wadStatus = if (miiMakerState.hasWad) stringResource(R.string.settings_installed) else stringResource(R.string.settings_not_installed)
                 SettingsItem(
                     icon = Icons.Filled.Checkroom,
-                    title = "Mii Channel WAD",
+                    title = stringResource(R.string.settings_mii_channel_wad),
                     summary = if (miiMakerError != null) miiMakerError else wadStatus,
                     summaryColor = if (miiMakerError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                     trailing = {
                         if (isInstallingWad) {
-                            Text("Installing...", style = MaterialTheme.typography.bodySmall)
+                            Text(stringResource(R.string.settings_installing), style = MaterialTheme.typography.bodySmall)
                         } else if (miiMakerState.hasWad) {
                             TextButton(onClick = { showWadDeleteConfirm = true }) {
-                                Text("Delete", color = MaterialTheme.colorScheme.error)
+                                Text(stringResource(R.string.settings_delete), color = MaterialTheme.colorScheme.error)
                             }
                         } else {
                             Button(
                                 onClick = { miiMaker.installMiiMakerWad() },
                                 shape = RoundedCornerShape(14.dp),
                                 contentPadding = ButtonDefaults.TextButtonContentPadding
-                            ) { Text("Install") }
+                            ) { Text(stringResource(R.string.settings_install)) }
                         }
                     }
                 )
@@ -331,14 +333,14 @@ fun SettingsScreen(
 
             // Advanced
             item {
-                SettingsCategoryHeader("Advanced")
+                SettingsCategoryHeader(stringResource(R.string.settings_advanced))
             }
             item {
                 val cacheDir = remember { java.io.File(context.cacheDir, "rewind_pack_downloads") }
                 var cacheSizeBytes by remember { mutableStateOf(cacheSize(cacheDir)) }
                 SettingsItem(
                     icon = Icons.Filled.Cached,
-                    title = "Download cache",
+                    title = stringResource(R.string.settings_download_cache),
                     summary = formatBytes(cacheSizeBytes),
                     trailing = {
                         TextButton(
@@ -348,7 +350,7 @@ fun SettingsScreen(
                             },
                             enabled = cacheSizeBytes > 0,
                             shape = RoundedCornerShape(14.dp)
-                        ) { Text("Clear") }
+                        ) { Text(stringResource(R.string.settings_clear)) }
                     }
                 )
             }
@@ -358,7 +360,7 @@ fun SettingsScreen(
                 }
                 SettingsItem(
                     icon = Icons.Filled.Cached,
-                    title = "Mii face cache",
+                    title = stringResource(R.string.settings_mii_face_cache),
                     summary = formatBytes(miiCacheSizeBytes),
                     trailing = {
                         TextButton(
@@ -368,21 +370,21 @@ fun SettingsScreen(
                             },
                             enabled = miiCacheSizeBytes > 0,
                             shape = RoundedCornerShape(14.dp)
-                        ) { Text("Clear") }
+                        ) { Text(stringResource(R.string.settings_clear)) }
                     }
                 )
             }
             item {
                 SettingsItem(
                     icon = Icons.AutoMirrored.Filled.Shortcut,
-                    title = "Quick launch",
-                    summary = "Launch Retro Rewind directly from a home screen shortcut",
+                    title = stringResource(R.string.settings_quick_launch),
+                    summary = stringResource(R.string.settings_quick_launch_sub),
                     trailing = {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             TextButton(
                                 onClick = onSimulateQuickLaunch,
                                 shape = RoundedCornerShape(14.dp)
-                            ) { Text("Simulate") }
+                            ) { Text(stringResource(R.string.settings_simulate)) }
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                                 val shortcutManager = remember { context.getSystemService(Context.SHORTCUT_SERVICE) as? ShortcutManager }
                                 if (shortcutManager?.isRequestPinShortcutSupported == true) {
@@ -393,15 +395,15 @@ fun SettingsScreen(
                                                 `package` = context.packageName
                                             }
                                             val shortcut = ShortcutInfo.Builder(context, "quick_launch")
-                                                .setShortLabel("Quick Launch")
-                                                .setLongLabel("Launch Retro Rewind")
+                                                .setShortLabel(context.getString(R.string.settings_shortcut_short))
+                                                .setLongLabel(context.getString(R.string.settings_shortcut_long))
                                                 .setIcon(Icon.createWithResource(context, com.skiletro.wheelwitch.R.mipmap.ic_launcher))
                                                 .setIntent(intent)
                                                 .build()
                                             shortcutManager.requestPinShortcut(shortcut, null)
                                         },
                                         shape = RoundedCornerShape(14.dp)
-                                    ) { Text("Shortcut") }
+                                    ) { Text(stringResource(R.string.settings_shortcut)) }
                                 }
                             }
                         }
@@ -411,30 +413,30 @@ fun SettingsScreen(
             item {
                 SettingsItem(
                     icon = Icons.AutoMirrored.Filled.ExitToApp,
-                    title = "Onboarding",
-                    summary = "Re-run the initial setup wizard",
+                    title = stringResource(R.string.settings_onboarding),
+                    summary = stringResource(R.string.settings_relaunch_onboarding),
                     trailing = {
                         TextButton(
                             onClick = onRelaunchOnboarding,
                             shape = RoundedCornerShape(14.dp)
-                        ) { Text("Relaunch") }
+                        ) { Text(stringResource(R.string.settings_relaunch)) }
                     }
                 )
             }
 
             // About
             item {
-                SettingsCategoryHeader("About")
+                SettingsCategoryHeader(stringResource(R.string.settings_about))
             }
             item {
                 val version = if (com.skiletro.wheelwitch.BuildConfig.DEBUG)
-                    "v${com.skiletro.wheelwitch.BuildConfig.VERSION_NAME}-debug-${com.skiletro.wheelwitch.BuildConfig.GIT_HASH}"
+                    stringResource(R.string.settings_version_debug, com.skiletro.wheelwitch.BuildConfig.VERSION_NAME, com.skiletro.wheelwitch.BuildConfig.GIT_HASH)
                 else
-                    "v${com.skiletro.wheelwitch.BuildConfig.VERSION_NAME}"
+                    stringResource(R.string.settings_version_release, com.skiletro.wheelwitch.BuildConfig.VERSION_NAME)
                 SettingsItem(
                     icon = Icons.Filled.Info,
-                    title = "Wheel Witch",
-                    summary = "$version \u2014 Manages Retro Rewind Pack for MKWii",
+                    title = stringResource(R.string.settings_wheel_witch),
+                    summary = stringResource(R.string.settings_about_summary, version, stringResource(R.string.settings_app_subtitle)),
                     trailing = null
                 )
             }

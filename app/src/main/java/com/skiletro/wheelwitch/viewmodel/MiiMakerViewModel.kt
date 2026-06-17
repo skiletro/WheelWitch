@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.util.MiiWadInstaller
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,7 +64,7 @@ class MiiMakerViewModel(application: Application) : AndroidViewModel(application
                     MiiWadInstaller.launchWadFile(app, cached).getOrThrow()
                 }
             } catch (e: Exception) {
-                _miiMakerError.value = e.message ?: "Failed to launch Mii Maker"
+                _miiMakerError.value = e.message ?: app.getString(R.string.vm_mii_launch_failed)
             }
         }
     }
@@ -76,7 +77,7 @@ class MiiMakerViewModel(application: Application) : AndroidViewModel(application
                 _miiMakerError.value = null
                 try {
                     if (!app.isNetworkAvailable()) {
-                        _miiMakerError.value = "No internet connection. Please connect to the internet and try again."
+                        _miiMakerError.value = app.getString(R.string.vm_no_internet)
                     } else {
                         withContext(Dispatchers.IO) {
                             MiiWadInstaller.downloadAndExtractWad(app)
@@ -84,7 +85,7 @@ class MiiMakerViewModel(application: Application) : AndroidViewModel(application
                         refreshMiiMakerState()
                     }
                 } catch (e: Exception) {
-                    _miiMakerError.value = e.message ?: "Failed to install Mii Maker WAD"
+                    _miiMakerError.value = e.message ?: app.getString(R.string.vm_mii_install_failed)
                 }
                 _isInstallingWad.value = false
             }

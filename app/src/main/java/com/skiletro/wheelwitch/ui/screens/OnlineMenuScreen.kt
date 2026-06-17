@@ -48,8 +48,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.ui.components.ScreenHeader
 import com.skiletro.wheelwitch.ui.components.focusBorder
 import com.skiletro.wheelwitch.viewmodel.OnlineMenuPage
@@ -107,7 +109,7 @@ private fun HubPage(
         modifier = Modifier.fillMaxSize()
     ) {
         ScreenHeader(
-            title = "Online Menu",
+            title = stringResource(R.string.online_menu_title),
             onBack = onClose
         )
 
@@ -121,32 +123,32 @@ private fun HubPage(
         ) {
             HubOption(
                 icon = Icons.Default.Person,
-                title = "Online Rooms",
-                description = "Browse active multiplayer rooms",
+                title = stringResource(R.string.online_rooms),
+                description = stringResource(R.string.online_rooms_desc),
                 onClick = { viewModel.navigateTo(OnlineMenuPage.Rooms) }
             )
             HubOption(
                 icon = Icons.Default.Star,
-                title = "Leaderboard",
-                description = "Top players by VR ranking",
+                title = stringResource(R.string.online_leaderboard),
+                description = stringResource(R.string.online_leaderboard_desc),
                 onClick = { viewModel.navigateTo(OnlineMenuPage.Leaderboard) }
             )
             HubOption(
                 icon = Icons.Default.Favorite,
-                title = "Server Health",
-                description = "Server status and system health",
+                title = stringResource(R.string.online_server_health),
+                description = stringResource(R.string.online_server_health_desc),
                 onClick = { viewModel.navigateTo(OnlineMenuPage.Health) }
             )
             HubOption(
                 icon = Icons.Default.PlayArrow,
-                title = "Race Statistics",
-                description = "Global race data",
+                title = stringResource(R.string.online_race_stats),
+                description = stringResource(R.string.online_race_stats_desc),
                 onClick = { viewModel.navigateTo(OnlineMenuPage.RaceStats) }
             )
             HubOption(
                 icon = Icons.Default.Star,
-                title = "Time Trials",
-                description = "Track leaderboards (Coming Soon)",
+                title = stringResource(R.string.online_time_trials),
+                description = stringResource(R.string.online_time_trials_desc),
                 enabled = false
             )
         }
@@ -163,19 +165,19 @@ private fun HealthIndicator(
     when (connectivity) {
         com.skiletro.wheelwitch.model.ServerConnectivity.Online -> {
             dotColor = Color(0xFF4CAF50)
-            label = "Server online"
+            label = stringResource(R.string.health_indicator_online)
         }
         com.skiletro.wheelwitch.model.ServerConnectivity.Offline -> {
             dotColor = MaterialTheme.colorScheme.error
-            label = "Server offline"
+            label = stringResource(R.string.health_indicator_offline)
         }
         com.skiletro.wheelwitch.model.ServerConnectivity.NoInternet -> {
             dotColor = MaterialTheme.colorScheme.onSurfaceVariant
-            label = "No internet"
+            label = stringResource(R.string.health_indicator_no_internet)
         }
         else -> {
             dotColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-            label = "Checking..."
+            label = stringResource(R.string.health_indicator_checking)
         }
     }
 
@@ -264,7 +266,7 @@ private fun HubOption(
             }
             if (!enabled) {
                 Text(
-                    text = "Soon",
+                    text = stringResource(R.string.online_soon),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)

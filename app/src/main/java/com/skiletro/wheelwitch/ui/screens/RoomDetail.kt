@@ -35,8 +35,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.Player
 import com.skiletro.wheelwitch.model.Room
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
@@ -62,7 +64,7 @@ fun RoomDetail(room: Room) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "${room.players.size} player${if (room.players.size != 1) "s" else ""}",
+                        text = stringResource(R.string.rooms_player_count_format, room.players.size, if (room.players.size == 1) "" else "s"),
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onSurface
@@ -73,7 +75,7 @@ fun RoomDetail(room: Room) {
                             shape = RoundedCornerShape(6.dp)
                         ) {
                             Text(
-                                text = "Joinable",
+                                text = stringResource(R.string.rooms_joinable),
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
                                 color = Color.White,
                                 style = MaterialTheme.typography.labelMedium
@@ -93,12 +95,12 @@ fun RoomDetail(room: Room) {
 
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Room: ${room.id}  |  Type: ${room.roomType}",
+                    text = stringResource(R.string.rooms_meta_format, room.id, room.roomType),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "Average VR: ${room.averageVR}  |  Visibility: ${if (room.isPublic) "Public" else "Private"}",
+                    text = stringResource(R.string.rooms_meta_vr_format, room.averageVR, if (room.isPublic) stringResource(R.string.rooms_visibility_public) else stringResource(R.string.rooms_visibility_private)),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -107,7 +109,7 @@ fun RoomDetail(room: Room) {
                 HorizontalDivider()
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Players",
+                    text = stringResource(R.string.rooms_players_label),
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface
@@ -205,7 +207,7 @@ fun MiiPlayerCard(player: Player) {
                         if (player.mii?.name != null && player.mii.name != player.name) {
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "\u201C${player.mii.name}\u201D",
+                                text = stringResource(R.string.rooms_quoted_name_format, player.mii.name),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontFamily = CtmkfFontFamily
@@ -214,14 +216,14 @@ fun MiiPlayerCard(player: Player) {
                     }
                     if (player.isOpenHost) {
                         Text(
-                            text = "Host",
+                            text = stringResource(R.string.rooms_host),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
                 Text(
-                    text = "FC: ${player.friendCode}  |  VR: ${player.vr}  |  BR: ${player.br}",
+                    text = stringResource(R.string.rooms_player_meta_format, player.friendCode, player.vr, player.br),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
