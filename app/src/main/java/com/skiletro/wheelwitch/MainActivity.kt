@@ -31,6 +31,7 @@ import com.skiletro.wheelwitch.ui.screens.HomeScreen
 import com.skiletro.wheelwitch.ui.screens.SettingsScreen
 import com.skiletro.wheelwitch.ui.theme.ThemeMode
 import com.skiletro.wheelwitch.ui.theme.WheelWitchTheme
+import com.skiletro.wheelwitch.util.resolveContentUriToPath
 import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
 
 class MainActivity : ComponentActivity() {
@@ -150,21 +151,5 @@ private fun MainScreen(
                 )
             }
         }
-    }
-}
-
-private fun resolveContentUriToPath(uri: Uri): String? {
-    val docId = try {
-        android.provider.DocumentsContract.getDocumentId(uri)
-    } catch (e: Exception) {
-        return uri.path
-    }
-    val parts = docId.split(":")
-    if (parts.size < 2) return uri.path
-    return when {
-        parts[0].equals("primary", ignoreCase = true) ->
-            "/storage/emulated/0/${parts[1]}"
-        else ->
-            "/storage/${parts[0]}/${parts[1]}"
     }
 }

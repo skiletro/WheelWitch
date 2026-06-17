@@ -17,6 +17,7 @@ import com.skiletro.wheelwitch.model.ProgressInfo
 import com.skiletro.wheelwitch.model.Room
 import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.util.DolphinLauncher
+import com.skiletro.wheelwitch.util.MiiWadInstaller
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -275,10 +276,10 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             try {
                 val cached = withContext(Dispatchers.IO) {
-                    DolphinLauncher.getCachedWadFile(app)
+                    MiiWadInstaller.getCachedWadFile(app)
                 }
                 if (cached != null) {
-                    DolphinLauncher.launchWadFile(app, cached).getOrThrow()
+                    MiiWadInstaller.launchWadFile(app, cached).getOrThrow()
                 }
             } catch (e: Exception) {
                 _state.value = UiState.Error(e.message ?: "Failed to launch Mii Maker")
@@ -298,7 +299,7 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
                     return@launch
                 }
                 withContext(Dispatchers.IO) {
-                    DolphinLauncher.downloadAndExtractWad(app)
+                    MiiWadInstaller.downloadAndExtractWad(app)
                 }
                 refreshMiiMakerState()
             } catch (e: Exception) {
@@ -392,7 +393,7 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun refreshMiiMakerState() {
-        val hasWad = DolphinLauncher.getCachedWadFile(getApplication()) != null
+        val hasWad = MiiWadInstaller.getCachedWadFile(getApplication()) != null
         _miiMakerState.value = MiiMakerState(hasWad)
     }
 
