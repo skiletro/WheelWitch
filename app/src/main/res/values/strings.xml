@@ -88,6 +88,7 @@
     <string name="settings_app_theme_material_you">Material You</string>
     <string name="settings_app_theme_purple">Hex</string>
     <string name="settings_app_theme_green">Swamp</string>
+    <string name="settings_app_theme_wizard">Wizard</string>
     <string name="settings_dark_mode">Dark mode</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>

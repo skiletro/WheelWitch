@@ -24,3 +24,14 @@ val SwampGreen40 = Color(0xFF2E7D32)
 val SwampGreenGrey40 = Color(0xFF388E3C)
 val SwampLightGreen40 = Color(0xFF1B5E20)
 val OnSwampGreen40 = Color.White
+
+// Wizard palette (dark)
+val WizardTeal80 = Color(0xFF00A488)
+val WizardTealGrey80 = Color(0xFF4DB6AC)
+val WizardNeutral80 = Color(0xFF8B91A5)
+val OnWizardTeal80 = Color(0xFF00332A)
+// Wizard palette (light)
+val WizardTeal40 = Color(0xFF00897B)
+val WizardTealGrey40 = Color(0xFF26A69A)
+val WizardNeutral40 = Color(0xFF5C5F73)
+val OnWizardTeal40 = Color.White

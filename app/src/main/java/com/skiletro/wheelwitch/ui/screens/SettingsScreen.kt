@@ -219,8 +219,9 @@ fun SettingsScreen(
             item {
                 val appThemeLabel = when (appTheme) {
                     AppTheme.Hex -> stringResource(R.string.settings_app_theme_purple)
-                    AppTheme.MaterialYou -> stringResource(R.string.settings_app_theme_material_you)
                     AppTheme.Swamp -> stringResource(R.string.settings_app_theme_green)
+                    AppTheme.Wizard -> stringResource(R.string.settings_app_theme_wizard)
+                    AppTheme.MaterialYou -> stringResource(R.string.settings_app_theme_material_you)
                 }
                 SettingsItem(
                     icon = Icons.Filled.Palette,
@@ -241,13 +242,14 @@ fun SettingsScreen(
                                 AppTheme.entries.forEach { theme ->
                                     DropdownMenuItem(
                                         text = {
-                                        Text(
-                                            when (theme) {
-                                                AppTheme.Hex -> stringResource(R.string.settings_app_theme_purple)
-                                                AppTheme.MaterialYou -> stringResource(R.string.settings_app_theme_material_you)
-                    AppTheme.Swamp -> stringResource(R.string.settings_app_theme_green)
-                                            }
-                                        )
+                                            Text(
+                                                when (theme) {
+                                                    AppTheme.Hex -> stringResource(R.string.settings_app_theme_purple)
+                                                    AppTheme.Swamp -> stringResource(R.string.settings_app_theme_green)
+                                                    AppTheme.Wizard -> stringResource(R.string.settings_app_theme_wizard)
+                                                    AppTheme.MaterialYou -> stringResource(R.string.settings_app_theme_material_you)
+                                                }
+                                            )
                                         },
                                         onClick = {
                                             onChangeAppTheme(theme)
