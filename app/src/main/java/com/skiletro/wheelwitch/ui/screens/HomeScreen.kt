@@ -1,10 +1,14 @@
 package com.skiletro.wheelwitch.ui.screens
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -219,12 +223,16 @@ fun HomeScreen(
                     }
                 }
 
-                if (state is UiState.Error) {
-                    val error = (state as UiState.Error).message
+                AnimatedVisibility(
+                    visible = state is UiState.Error,
+                    enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+                    exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+                    modifier = Modifier.align(Alignment.TopCenter)
+                ) {
+                    val error = (state as? UiState.Error)?.message ?: return@AnimatedVisibility
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .align(Alignment.TopCenter)
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         shape = sectionShape,
                         color = MaterialTheme.colorScheme.errorContainer
@@ -302,122 +310,132 @@ private fun HomeBottomBar(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        when (state) {
-            is UiState.Downloading -> {
-                ProgressButton(state.progress, state.message)
-            }
-            is UiState.Extracting -> {
-                ProgressButton(state.progress, stringResource(R.string.home_extracting))
-            }
-            is UiState.ApplyingUpdate -> {
-                ProgressButton(state.progress, stringResource(R.string.home_update_step_format, state.index, state.total, state.description))
-            }
-            is UiState.Checking -> {
-                OutlinedButton(
-                    onClick = {},
-                    enabled = false,
-                    shape = buttonShape,
-                    modifier = Modifier.height(56.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.home_checking),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium
-                    )
+        AnimatedContent(
+            targetState = state,
+            transitionSpec = {
+                (fadeIn(animationSpec = androidx.compose.animation.core.tween(250)) +
+                    scaleIn(initialScale = 0.92f, animationSpec = androidx.compose.animation.core.tween(250)))
+                    .togetherWith(fadeOut(animationSpec = androidx.compose.animation.core.tween(150)))
+            },
+            label = "primary_action"
+        ) { currentState ->
+            when (currentState) {
+                is UiState.Downloading -> {
+                    ProgressButton(currentState.progress, currentState.message)
                 }
-            }
-            is UiState.Error -> {
-                OutlinedButton(
-                    onClick = onRetry,
-                    shape = buttonShape,
-                    modifier = Modifier.height(56.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.home_try_again),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium
-                    )
+                is UiState.Extracting -> {
+                    ProgressButton(currentState.progress, stringResource(R.string.home_extracting))
                 }
-            }
-            is UiState.Ready -> {
-                val status = state.status
-
-                val checkSubtitle = when (status) {
-                    is PackStatus.UpToDate -> stringResource(R.string.home_up_to_date, status.currentVersion)
-                    is PackStatus.UpdateAvailable -> stringResource(R.string.home_update_format, status.currentVersion, status.latestVersion)
-                    is PackStatus.Installed -> stringResource(R.string.home_version_installed, status.version)
-                    else -> null
+                is UiState.ApplyingUpdate -> {
+                    ProgressButton(currentState.progress, stringResource(R.string.home_update_step_format, currentState.index, currentState.total, currentState.description))
                 }
-                OutlinedButton(
-                    onClick = onCheck,
-                    enabled = !isBusy,
-                    shape = buttonShape,
-                    modifier = Modifier
-                        .height(56.dp)
-                        .onFocusChanged { checkButtonFocused = it.isFocused }
-                        .focusBorder(checkButtonFocused)
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                is UiState.Checking -> {
+                    OutlinedButton(
+                        onClick = {},
+                        enabled = false,
+                        shape = buttonShape,
+                        modifier = Modifier.height(56.dp)
+                    ) {
                         Text(
-                            text = stringResource(R.string.home_check_for_updates),
+                            text = stringResource(R.string.home_checking),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Medium
                         )
-                        if (checkSubtitle != null) {
+                    }
+                }
+                is UiState.Error -> {
+                    OutlinedButton(
+                        onClick = onRetry,
+                        shape = buttonShape,
+                        modifier = Modifier.height(56.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.home_try_again),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+                is UiState.Ready -> {
+                    val status = currentState.status
+
+                    val checkSubtitle = when (status) {
+                        is PackStatus.UpToDate -> stringResource(R.string.home_up_to_date, status.currentVersion)
+                        is PackStatus.UpdateAvailable -> stringResource(R.string.home_update_format, status.currentVersion, status.latestVersion)
+                        is PackStatus.Installed -> stringResource(R.string.home_version_installed, status.version)
+                        else -> null
+                    }
+                    OutlinedButton(
+                        onClick = onCheck,
+                        enabled = !isBusy,
+                        shape = buttonShape,
+                        modifier = Modifier
+                            .height(56.dp)
+                            .onFocusChanged { checkButtonFocused = it.isFocused }
+                            .focusBorder(checkButtonFocused)
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = checkSubtitle,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Normal,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                text = stringResource(R.string.home_check_for_updates),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium
                             )
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                when (status) {
-                    is PackStatus.NotInstalled -> {
-                        PrimaryActionButton(
-                            text = stringResource(R.string.home_install),
-                            onClick = onInstallOrUpdate ?: {}
-                        )
-                    }
-                    is PackStatus.UpdateAvailable -> {
-                        PrimaryActionButton(
-                            text = stringResource(R.string.home_update_to, status.latestVersion),
-                            onClick = onInstallOrUpdate ?: {}
-                        )
-                    }
-                    else -> {
-                        val launchSubText = when (serverConnectivity) {
-                            ServerConnectivity.Online -> {
-                                val count = playerCount
-                                if (count != null) stringResource(R.string.home_racers_online, count) else null
+                            if (checkSubtitle != null) {
+                                Text(
+                                    text = checkSubtitle,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Normal,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
-                            ServerConnectivity.Offline -> stringResource(R.string.home_offline)
-                            ServerConnectivity.NoInternet -> stringResource(R.string.home_no_internet)
-                            ServerConnectivity.Unknown -> null
                         }
-                        if (hasIso) {
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    when (status) {
+                        is PackStatus.NotInstalled -> {
                             PrimaryActionButton(
-                                text = stringResource(R.string.home_launch_retro_rewind),
-                                onClick = onLaunch,
-                                subText = launchSubText
+                                text = stringResource(R.string.home_install),
+                                onClick = onInstallOrUpdate ?: {}
                             )
-                        } else {
+                        }
+                        is PackStatus.UpdateAvailable -> {
                             PrimaryActionButton(
-                                text = stringResource(R.string.home_select_rom),
-                                onClick = onPickIso
+                                text = stringResource(R.string.home_update_to, status.latestVersion),
+                                onClick = onInstallOrUpdate ?: {}
                             )
+                        }
+                        else -> {
+                            val launchSubText = when (serverConnectivity) {
+                                ServerConnectivity.Online -> {
+                                    val count = playerCount
+                                    if (count != null) stringResource(R.string.home_racers_online, count) else null
+                                }
+                                ServerConnectivity.Offline -> stringResource(R.string.home_offline)
+                                ServerConnectivity.NoInternet -> stringResource(R.string.home_no_internet)
+                                ServerConnectivity.Unknown -> null
+                            }
+                            if (hasIso) {
+                                PrimaryActionButton(
+                                    text = stringResource(R.string.home_launch_retro_rewind),
+                                    onClick = onLaunch,
+                                    subText = launchSubText
+                                )
+                            } else {
+                                PrimaryActionButton(
+                                    text = stringResource(R.string.home_select_rom),
+                                    onClick = onPickIso
+                                )
+                            }
                         }
                     }
                 }
-            }
-            is UiState.NoStorage -> {
-                Text(
-                    text = stringResource(R.string.home_storage_not_configured),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                is UiState.NoStorage -> {
+                    Text(
+                        text = stringResource(R.string.home_storage_not_configured),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
@@ -470,7 +488,9 @@ private fun ActivePlayerCard(
 @Composable
 fun ProgressButton(progress: Float, label: String) {
     Column(
-        modifier = Modifier.widthIn(min = 220.dp),
+        modifier = Modifier
+            .widthIn(min = 220.dp)
+            .animateContentSize(animationSpec = androidx.compose.animation.core.tween(300)),
         horizontalAlignment = Alignment.End
     ) {
         LinearProgressIndicator(
