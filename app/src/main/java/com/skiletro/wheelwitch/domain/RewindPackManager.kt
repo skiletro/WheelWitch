@@ -116,9 +116,9 @@ object RewindPackManager {
                 storage.extractZip(zipFile) { progress ->
                     onProgress(ProgressInfo.ApplyingUpdate(i + 1, results.size, step.description, progress))
                 }
-                writeLocalVersion(storage, step.version)
                 zipFile.delete()
             }
+            writeLocalVersion(storage, serverInfo.latestVersion)
         }
 
         serverInfo.latestVersion

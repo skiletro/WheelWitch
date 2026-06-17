@@ -73,6 +73,7 @@ sealed class SaveInfoState {
 }
 
 class UpdateViewModel(application: Application) : AndroidViewModel(application) {
+    private val app = application
     private val prefs = application.getSharedPreferences("wheelwitch", Application.MODE_PRIVATE)
     private val _state = MutableStateFlow<UiState>(UiState.NoStorage)
     val state: StateFlow<UiState> = _state.asStateFlow()
@@ -194,6 +195,10 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
                 return@launch
             }
             try {
+                withContext(Dispatchers.IO) {
+                    SaveManager.backupSaveToCache(app, currentStorage)
+                }
+
                 when (status) {
                     is PackStatus.NotInstalled -> {
                         withContext(Dispatchers.IO) {
@@ -225,6 +230,9 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
                         refreshSaveState()
                         return@launch
                     }
+                }
+                withContext(Dispatchers.IO) {
+                    SaveManager.deleteSaveBackup(app)
                 }
                 _state.value = UiState.ReadyToLaunch(getDisplayVersion())
                 refreshSaveState()
@@ -400,11 +408,15 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun refreshSaveState() {
         viewModelScope.launch {
-            val currentStorage = storage ?: return@launch
-            val hasSave = withContext(Dispatchers.IO) {
-                SaveManager.hasSaveFile(currentStorage)
+            try {
+                val currentStorage = storage ?: return@launch
+                val hasSave = withContext(Dispatchers.IO) {
+                    SaveManager.hasSaveFile(currentStorage)
+                }
+                _saveState.value = SaveState(hasSave)
+            } catch (_: Exception) {
+                _saveState.value = SaveState(false)
             }
-            _saveState.value = SaveState(hasSave)
         }
     }
 

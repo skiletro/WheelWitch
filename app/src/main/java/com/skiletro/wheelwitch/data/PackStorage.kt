@@ -9,7 +9,7 @@ import java.util.zip.ZipFile
 
 class PackStorage(private val context: Context, private val rootUri: Uri) {
     private val resolver get() = context.contentResolver
-    private val rootDoc: DocumentFile by lazy { DocumentFile.fromTreeUri(context, rootUri)!! }
+    private val rootDoc: DocumentFile? by lazy { DocumentFile.fromTreeUri(context, rootUri) }
     val rootPath: String? = resolveToRealPath(rootUri)
 
     companion object {
@@ -50,7 +50,7 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
         }
         ensureDocDirs(childPath)
         val doc = getOrCreateDoc(childPath)
-        resolver.openOutputStream(doc.uri)?.use { it.write(content.toByteArray()) }
+        requireNotNull(resolver.openOutputStream(doc.uri)) { "Failed to open output stream for $childPath" }.use { it.write(content.toByteArray()) }
     }
 
     fun deleteFile(childPath: String): Boolean {
@@ -90,7 +90,7 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
                         ensureDocDirs(name)
                         val doc = getOrCreateDoc(name)
                         zf.getInputStream(entry).use { input ->
-                            resolver.openOutputStream(doc.uri)?.use { output ->
+                            requireNotNull(resolver.openOutputStream(doc.uri)) { "Failed to open output stream for $name" }.use { output ->
                                 input.copyTo(output, COPY_BUFFER_SIZE)
                             }
                         }
@@ -127,7 +127,7 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
         }
         ensureDocDirs(childPath)
         val doc = getOrCreateDoc(childPath)
-        resolver.openOutputStream(doc.uri)?.use { it.write(data) }
+        requireNotNull(resolver.openOutputStream(doc.uri)) { "Failed to open output stream for $childPath" }.use { it.write(data) }
     }
 
     private fun resolveDirect(childPath: String): File? {
@@ -136,7 +136,7 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
 
     private fun resolveDoc(childPath: String): DocumentFile? {
         val parts = childPath.split("/")
-        var current = rootDoc
+        var current = rootDoc ?: return null
         for (part in parts) {
             if (part.isEmpty()) continue
             current = current.findFile(part) ?: return null
@@ -150,14 +150,14 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
         val name = path.split("/").last()
         val parentPath = path.substringBeforeLast("/", "")
         if (parentPath.isNotEmpty()) ensureDocDirs(parentPath)
-        val parent = if (parentPath.isNotEmpty()) resolveDoc(parentPath) ?: error("Parent not found: $parentPath") else rootDoc
+        val parent = if (parentPath.isNotEmpty()) resolveDoc(parentPath) ?: error("Parent not found: $parentPath") else rootDoc ?: error("Storage root not available")
         return parent.createFile("application/octet-stream", name) ?: error("Cannot create file: $path")
     }
 
     private fun ensureDocDirs(path: String) {
         val parts = path.split("/")
         if (parts.size <= 1) return
-        var current = rootDoc
+        var current = rootDoc ?: return
         for (i in 0 until parts.size - 1) {
             val existing = current.findFile(parts[i])
             current = existing ?: current.createDirectory(parts[i]) ?: error("Cannot create directory: ${parts[i]}")
