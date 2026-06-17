@@ -3,9 +3,11 @@ package com.skiletro.wheelwitch.ui.screens
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
@@ -117,10 +119,17 @@ fun HomeScreen(
         )
     }
 
+    var showPowStamp by remember { mutableStateOf(false) }
+
     LaunchedEffect(successMessage) {
         if (successMessage != null) {
-            delay(3000)
+            showPowStamp = true
+            delay(600)
+            showPowStamp = false
+            delay(2400)
             packUpdate.dismissSuccess()
+        } else {
+            showPowStamp = false
         }
     }
 
@@ -249,6 +258,26 @@ fun HomeScreen(
                             )
                         }
                     }
+                }
+            }
+
+            AnimatedVisibility(
+                visible = showPowStamp,
+                enter = scaleIn(initialScale = 1.6f, animationSpec = tween(300)) + fadeIn(animationSpec = tween(200)),
+                exit = scaleOut(targetScale = 0.9f, animationSpec = tween(200)) + fadeOut(animationSpec = tween(150)),
+                modifier = Modifier.align(Alignment.Center)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.92f), shape = RoundedCornerShape(16.dp))
+                        .padding(horizontal = 28.dp, vertical = 16.dp)
+                ) {
+                    Text(
+                        text = "POW!",
+                        style = MaterialTheme.typography.displayLarge,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onTertiary,
+                    )
                 }
             }
         }

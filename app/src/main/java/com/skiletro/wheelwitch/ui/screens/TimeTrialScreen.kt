@@ -33,8 +33,13 @@ import com.skiletro.wheelwitch.model.TimeTrialTrack
 import com.skiletro.wheelwitch.ui.components.ScreenHeader
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 
+@OptIn(androidx.compose.animation.ExperimentalSharedTransitionApi::class)
 @Composable
-fun TimeTrialScreen(viewModel: OnlineViewModel) {
+fun TimeTrialScreen(
+    viewModel: OnlineViewModel,
+    sharedTransitionScope: androidx.compose.animation.SharedTransitionScope? = null,
+    animatedContentScope: androidx.compose.animation.AnimatedVisibilityScope? = null,
+) {
     val tracks by viewModel.tracks.collectAsState()
 
     Column(
@@ -44,7 +49,12 @@ fun TimeTrialScreen(viewModel: OnlineViewModel) {
     ) {
         ScreenHeader(
             title = stringResource(R.string.time_trial_title),
-            onBack = { viewModel.goBack() }
+            onBack = { viewModel.goBack() },
+            titleModifier = com.skiletro.wheelwitch.ui.components.sharedTitleModifier(
+                key = "online_title_TimeTrial",
+                sharedTransitionScope = sharedTransitionScope,
+                animatedContentScope = animatedContentScope,
+            )
         )
 
         Box(
@@ -91,8 +101,8 @@ fun TimeTrialScreen(viewModel: OnlineViewModel) {
                         modifier = Modifier.weight(1f, fill = false),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        items(tracks) { track ->
-                            TrackItem(track)
+                        items(tracks, key = { it.id }) { track ->
+                            TrackItem(track, modifier = Modifier.animateItem())
                         }
                     }
                 }
@@ -102,11 +112,11 @@ fun TimeTrialScreen(viewModel: OnlineViewModel) {
 }
 
 @Composable
-private fun TrackItem(track: TimeTrialTrack) {
+private fun TrackItem(track: TimeTrialTrack, modifier: Modifier = Modifier) {
     Surface(
         shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = Modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth()
     ) {
         androidx.compose.foundation.layout.Row(
             modifier = Modifier

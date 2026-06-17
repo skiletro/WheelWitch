@@ -2,6 +2,10 @@ package com.skiletro.wheelwitch.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -13,8 +17,10 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -50,14 +56,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
+import com.skiletro.wheelwitch.model.Room
 import com.skiletro.wheelwitch.ui.components.ScreenHeader
 import com.skiletro.wheelwitch.ui.components.focusBorder
 import com.skiletro.wheelwitch.viewmodel.OnlineMenuPage
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 import com.skiletro.wheelwitch.viewmodel.RoomsState
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun OnlineMenuScreen(
     viewModel: OnlineViewModel,
@@ -74,36 +84,64 @@ fun OnlineMenuScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        AnimatedContent(
-            targetState = currentPage,
-            transitionSpec = {
-                (slideInHorizontally { it } + fadeIn()).togetherWith(slideOutHorizontally { -it } + fadeOut())
-            },
-            label = "online_pages"
-        ) { page ->
-            when (page) {
-                OnlineMenuPage.Hub -> HubPage(viewModel = viewModel, onClose = onClose)
-                OnlineMenuPage.Rooms -> {
-                    val roomsState by viewModel.roomsState.collectAsState()
-                    RoomsSubScreen(
-                        roomsState = roomsState,
-                        onRefresh = { viewModel.fetchRooms() },
-                        onBack = { viewModel.goBack() }
+        SharedTransitionLayout {
+            AnimatedContent(
+                targetState = currentPage,
+                transitionSpec = {
+                    (slideInHorizontally { it } + fadeIn()).togetherWith(slideOutHorizontally { -it } + fadeOut())
+                },
+                label = "online_pages"
+            ) { page ->
+                when (page) {
+                    OnlineMenuPage.Hub -> HubPage(
+                        viewModel = viewModel,
+                        onClose = onClose,
+                        sharedTransitionScope = this@SharedTransitionLayout,
+                        animatedContentScope = this,
+                    )
+                    OnlineMenuPage.Rooms -> {
+                        val roomsState by viewModel.roomsState.collectAsState()
+                        RoomsSubScreen(
+                            roomsState = roomsState,
+                            onRefresh = { viewModel.fetchRooms() },
+                            onBack = { viewModel.goBack() },
+                            sharedTransitionScope = this@SharedTransitionLayout,
+                            animatedContentScope = this,
+                        )
+                    }
+                    OnlineMenuPage.Leaderboard -> LeaderboardScreen(
+                        viewModel,
+                        sharedTransitionScope = this@SharedTransitionLayout,
+                        animatedContentScope = this,
+                    )
+                    OnlineMenuPage.Health -> HealthScreen(
+                        viewModel,
+                        sharedTransitionScope = this@SharedTransitionLayout,
+                        animatedContentScope = this,
+                    )
+                    OnlineMenuPage.RaceStats -> RaceStatsScreen(
+                        viewModel,
+                        sharedTransitionScope = this@SharedTransitionLayout,
+                        animatedContentScope = this,
+                    )
+                    OnlineMenuPage.TimeTrial -> TimeTrialScreen(
+                        viewModel,
+                        sharedTransitionScope = this@SharedTransitionLayout,
+                        animatedContentScope = this,
                     )
                 }
-                OnlineMenuPage.Leaderboard -> LeaderboardScreen(viewModel)
-                OnlineMenuPage.Health -> HealthScreen(viewModel)
-                OnlineMenuPage.RaceStats -> RaceStatsScreen(viewModel)
-                OnlineMenuPage.TimeTrial -> TimeTrialScreen(viewModel)
             }
         }
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun HubPage(
     viewModel: OnlineViewModel,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedContentScope: AnimatedVisibilityScope,
 ) {
     Column(
         modifier = Modifier.fillMaxSize()
@@ -125,25 +163,37 @@ private fun HubPage(
                 icon = Icons.Default.Person,
                 title = stringResource(R.string.online_rooms),
                 description = stringResource(R.string.online_rooms_desc),
-                onClick = { viewModel.navigateTo(OnlineMenuPage.Rooms) }
+                onClick = { viewModel.navigateTo(OnlineMenuPage.Rooms) },
+                titleSharedKey = "online_title_Rooms",
+                sharedTransitionScope = sharedTransitionScope,
+                animatedContentScope = animatedContentScope,
             )
             HubOption(
                 icon = Icons.Default.Star,
                 title = stringResource(R.string.online_leaderboard),
                 description = stringResource(R.string.online_leaderboard_desc),
-                onClick = { viewModel.navigateTo(OnlineMenuPage.Leaderboard) }
+                onClick = { viewModel.navigateTo(OnlineMenuPage.Leaderboard) },
+                titleSharedKey = "online_title_Leaderboard",
+                sharedTransitionScope = sharedTransitionScope,
+                animatedContentScope = animatedContentScope,
             )
             HubOption(
                 icon = Icons.Default.Favorite,
                 title = stringResource(R.string.online_server_health),
                 description = stringResource(R.string.online_server_health_desc),
-                onClick = { viewModel.navigateTo(OnlineMenuPage.Health) }
+                onClick = { viewModel.navigateTo(OnlineMenuPage.Health) },
+                titleSharedKey = "online_title_Health",
+                sharedTransitionScope = sharedTransitionScope,
+                animatedContentScope = animatedContentScope,
             )
             HubOption(
                 icon = Icons.Default.PlayArrow,
                 title = stringResource(R.string.online_race_stats),
                 description = stringResource(R.string.online_race_stats_desc),
-                onClick = { viewModel.navigateTo(OnlineMenuPage.RaceStats) }
+                onClick = { viewModel.navigateTo(OnlineMenuPage.RaceStats) },
+                titleSharedKey = "online_title_RaceStats",
+                sharedTransitionScope = sharedTransitionScope,
+                animatedContentScope = animatedContentScope,
             )
             HubOption(
                 icon = Icons.Default.Star,
@@ -205,13 +255,17 @@ private fun HealthIndicator(
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun HubOption(
     icon: ImageVector,
     title: String,
     description: String,
     onClick: (() -> Unit)? = null,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    titleSharedKey: String? = null,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedContentScope: AnimatedVisibilityScope? = null,
 ) {
     val shape = RoundedCornerShape(16.dp)
     val baseColor = if (enabled) MaterialTheme.colorScheme.surfaceVariant
@@ -254,7 +308,12 @@ private fun HubOption(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                    modifier = com.skiletro.wheelwitch.ui.components.sharedTitleModifier(
+                        key = titleSharedKey ?: "",
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedContentScope = animatedContentScope,
+                    )
                 )
                 Text(
                     text = description,
@@ -275,14 +334,19 @@ private fun HubOption(
 }
 
 @Composable
+@OptIn(ExperimentalSharedTransitionApi::class)
 private fun RoomsSubScreen(
     roomsState: RoomsState,
     onRefresh: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedContentScope: AnimatedVisibilityScope,
 ) {
     RoomsScreen(
         roomsState = roomsState,
         onRefresh = onRefresh,
-        onClose = onBack
+        onClose = onBack,
+        sharedTransitionScope = sharedTransitionScope,
+        animatedContentScope = animatedContentScope,
     )
 }

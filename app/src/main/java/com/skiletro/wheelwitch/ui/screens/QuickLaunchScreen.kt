@@ -1,7 +1,12 @@
 package com.skiletro.wheelwitch.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -37,7 +42,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -199,20 +206,80 @@ private fun CountdownPhase(onLaunch: () -> Unit) {
     )
     val hatOffsetY = if (isGo) (-40).dp else 0.dp
 
+    val bobTransition = rememberInfiniteTransition(label = "countdown_bob")
+    val bob by bobTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = -4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "countdown_bob_offset"
+    )
+
+    val sparkleTransition = rememberInfiniteTransition(label = "countdown_sparkle")
+    val sparklePhase by sparkleTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 3000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "countdown_sparkle_phase"
+    )
+
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(
-            painter = painterResource(com.skiletro.wheelwitch.R.drawable.ic_hat_wizard),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+        Box(
             modifier = Modifier
-                .size(80.dp)
-                .offset(y = hatOffsetY)
-                .scale(hatScaleAnim)
-        )
+                .size(120.dp)
+                .drawBehind {
+                    val sparkleCount = 6
+                    val radius = 38.dp.toPx()
+                    val sparkleSize = 3.dp.toPx()
+                    val strokeW = 2.dp.toPx()
+                    val cx = size.width / 2
+                    val cy = size.height / 2
+                    val indices = listOf(0, 3, 4)
+                    for (i in indices) {
+                        val rawPhase = (sparklePhase + i.toFloat() / sparkleCount) % 1f
+                        val alpha = when {
+                            rawPhase < 0.35f -> rawPhase / 0.35f
+                            rawPhase < 0.65f -> 1f
+                            else -> 1f - (rawPhase - 0.65f) / 0.35f
+                        }
+                        val angle = i.toFloat() / sparkleCount * 2f * kotlin.math.PI.toFloat()
+                        val x = cx + radius * kotlin.math.cos(angle)
+                        val y = cy + radius * kotlin.math.sin(angle)
+                        drawLine(
+                            Color.White.copy(alpha = alpha * 0.6f),
+                            Offset(x - sparkleSize, y),
+                            Offset(x + sparkleSize, y),
+                            strokeW
+                        )
+                        drawLine(
+                            Color.White.copy(alpha = alpha * 0.6f),
+                            Offset(x, y - sparkleSize),
+                            Offset(x, y + sparkleSize),
+                            strokeW
+                        )
+                    }
+                }
+                .offset(y = bob.dp + hatOffsetY),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(com.skiletro.wheelwitch.R.drawable.ic_hat_wizard),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .size(80.dp)
+                    .scale(hatScaleAnim)
+            )
+        }
         Spacer(modifier = Modifier.height(20.dp))
         Text(
             text = stringResource(R.string.quick_launch_up_to_date),

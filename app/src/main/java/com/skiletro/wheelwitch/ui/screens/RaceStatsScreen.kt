@@ -51,8 +51,13 @@ import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 import com.skiletro.wheelwitch.viewmodel.RaceStatsState
 
+@OptIn(androidx.compose.animation.ExperimentalSharedTransitionApi::class)
 @Composable
-fun RaceStatsScreen(viewModel: OnlineViewModel) {
+fun RaceStatsScreen(
+    viewModel: OnlineViewModel,
+    sharedTransitionScope: androidx.compose.animation.SharedTransitionScope? = null,
+    animatedContentScope: androidx.compose.animation.AnimatedVisibilityScope? = null,
+) {
     val raceStatsState by viewModel.raceStatsState.collectAsState()
 
     Column(
@@ -68,6 +73,11 @@ fun RaceStatsScreen(viewModel: OnlineViewModel) {
             title = stringResource(R.string.race_stats_title),
             onBack = { viewModel.goBack() },
             onRefresh = { viewModel.fetchRaceStats() },
+            titleModifier = com.skiletro.wheelwitch.ui.components.sharedTitleModifier(
+                key = "online_title_RaceStats",
+                sharedTransitionScope = sharedTransitionScope,
+                animatedContentScope = animatedContentScope,
+            ),
             trailing = {
                 if (lastRefreshed != null && lastRefreshed > 0) {
                     Text(
@@ -135,7 +145,10 @@ private fun StatContent(stats: RaceStats) {
         item {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.focusable()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .animateItem()
+                    .focusable()
             ) {
                 MiniStatCard(label = stringResource(R.string.race_stats_races), value = formatNumber(stats.totalRaces), modifier = Modifier.weight(1f))
                 MiniStatCard(label = stringResource(R.string.race_stats_players), value = formatNumber(stats.totalPlayers), modifier = Modifier.weight(1f))
@@ -148,7 +161,7 @@ private fun StatContent(stats: RaceStats) {
         // Most Active Players
         if (stats.mostActivePlayers.isNotEmpty()) {
             item {
-                Column(modifier = Modifier.focusable()) {
+                Column(modifier = Modifier.animateItem().focusable()) {
                     SectionHeader(stringResource(R.string.race_stats_active_players))
                     StatsCard {
                         stats.mostActivePlayers.take(5).forEachIndexed { index, player ->
@@ -192,7 +205,7 @@ private fun StatContent(stats: RaceStats) {
         // Top Characters / Vehicles / Combos — tabbed
         if (stats.topCharacters.isNotEmpty() || stats.topVehicles.isNotEmpty() || stats.topCombos.isNotEmpty()) {
             item {
-                Column(modifier = Modifier.focusable()) {
+                Column(modifier = Modifier.animateItem().focusable()) {
                     SectionHeader(stringResource(R.string.race_stats_most_used))
                     var usageTab by remember { mutableIntStateOf(0) }
                     val usageLabels = listOf(
@@ -232,7 +245,7 @@ private fun StatContent(stats: RaceStats) {
         // Win Rates — tabbed
         if (stats.topCharactersByWinRate.isNotEmpty() || stats.topVehiclesByWinRate.isNotEmpty() || stats.topCombosByWinRate.isNotEmpty()) {
             item {
-                Column(modifier = Modifier.focusable()) {
+                Column(modifier = Modifier.animateItem().focusable()) {
                     SectionHeader(stringResource(R.string.race_stats_win_rates))
                     var winTab by remember { mutableIntStateOf(0) }
                     val winLabels = listOf(
@@ -272,7 +285,7 @@ private fun StatContent(stats: RaceStats) {
         // Most Popular Tracks
         if (stats.allPlayedTracks.isNotEmpty()) {
             item {
-                Column(modifier = Modifier.focusable()) {
+                Column(modifier = Modifier.animateItem().focusable()) {
                     SectionHeader(stringResource(R.string.race_stats_popular_tracks))
                     StatsCard {
                         stats.allPlayedTracks.take(10).forEachIndexed { index, track ->
@@ -313,7 +326,7 @@ private fun StatContent(stats: RaceStats) {
         // Activity charts — side by side
         if (stats.racesByDayOfWeek.isNotEmpty() || stats.racesByHour.isNotEmpty()) {
             item {
-                Column(modifier = Modifier.focusable()) {
+                Column(modifier = Modifier.animateItem().focusable()) {
                     SectionHeader(stringResource(R.string.race_stats_activity))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (stats.racesByDayOfWeek.isNotEmpty()) {

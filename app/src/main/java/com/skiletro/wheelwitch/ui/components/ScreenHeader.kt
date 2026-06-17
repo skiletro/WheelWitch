@@ -41,6 +41,7 @@ fun ScreenHeader(
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
     onRefresh: (() -> Unit)? = null,
+    titleModifier: Modifier = Modifier,
     trailing: @Composable RowScope.() -> Unit = {}
 ) {
     var backFocused by remember { mutableStateOf(false) }
@@ -75,7 +76,9 @@ fun ScreenHeader(
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier
+                .weight(1f)
+                .then(titleModifier)
         )
 
         trailing()

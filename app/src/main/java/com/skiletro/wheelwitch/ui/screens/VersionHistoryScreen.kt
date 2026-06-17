@@ -91,8 +91,8 @@ fun VersionHistoryContent(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(entries) { entry ->
-                        ChangelogCard(entry)
+                    items(entries, key = { it.version }) { entry ->
+                        ChangelogCard(entry, modifier = Modifier.animateItem())
                     }
                     item { Spacer(modifier = Modifier.height(8.dp)) }
                 }

@@ -57,8 +57,13 @@ import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
 import com.skiletro.wheelwitch.viewmodel.LeaderboardState
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 
+@OptIn(androidx.compose.animation.ExperimentalSharedTransitionApi::class)
 @Composable
-fun LeaderboardScreen(viewModel: OnlineViewModel) {
+fun LeaderboardScreen(
+    viewModel: OnlineViewModel,
+    sharedTransitionScope: androidx.compose.animation.SharedTransitionScope? = null,
+    animatedContentScope: androidx.compose.animation.AnimatedVisibilityScope? = null,
+) {
     val leaderboardState by viewModel.leaderboardState.collectAsState()
 
     Column(
@@ -69,7 +74,12 @@ fun LeaderboardScreen(viewModel: OnlineViewModel) {
         ScreenHeader(
             title = stringResource(R.string.leaderboard_title),
             onBack = { viewModel.goBack() },
-            onRefresh = { viewModel.fetchLeaderboard() }
+            onRefresh = { viewModel.fetchLeaderboard() },
+            titleModifier = com.skiletro.wheelwitch.ui.components.sharedTitleModifier(
+                key = "online_title_Leaderboard",
+                sharedTransitionScope = sharedTransitionScope,
+                animatedContentScope = animatedContentScope,
+            )
         )
 
         Box(
@@ -172,7 +182,7 @@ private fun LeaderboardList(
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         items(entries, key = { "${it.rank}_${it.friendCode}" }) { entry ->
-            LeaderboardRow(entry = entry)
+            LeaderboardRow(entry = entry, modifier = Modifier.animateItem())
             HorizontalDivider(
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
             )
@@ -193,13 +203,13 @@ private fun LeaderboardList(
 }
 
 @Composable
-private fun LeaderboardRow(entry: LeaderboardEntry) {
+private fun LeaderboardRow(entry: LeaderboardEntry, modifier: Modifier = Modifier) {
     var isFocused by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(8.dp)
     Surface(
         shape = shape,
         color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable { }
             .focusable()

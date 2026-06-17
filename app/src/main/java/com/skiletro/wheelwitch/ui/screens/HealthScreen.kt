@@ -47,8 +47,13 @@ import com.skiletro.wheelwitch.ui.components.statusColors
 import com.skiletro.wheelwitch.viewmodel.HealthState
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 
+@OptIn(androidx.compose.animation.ExperimentalSharedTransitionApi::class)
 @Composable
-fun HealthScreen(viewModel: OnlineViewModel) {
+fun HealthScreen(
+    viewModel: OnlineViewModel,
+    sharedTransitionScope: androidx.compose.animation.SharedTransitionScope? = null,
+    animatedContentScope: androidx.compose.animation.AnimatedVisibilityScope? = null,
+) {
     val healthState by viewModel.healthState.collectAsState()
     val colors = statusColors()
 
@@ -60,7 +65,12 @@ fun HealthScreen(viewModel: OnlineViewModel) {
         ScreenHeader(
             title = stringResource(R.string.health_title),
             onBack = { viewModel.goBack() },
-            onRefresh = { viewModel.refreshHealth() }
+            onRefresh = { viewModel.refreshHealth() },
+            titleModifier = com.skiletro.wheelwitch.ui.components.sharedTitleModifier(
+                key = "online_title_Health",
+                sharedTransitionScope = sharedTransitionScope,
+                animatedContentScope = animatedContentScope,
+            )
         )
 
         Box(

@@ -55,11 +55,14 @@ import com.skiletro.wheelwitch.viewmodel.RoomsState
 
 private val sidebarShape = RoundedCornerShape(12.dp)
 
+@OptIn(androidx.compose.animation.ExperimentalSharedTransitionApi::class)
 @Composable
 fun RoomsScreen(
     roomsState: RoomsState,
     onRefresh: () -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    sharedTransitionScope: androidx.compose.animation.SharedTransitionScope? = null,
+    animatedContentScope: androidx.compose.animation.AnimatedVisibilityScope? = null,
 ) {
     BackHandler(onBack = onClose)
 
@@ -77,7 +80,12 @@ fun RoomsScreen(
         ScreenHeader(
             title = stringResource(R.string.rooms_title),
             onBack = onClose,
-            onRefresh = onRefresh
+            onRefresh = onRefresh,
+            titleModifier = com.skiletro.wheelwitch.ui.components.sharedTitleModifier(
+                key = "online_title_Rooms",
+                sharedTransitionScope = sharedTransitionScope,
+                animatedContentScope = animatedContentScope,
+            )
         )
 
         Box(
@@ -154,7 +162,9 @@ fun RoomsScreen(
                                         onClick = {
                                             selectedRoomId = room.id
                                         },
-                                        modifier = Modifier.fillMaxWidth()
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .animateItem()
                                     )
                                 }
                             }
