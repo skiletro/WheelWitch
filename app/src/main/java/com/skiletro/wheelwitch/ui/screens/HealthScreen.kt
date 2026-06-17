@@ -38,47 +38,28 @@ import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.model.HealthCheckItem
 import com.skiletro.wheelwitch.model.MemoryInfo
 import com.skiletro.wheelwitch.model.ServerHealth
+import com.skiletro.wheelwitch.ui.components.ScreenHeader
+import com.skiletro.wheelwitch.ui.components.container
+import com.skiletro.wheelwitch.ui.components.indicator
+import com.skiletro.wheelwitch.ui.components.statusColors
 import com.skiletro.wheelwitch.viewmodel.HealthState
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 
 @Composable
 fun HealthScreen(viewModel: OnlineViewModel) {
     val healthState by viewModel.healthState.collectAsState()
+    val colors = statusColors()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { viewModel.goBack() }) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Server Health",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            IconButton(onClick = { viewModel.refreshHealth() }) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "Refresh",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+        ScreenHeader(
+            title = "Server Health",
+            onBack = { viewModel.goBack() },
+            onRefresh = { viewModel.refreshHealth() }
+        )
 
         Box(
             modifier = Modifier
@@ -147,9 +128,11 @@ private fun HealthContent(health: ServerHealth) {
 
 @Composable
 private fun HealthStatusCard(title: String, status: String, isOk: Boolean) {
+    val colors = statusColors()
+    val (container, onContainer) = colors.container(isOk)
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = if (isOk) Color(0xFF1B5E20) else Color(0xFFB71C1C)
+        color = container
     ) {
         Row(
             modifier = Modifier
@@ -161,7 +144,7 @@ private fun HealthStatusCard(title: String, status: String, isOk: Boolean) {
                 modifier = Modifier
                     .size(16.dp)
                     .clip(CircleShape)
-                    .background(if (isOk) Color(0xFF4CAF50) else Color(0xFFEF5350))
+                    .background(colors.indicator(isOk))
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column {
@@ -169,12 +152,12 @@ private fun HealthStatusCard(title: String, status: String, isOk: Boolean) {
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = onContainer
                 )
                 Text(
                     text = if (isOk) "All systems operational" else "Issues detected",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.8f)
+                    color = onContainer.copy(alpha = 0.8f)
                 )
             }
         }
@@ -184,6 +167,7 @@ private fun HealthStatusCard(title: String, status: String, isOk: Boolean) {
 @Composable
 private fun HealthCheckRow(label: String, item: HealthCheckItem) {
     val isOk = item.status == "ok"
+    val colors = statusColors()
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,
@@ -199,7 +183,7 @@ private fun HealthCheckRow(label: String, item: HealthCheckItem) {
                 modifier = Modifier
                     .size(10.dp)
                     .clip(CircleShape)
-                    .background(if (isOk) Color(0xFF4CAF50) else Color(0xFFEF5350))
+                    .background(colors.indicator(isOk))
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -221,7 +205,7 @@ private fun HealthCheckRow(label: String, item: HealthCheckItem) {
                 text = if (isOk) "OK" else "FAIL",
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
-                color = if (isOk) Color(0xFF4CAF50) else Color(0xFFEF5350)
+                color = colors.indicator(isOk)
             )
         }
     }
@@ -230,6 +214,7 @@ private fun HealthCheckRow(label: String, item: HealthCheckItem) {
 @Composable
 private fun MemoryRow(memory: MemoryInfo) {
     val isOk = memory.status == "ok"
+    val colors = statusColors()
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,
@@ -245,7 +230,7 @@ private fun MemoryRow(memory: MemoryInfo) {
                 modifier = Modifier
                     .size(10.dp)
                     .clip(CircleShape)
-                    .background(if (isOk) Color(0xFF4CAF50) else Color(0xFFEF5350))
+                    .background(colors.indicator(isOk))
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -273,7 +258,7 @@ private fun MemoryRow(memory: MemoryInfo) {
                 text = if (isOk) "OK" else "FAIL",
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
-                color = if (isOk) Color(0xFF4CAF50) else Color(0xFFEF5350)
+                color = colors.indicator(isOk)
             )
         }
     }

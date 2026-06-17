@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.model.NamedStat
 import com.skiletro.wheelwitch.model.RaceStats
 import com.skiletro.wheelwitch.model.WinRateStat
+import com.skiletro.wheelwitch.ui.components.ScreenHeader
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 import com.skiletro.wheelwitch.viewmodel.RaceStatsState
@@ -56,47 +57,24 @@ fun RaceStatsScreen(viewModel: OnlineViewModel) {
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { viewModel.goBack() }) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Race Statistics",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            val lastRefreshed = when (val s = raceStatsState) {
-                is RaceStatsState.Success -> s.lastRefreshedAt
-                else -> null
-            }
-            if (lastRefreshed != null && lastRefreshed > 0) {
-                Text(
-                    text = formatRelativeTime(lastRefreshed),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(end = 4.dp)
-                )
-            }
-            IconButton(onClick = { viewModel.fetchRaceStats() }) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "Refresh",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+        val lastRefreshed = when (val s = raceStatsState) {
+            is RaceStatsState.Success -> s.lastRefreshedAt
+            else -> null
         }
+        ScreenHeader(
+            title = "Race Statistics",
+            onBack = { viewModel.goBack() },
+            onRefresh = { viewModel.fetchRaceStats() },
+            trailing = {
+                if (lastRefreshed != null && lastRefreshed > 0) {
+                    Text(
+                        text = formatRelativeTime(lastRefreshed),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        )
 
         Box(
             modifier = Modifier

@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.model.PackStatus
+import com.skiletro.wheelwitch.ui.components.buttonShape
 import com.skiletro.wheelwitch.viewmodel.UiState
 import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
 import kotlinx.coroutines.delay
@@ -155,7 +156,7 @@ private fun ProgressBar(progress: Float) {
 private fun ExitButton(onClick: () -> Unit) {
     OutlinedButton(
         onClick = onClick,
-        shape = RoundedCornerShape(14.dp),
+        shape = buttonShape,
         modifier = Modifier.height(48.dp)
     ) {
         Text("Exit", fontWeight = FontWeight.Medium)

@@ -1,10 +1,6 @@
 package com.skiletro.wheelwitch.ui.screens
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.util.Base64
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,42 +20,31 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.model.LicenseInfo
+import com.skiletro.wheelwitch.ui.components.MiiFace
+import com.skiletro.wheelwitch.ui.components.ScreenHeader
+import com.skiletro.wheelwitch.ui.components.focusBorder
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
-import com.skiletro.wheelwitch.util.HttpClientProvider
-import com.skiletro.wheelwitch.util.MII_IMAGE_BASE_URL
 import com.skiletro.wheelwitch.viewmodel.SaveInfoState
-import java.net.URLEncoder
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import okhttp3.Request
 
-private val httpClient get() = HttpClientProvider.client
 private val cardShape = RoundedCornerShape(14.dp)
-private val miiUrlBase = MII_IMAGE_BASE_URL
 
 @Composable
 fun SaveInfoScreen(
@@ -76,35 +61,11 @@ fun SaveInfoScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onClose) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Save Data",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            IconButton(onClick = onRefresh) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "Refresh",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+        ScreenHeader(
+            title = "Save Data",
+            onBack = onClose,
+            onRefresh = onRefresh
+        )
 
         Box(
             modifier = Modifier
@@ -143,33 +104,33 @@ fun SaveInfoScreen(
                 is SaveInfoState.Idle -> {}
                 is SaveInfoState.Success -> {
                     val saveFileInfo = saveInfoState.info
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                for (i in 0..3 step 2) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        val left = saveFileInfo.licenses.getOrNull(i)
-                        val right = saveFileInfo.licenses.getOrNull(i + 1)
-                        LicenseCard(
-                            license = left,
-                            isSelected = left?.slotIndex == selectedSlotIndex,
-                            onSelect = { left?.let { onSelectSlot(it.slotIndex) } },
-                            modifier = Modifier.weight(1f)
-                        )
-                        LicenseCard(
-                            license = right,
-                            isSelected = right?.slotIndex == selectedSlotIndex,
-                            onSelect = { right?.let { onSelectSlot(it.slotIndex) } },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
+                        for (i in 0..3 step 2) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                val left = saveFileInfo.licenses.getOrNull(i)
+                                val right = saveFileInfo.licenses.getOrNull(i + 1)
+                                LicenseCard(
+                                    license = left,
+                                    isSelected = left?.slotIndex == selectedSlotIndex,
+                                    onSelect = { left?.let { onSelectSlot(it.slotIndex) } },
+                                    modifier = Modifier.weight(1f)
+                                )
+                                LicenseCard(
+                                    license = right,
+                                    isSelected = right?.slotIndex == selectedSlotIndex,
+                                    onSelect = { right?.let { onSelectSlot(it.slotIndex) } },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -304,77 +265,5 @@ private fun StatLabel(label: String, value: Int?) {
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.primary
         )
-    }
-}
-
-@Composable
-fun MiiFace(
-    imageBase64: String?,
-    miiDataBase64: String?,
-    modifier: Modifier = Modifier
-) {
-    val pngBitmap = remember(imageBase64) {
-        imageBase64?.let { b64 ->
-            try {
-                val bytes = Base64.decode(b64, Base64.DEFAULT)
-                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-            } catch (_: Exception) { null }
-        }
-    }
-
-    if (pngBitmap != null) {
-        Image(
-            bitmap = pngBitmap.asImageBitmap(),
-            contentDescription = null,
-            modifier = modifier
-                .clip(RoundedCornerShape(10.dp))
-        )
-        return
-    }
-
-    var miiBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    LaunchedEffect(miiDataBase64) {
-        if (miiDataBase64 != null) {
-            val cached = withContext(Dispatchers.IO) {
-                com.skiletro.wheelwitch.util.MiiFaceCache.get(miiDataBase64)
-            }
-            if (cached != null) {
-                miiBitmap = cached
-            } else {
-                withContext(Dispatchers.IO) {
-                    val url = "$miiUrlBase?data=${URLEncoder.encode(miiDataBase64, "UTF-8")}&width=96&type=face"
-                    val request = Request.Builder().url(url).build()
-                    val response = httpClient.newCall(request).execute()
-                    val bytes = response.body?.bytes()
-                    if (bytes != null) {
-                        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                        if (bitmap != null) {
-                            com.skiletro.wheelwitch.util.MiiFaceCache.put(miiDataBase64, bitmap)
-                        }
-                        miiBitmap = bitmap
-                    }
-                }
-            }
-        }
-    }
-
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center
-    ) {
-        val bitmap = miiBitmap
-        if (bitmap != null) {
-            Image(
-                bitmap = bitmap.asImageBitmap(),
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(10.dp))
-            )
-        } else if (miiDataBase64 != null) {
-            CircularProgressIndicator(
-                strokeWidth = 3.dp
-            )
-        }
     }
 }

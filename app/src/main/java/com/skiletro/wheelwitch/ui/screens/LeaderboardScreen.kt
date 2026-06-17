@@ -48,6 +48,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.model.LeaderboardEntry
+import com.skiletro.wheelwitch.ui.components.MiiFace
+import com.skiletro.wheelwitch.ui.components.ScreenHeader
+import com.skiletro.wheelwitch.ui.components.focusBorder
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
 import com.skiletro.wheelwitch.viewmodel.LeaderboardState
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
@@ -61,49 +64,11 @@ fun LeaderboardScreen(viewModel: OnlineViewModel) {
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            var backFocused by remember { mutableStateOf(false) }
-            IconButton(
-                onClick = { viewModel.goBack() },
-                modifier = Modifier
-                    .focusable()
-                    .onFocusChanged { backFocused = it.isFocused }
-                    .focusBorder(backFocused)
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Leaderboard",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            var refreshFocused by remember { mutableStateOf(false) }
-            IconButton(
-                onClick = { viewModel.fetchLeaderboard() },
-                modifier = Modifier
-                    .focusable()
-                    .onFocusChanged { refreshFocused = it.isFocused }
-                    .focusBorder(refreshFocused)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "Refresh",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+        ScreenHeader(
+            title = "Leaderboard",
+            onBack = { viewModel.goBack() },
+            onRefresh = { viewModel.fetchLeaderboard() }
+        )
 
         Box(
             modifier = Modifier

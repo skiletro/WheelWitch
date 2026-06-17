@@ -51,6 +51,10 @@ import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 import com.skiletro.wheelwitch.viewmodel.RoomsState
 import com.skiletro.wheelwitch.viewmodel.UiState
 import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
+import com.skiletro.wheelwitch.ui.components.MiiFace
+import com.skiletro.wheelwitch.ui.components.buttonShape
+import com.skiletro.wheelwitch.ui.components.focusBorder
+import com.skiletro.wheelwitch.ui.components.sectionShape
 import kotlinx.coroutines.delay
 import android.view.WindowManager
 
@@ -274,6 +278,8 @@ private fun HomeBottomBar(
     onInstallOrUpdate: (() -> Unit)?,
     onPickIso: () -> Unit
 ) {
+    var checkButtonFocused by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -325,7 +331,6 @@ private fun HomeBottomBar(
             }
             is UiState.Ready -> {
                 val status = state.status
-                var checkButtonFocused by remember { mutableStateOf(false) }
 
                 val checkSubtitle = when (status) {
                     is PackStatus.UpToDate -> "Up to date (v${status.currentVersion})"

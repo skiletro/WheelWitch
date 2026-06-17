@@ -18,6 +18,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.BuildConfig
+import com.skiletro.wheelwitch.ui.components.focusBorder
 
 @Composable
 fun AboutSection() {

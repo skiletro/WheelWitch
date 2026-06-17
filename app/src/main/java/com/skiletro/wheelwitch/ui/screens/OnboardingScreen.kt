@@ -49,8 +49,11 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.skiletro.wheelwitch.ui.components.buttonShape
+import com.skiletro.wheelwitch.ui.components.sectionShape
 import com.skiletro.wheelwitch.util.DolphinLauncher
 import com.skiletro.wheelwitch.util.MiiWadInstaller
+import com.skiletro.wheelwitch.model.MiiWadOnboarding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -525,13 +528,6 @@ private fun IsoStep(onPickIso: () -> Unit, onContinue: () -> Unit, alreadyConfig
             }
         }
     }
-}
-
-private sealed class MiiWadOnboarding {
-    data object NotInstalled : MiiWadOnboarding()
-    data object Installing : MiiWadOnboarding()
-    data object Installed : MiiWadOnboarding()
-    data class Error(val message: String) : MiiWadOnboarding()
 }
 
 @Composable

@@ -50,6 +50,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.skiletro.wheelwitch.ui.components.ScreenHeader
+import com.skiletro.wheelwitch.ui.components.focusBorder
 import com.skiletro.wheelwitch.viewmodel.OnlineMenuPage
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 import com.skiletro.wheelwitch.viewmodel.RoomsState
@@ -104,28 +106,10 @@ private fun HubPage(
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onClose) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Online Menu",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.weight(1f))
-        }
+        ScreenHeader(
+            title = "Online Menu",
+            onBack = onClose
+        )
 
         Column(
             modifier = Modifier
@@ -229,18 +213,22 @@ private fun HubOption(
     onClick: (() -> Unit)? = null,
     enabled: Boolean = true
 ) {
+    val shape = RoundedCornerShape(16.dp)
+    val baseColor = if (enabled) MaterialTheme.colorScheme.surfaceVariant
+                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    val effectiveClick = if (enabled) onClick else null
     var focused by remember { mutableStateOf(false) }
     Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = if (enabled) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        shape = shape,
+        color = baseColor,
         modifier = Modifier
             .fillMaxWidth()
             .then(
-                if (enabled && onClick != null) Modifier.clickable(onClick = onClick)
+                if (effectiveClick != null) Modifier.clickable(onClick = effectiveClick)
                 else Modifier.focusable()
             )
             .onFocusChanged { focused = it.isFocused }
-            .focusBorder(focused, shape = RoundedCornerShape(16.dp))
+            .focusBorder(focused, shape = shape)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),

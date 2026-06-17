@@ -57,6 +57,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.skiletro.wheelwitch.ui.components.cacheSize
+import com.skiletro.wheelwitch.ui.components.formatBytes
 import com.skiletro.wheelwitch.ui.theme.ThemeMode
 import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
 
@@ -333,7 +335,7 @@ fun SettingsScreen(
                 SettingsItem(
                     icon = Icons.Filled.Cached,
                     title = "Download cache",
-                    summary = formatSize(cacheSizeBytes),
+                    summary = formatBytes(cacheSizeBytes),
                     trailing = {
                         TextButton(
                             onClick = {
@@ -353,7 +355,7 @@ fun SettingsScreen(
                 SettingsItem(
                     icon = Icons.Filled.Cached,
                     title = "Mii face cache",
-                    summary = formatSize(miiCacheSizeBytes),
+                    summary = formatBytes(miiCacheSizeBytes),
                     trailing = {
                         TextButton(
                             onClick = {
@@ -497,15 +499,4 @@ private fun SettingsItem(
             trailing()
         }
     }
-}
-
-private fun cacheSize(dir: java.io.File): Long {
-    if (!dir.exists()) return 0
-    return dir.walkTopDown().filter { it.isFile }.sumOf { it.length() }
-}
-
-private fun formatSize(bytes: Long): String = when {
-    bytes < 1024 -> "$bytes B"
-    bytes < 1024 * 1024 -> "${bytes / 1024} KB"
-    else -> "%.2f MB".format(bytes / (1024.0 * 1024.0))
 }
