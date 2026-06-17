@@ -2,6 +2,7 @@ package com.skiletro.wheelwitch.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -34,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -45,6 +47,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import com.skiletro.wheelwitch.model.PackStatus
+import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.viewmodel.MiiMakerState
 import com.skiletro.wheelwitch.viewmodel.UiState
 import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
@@ -70,6 +73,8 @@ fun HomeScreen(
     val state by viewModel.state.collectAsState()
     val successMessage by viewModel.successMessage.collectAsState()
     val miiMakerState by viewModel.miiMakerState.collectAsState()
+    val playerCount by viewModel.playerCount.collectAsState()
+    val serverConnectivity by viewModel.serverConnectivity.collectAsState()
 
     LaunchedEffect(successMessage) {
         if (successMessage != null) {
@@ -134,7 +139,9 @@ fun HomeScreen(
                     BottomLaunchBar(
                         onLaunch = onLaunch,
                         onRefresh = { viewModel.checkStatus() },
-                        versionInfo = versionInfo
+                        versionInfo = versionInfo,
+                        playerCount = playerCount,
+                        serverConnectivity = serverConnectivity
                     )
                 }
             }
@@ -392,15 +399,21 @@ private fun SecondaryActionButton(
 private fun BottomLaunchBar(
     onLaunch: () -> Unit,
     onRefresh: () -> Unit,
-    versionInfo: String? = null
+    versionInfo: String? = null,
+    playerCount: Int? = null,
+    serverConnectivity: ServerConnectivity = ServerConnectivity.Unknown
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 32.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.End
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        if (serverConnectivity != ServerConnectivity.Unknown) {
+            ServerStatusIndicator(playerCount = playerCount, connectivity = serverConnectivity)
+            Spacer(modifier = Modifier.width(16.dp))
+        }
+        Spacer(modifier = Modifier.weight(1f))
         OutlinedButton(
             onClick = onRefresh,
             shape = buttonShape,
@@ -423,6 +436,48 @@ private fun BottomLaunchBar(
         }
         Spacer(modifier = Modifier.width(12.dp))
         PrimaryActionButton(text = "Launch", onClick = onLaunch)
+    }
+}
+
+@Composable
+private fun ServerStatusIndicator(
+    playerCount: Int?,
+    connectivity: ServerConnectivity
+) {
+    val dotColor: Color
+    val label: String
+
+    when (connectivity) {
+        ServerConnectivity.Online -> {
+            val count = playerCount ?: return
+            dotColor = Color(0xFF4CAF50)
+            label = "$count racers online"
+        }
+        ServerConnectivity.Offline -> {
+            dotColor = MaterialTheme.colorScheme.error
+            label = "Server offline"
+        }
+        ServerConnectivity.NoInternet -> {
+            dotColor = MaterialTheme.colorScheme.onSurfaceVariant
+            label = "No internet"
+        }
+        ServerConnectivity.Unknown -> return
+    }
+
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(dotColor)
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

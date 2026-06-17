@@ -4,6 +4,7 @@ import com.skiletro.wheelwitch.model.DeletionEntry
 import com.skiletro.wheelwitch.model.SemVersion
 import com.skiletro.wheelwitch.model.ServerInfo
 import com.skiletro.wheelwitch.model.UpdateEntry
+import com.skiletro.wheelwitch.model.parsePlayerCount
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.concurrent.TimeUnit
@@ -13,6 +14,7 @@ object VersionFileParser {
     private const val VERSION_URL = "${RR_BASE}RetroRewind/RetroRewindVersion.txt"
     private const val DELETE_URL = "${RR_BASE}RetroRewind/RetroRewindDelete.txt"
     private const val FULL_ZIP_URL = "${RR_BASE}RetroRewind/zip/RetroRewind.zip"
+    private const val ROOM_STATUS_URL = "https://rwfc.net/api/roomstatus"
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -58,6 +60,11 @@ object VersionFileParser {
     }.getOrDefault(emptyList())
 
     fun getFullZipUrl(): String = FULL_ZIP_URL
+
+    fun fetchPlayerCount(): Result<Int> = runCatching {
+        val json = fetchUrl(ROOM_STATUS_URL)
+        parsePlayerCount(json)
+    }
 
     fun okHttpClient(): OkHttpClient = client
 

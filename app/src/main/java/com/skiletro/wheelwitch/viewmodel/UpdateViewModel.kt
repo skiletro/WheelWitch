@@ -10,8 +10,10 @@ import androidx.lifecycle.viewModelScope
 import com.skiletro.wheelwitch.data.PackStorage
 import com.skiletro.wheelwitch.data.SaveManager
 import com.skiletro.wheelwitch.domain.RewindPackManager
+import com.skiletro.wheelwitch.network.VersionFileParser
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.ProgressInfo
+import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.util.DolphinLauncher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,6 +59,12 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
     private val _miiMakerState = MutableStateFlow(MiiMakerState())
     val miiMakerState: StateFlow<MiiMakerState> = _miiMakerState.asStateFlow()
 
+    private val _playerCount = MutableStateFlow<Int?>(null)
+    val playerCount: StateFlow<Int?> = _playerCount.asStateFlow()
+
+    private val _serverConnectivity = MutableStateFlow<ServerConnectivity>(ServerConnectivity.Unknown)
+    val serverConnectivity: StateFlow<ServerConnectivity> = _serverConnectivity.asStateFlow()
+
     private val _isInstallingWad = MutableStateFlow(false)
     val isInstallingWad: StateFlow<Boolean> = _isInstallingWad.asStateFlow()
 
@@ -101,6 +109,21 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
                 RewindPackManager.checkStatus(currentStorage)
             }
             _state.value = UiState.Ready(status)
+            val app = getApplication<Application>()
+            val (count, connectivity) = withContext(Dispatchers.IO) {
+                if (!isNetworkAvailable(app)) {
+                    null to ServerConnectivity.NoInternet
+                } else {
+                    val result = VersionFileParser.fetchPlayerCount()
+                    if (result.isSuccess) {
+                        result.getOrNull() to ServerConnectivity.Online
+                    } else {
+                        null to ServerConnectivity.Offline
+                    }
+                }
+            }
+            _playerCount.value = count
+            _serverConnectivity.value = connectivity
             refreshSaveState()
         }
     }

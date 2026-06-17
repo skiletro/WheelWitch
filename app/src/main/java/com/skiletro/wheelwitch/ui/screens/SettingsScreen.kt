@@ -270,11 +270,18 @@ private fun MiiMakerSection(
         color = MaterialTheme.colorScheme.onSurface
     )
     Spacer(modifier = Modifier.height(4.dp))
-    Text(
-        text = "Status: " + if (miiMakerState.hasWad) "Installed" else "Not installed",
-        style = MaterialTheme.typography.bodyMedium,
-        color = if (miiMakerState.hasWad) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
-    )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = "Status: ",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = if (miiMakerState.hasWad) "Installed" else "Not installed",
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (miiMakerState.hasWad) Color(0xFF66BB6A) else MaterialTheme.colorScheme.error
+        )
+    }
     Spacer(modifier = Modifier.height(16.dp))
     if (isInstallingWad) {
         LinearProgressIndicator(
