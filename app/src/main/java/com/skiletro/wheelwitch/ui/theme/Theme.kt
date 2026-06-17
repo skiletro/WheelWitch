@@ -1,7 +1,5 @@
 package com.skiletro.wheelwitch.ui.theme
 
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -61,16 +59,10 @@ fun WheelWitchTheme(
     }
 
     CompositionLocalProvider(LocalStatusColors provides statusColors) {
-        Crossfade(
-            targetState = colorScheme,
-            animationSpec = tween(durationMillis = 400),
-            label = "theme_colors",
-        ) { scheme ->
-            MaterialTheme(
-                colorScheme = scheme,
-                typography = Typography,
-                content = content
-            )
-        }
+        MaterialTheme(
+            colorScheme = rememberAnimatedColorScheme(colorScheme),
+            typography = Typography,
+            content = content
+        )
     }
 }
