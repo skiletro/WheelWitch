@@ -1,5 +1,6 @@
 package com.skiletro.wheelwitch.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -105,6 +106,10 @@ fun OnboardingScreen(
                 else MiiWadOnboarding.NotInstalled
             }
         }
+    }
+
+    BackHandler(enabled = step > 0) {
+        step--
     }
 
     Box(
