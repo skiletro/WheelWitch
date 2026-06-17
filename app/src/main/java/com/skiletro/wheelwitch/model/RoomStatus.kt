@@ -84,12 +84,4 @@ private fun parsePlayers(arr: JSONArray): List<Player> {
     return players
 }
 
-fun parsePlayerCount(jsonString: String): Int {
-    val root = JSONObject(jsonString)
-    val rooms = root.getJSONArray("rooms")
-    var count = 0
-    for (i in 0 until rooms.length()) {
-        count += rooms.getJSONObject(i).getJSONArray("players").length()
-    }
-    return count
-}
+

@@ -6,12 +6,11 @@ import com.skiletro.wheelwitch.model.Room
 import com.skiletro.wheelwitch.model.SemVersion
 import com.skiletro.wheelwitch.model.ServerInfo
 import com.skiletro.wheelwitch.model.UpdateEntry
-import com.skiletro.wheelwitch.model.parsePlayerCount
 import com.skiletro.wheelwitch.model.parseRooms
-import org.json.JSONObject
+import com.skiletro.wheelwitch.util.HttpClientProvider
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.util.concurrent.TimeUnit
+import org.json.JSONObject
 
 object VersionFileParser {
     private const val RR_BASE = "https://update.rwfc.net/"
@@ -19,11 +18,9 @@ object VersionFileParser {
     private const val DELETE_URL = "${RR_BASE}RetroRewind/RetroRewindDelete.txt"
     private const val FULL_ZIP_URL = "${RR_BASE}RetroRewind/zip/RetroRewind.zip"
     private const val ROOM_STATUS_URL = "https://rwfc.net/api/roomstatus"
+    private const val MULTIPLIER_URL = "https://rwfc.net/updates/RetroRewind/multiplier.txt"
 
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
-        .build()
+    private val client get() = HttpClientProvider.client
 
     fun fetchServerInfo(): Result<ServerInfo> = runCatching {
         val updates = fetchUpdates()
@@ -65,14 +62,13 @@ object VersionFileParser {
 
     fun getFullZipUrl(): String = FULL_ZIP_URL
 
-    fun fetchPlayerCount(): Result<Int> = runCatching {
-        val json = fetchUrl(ROOM_STATUS_URL)
-        parsePlayerCount(json)
-    }
-
     fun fetchRooms(): Result<List<Room>> = runCatching {
         val json = fetchUrl(ROOM_STATUS_URL)
         parseRooms(json)
+    }
+
+    fun fetchVrMultiplier(): Result<Float> = runCatching {
+        fetchUrl(MULTIPLIER_URL).trim().toFloat()
     }
 
     fun okHttpClient(): OkHttpClient = client

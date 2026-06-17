@@ -26,7 +26,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -39,14 +38,13 @@ import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.model.Player
 import com.skiletro.wheelwitch.model.Room
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
+import com.skiletro.wheelwitch.util.HttpClientProvider
 import java.net.URLEncoder
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
 import okhttp3.Request
 
-private val httpClient = OkHttpClient()
+private val httpClient get() = HttpClientProvider.client
 
 @Composable
 fun RoomDetail(room: Room) {
@@ -120,29 +118,20 @@ fun RoomDetail(room: Room) {
 
 @Composable
 fun MiiPlayerCard(player: Player) {
-    val miiBitmap by produceState<Bitmap?>(initialValue = null, key1 = player.mii?.data) {
-        player.mii?.data?.let { base64 ->
-            try {
-                withContext(Dispatchers.IO) {
-                    val url = "https://mii-unsecure.ariankordi.net/miis/image.png?data=${
-                        URLEncoder.encode(base64, "UTF-8")
-                    }&width=96&type=face"
-                    val request = Request.Builder().url(url).build()
-                    val response = httpClient.newCall(request).execute()
-                    val bytes = response.body?.bytes()
-                    if (bytes != null) {
-                        value = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                    }
-                }
-            } catch (_: Exception) { }
-        }
-    }
-
-    var miiTimedOut by remember { mutableStateOf(false) }
+    var miiBitmap by remember { mutableStateOf<Bitmap?>(null) }
     LaunchedEffect(player.mii?.data) {
         if (player.mii?.data != null) {
-            delay(5000)
-            miiTimedOut = true
+            withContext(Dispatchers.IO) {
+                val url = "https://mii-unsecure.ariankordi.net/miis/image.png?data=${
+                    URLEncoder.encode(player.mii.data, "UTF-8")
+                }&width=96&type=face"
+                val request = Request.Builder().url(url).build()
+                val response = httpClient.newCall(request).execute()
+                val bytes = response.body?.bytes()
+                if (bytes != null) {
+                    miiBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                }
+            }
         }
     }
 
@@ -165,7 +154,7 @@ fun MiiPlayerCard(player: Player) {
                             .size(44.dp)
                             .clip(RoundedCornerShape(6.dp))
                     )
-                } else if (!miiTimedOut) {
+                } else {
                     CircularProgressIndicator(
                         modifier = Modifier.size(44.dp),
                         strokeWidth = 3.dp

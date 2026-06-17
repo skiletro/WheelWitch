@@ -1,6 +1,7 @@
 package com.skiletro.wheelwitch.ui.screens
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -9,8 +10,11 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +39,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -49,6 +54,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.ServerConnectivity
+import com.skiletro.wheelwitch.viewmodel.RoomsState
 import com.skiletro.wheelwitch.viewmodel.UiState
 import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
 import kotlinx.coroutines.delay
@@ -67,14 +73,12 @@ fun HomeScreen(
     val state by viewModel.state.collectAsState()
     val successMessage by viewModel.successMessage.collectAsState()
     val miiMakerState by viewModel.miiMakerState.collectAsState()
-    val playerCount by viewModel.playerCount.collectAsState()
-    val serverConnectivity by viewModel.serverConnectivity.collectAsState()
-    val rooms by viewModel.rooms.collectAsState()
-    val isLoadingRooms by viewModel.isLoadingRooms.collectAsState()
-    val roomsError by viewModel.roomsError.collectAsState()
-    val saveFileInfo by viewModel.saveFileInfo.collectAsState()
-    val isLoadingSaveInfo by viewModel.isLoadingSaveInfo.collectAsState()
-    val saveInfoError by viewModel.saveInfoError.collectAsState()
+    val roomsState by viewModel.roomsState.collectAsState()
+    val saveInfoState by viewModel.saveInfoState.collectAsState()
+    val vrMultiplier by viewModel.vrMultiplier.collectAsState()
+
+    val playerCount = (roomsState as? RoomsState.Success)?.playerCount
+    val serverConnectivity = (roomsState as? RoomsState.Success)?.serverConnectivity ?: ServerConnectivity.Unknown
 
     var showRooms by remember { mutableStateOf(false) }
     var showSaveInfo by remember { mutableStateOf(false) }
@@ -86,10 +90,6 @@ fun HomeScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.refreshMiiMakerState()
-    }
-
     val isChecking = state is UiState.Checking
     val showBottomLaunch = when (val s = state) {
         is UiState.ReadyToLaunch -> true
@@ -99,23 +99,7 @@ fun HomeScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (showSaveInfo) {
-            SaveInfoScreen(
-                saveFileInfo = saveFileInfo,
-                isLoading = isLoadingSaveInfo,
-                errorMessage = saveInfoError,
-                onRefresh = { viewModel.refreshSaveFileInfo() },
-                onClose = { showSaveInfo = false }
-            )
-        } else if (showRooms) {
-            RoomsScreen(
-                rooms = rooms,
-                isLoading = isLoadingRooms,
-                errorMessage = roomsError,
-                onRefresh = { viewModel.fetchRooms() },
-                onClose = { showRooms = false }
-            )
-        } else if (showBottomLaunch) {
+        if (showBottomLaunch) {
             val onLaunch = when (val s = state) {
                 is UiState.ReadyToLaunch -> ({ viewModel.launchDolphin() })
                 is UiState.Ready -> ({ viewModel.launchDolphin() })
@@ -167,7 +151,8 @@ fun HomeScreen(
                                 versionInfo = versionInfo,
                                 playerCount = playerCount,
                                 serverConnectivity = serverConnectivity,
-                                isChecking = isChecking
+                                isChecking = isChecking,
+                                vrMultiplier = vrMultiplier
                             )
                         }
                     }
@@ -230,7 +215,8 @@ fun HomeScreen(
                                 is UiState.NoStorage -> HomeNoStorageContent(onPickStorage)
                                 is UiState.Ready -> HomeReadyContent(
                                     status = currentState.status,
-                                    viewModel = viewModel
+                                    viewModel = viewModel,
+                                    vrMultiplier = vrMultiplier
                                 )
                                 is UiState.Downloading -> HomeProgressContent(
                                     currentState.progress,
@@ -260,6 +246,30 @@ fun HomeScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
             }
+        }
+
+        AnimatedVisibility(
+            visible = showRooms,
+            enter = slideInVertically() + fadeIn(),
+            exit = slideOutVertically() + fadeOut()
+        ) {
+            RoomsScreen(
+                roomsState = roomsState,
+                onRefresh = { viewModel.fetchRooms() },
+                onClose = { showRooms = false }
+            )
+        }
+
+        AnimatedVisibility(
+            visible = showSaveInfo,
+            enter = slideInVertically() + fadeIn(),
+            exit = slideOutVertically() + fadeOut()
+        ) {
+            SaveInfoScreen(
+                saveInfoState = saveInfoState,
+                onRefresh = { viewModel.refreshSaveFileInfo() },
+                onClose = { showSaveInfo = false }
+            )
         }
     }
 }
@@ -294,7 +304,8 @@ fun BottomLaunchBar(
     versionInfo: String? = null,
     playerCount: Int? = null,
     serverConnectivity: ServerConnectivity = ServerConnectivity.Unknown,
-    isChecking: Boolean = false
+    isChecking: Boolean = false,
+    vrMultiplier: Float? = null
 ) {
     Row(
         modifier = Modifier
@@ -302,16 +313,24 @@ fun BottomLaunchBar(
             .padding(horizontal = 32.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (serverConnectivity != ServerConnectivity.Unknown) {
-            ServerStatusIndicator(playerCount = playerCount, connectivity = serverConnectivity)
-            Spacer(modifier = Modifier.width(16.dp))
-        }
+        ServerStatusIndicator(playerCount = playerCount, connectivity = serverConnectivity)
+        Spacer(modifier = Modifier.width(16.dp))
         Spacer(modifier = Modifier.weight(1f))
+        var refreshFocused by remember { mutableStateOf(false) }
         OutlinedButton(
             onClick = onRefresh,
             enabled = !isChecking,
             shape = buttonShape,
-            modifier = Modifier.height(56.dp)
+            modifier = Modifier
+                .height(56.dp)
+                .onFocusChanged { refreshFocused = it.isFocused }
+                .then(
+                    if (refreshFocused) Modifier.border(
+                        width = 3.dp,
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = buttonShape
+                    ) else Modifier
+                )
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
@@ -329,7 +348,16 @@ fun BottomLaunchBar(
             }
         }
         Spacer(modifier = Modifier.width(12.dp))
-        PrimaryActionButton(text = "Launch", onClick = onLaunch, enabled = !isChecking)
+        PrimaryActionButton(
+            text = "Launch",
+            onClick = onLaunch,
+            enabled = !isChecking,
+            badgeText = vrMultiplier?.let { m ->
+                if (m > 1.0f) {
+                    if (m == m.toInt().toFloat()) "${m.toInt()}x" else "${m}x"
+                } else null
+            }
+        )
     }
 }
 
@@ -355,7 +383,10 @@ fun ServerStatusIndicator(
             dotColor = MaterialTheme.colorScheme.onSurfaceVariant
             label = "No internet"
         }
-        ServerConnectivity.Unknown -> return
+        ServerConnectivity.Unknown -> {
+            dotColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+            label = "Checking..."
+        }
     }
 
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -396,7 +427,8 @@ fun HomeNoStorageContent(onPickStorage: () -> Unit = {}) {
 @Composable
 fun HomeReadyContent(
     status: PackStatus,
-    viewModel: UpdateViewModel
+    viewModel: UpdateViewModel,
+    vrMultiplier: Float? = null
 ) {
     val (title, subtitle, actionText) = when (status) {
         is PackStatus.NotInstalled -> Triple(
@@ -437,7 +469,12 @@ fun HomeReadyContent(
             PrimaryActionButton(
                 text = "Launch Dolphin",
                 onClick = { viewModel.launchDolphin() },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                badgeText = vrMultiplier?.let { m ->
+                    if (m > 1.0f) {
+                        if (m == m.toInt().toFloat()) "${m.toInt()}x" else "${m}x"
+                    } else null
+                }
             )
         }
     }

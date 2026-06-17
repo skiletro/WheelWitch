@@ -13,8 +13,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -134,8 +134,8 @@ private fun MainScreen(
 
             AnimatedVisibility(
                 visible = showSettings,
-                enter = slideInHorizontally() + fadeIn(),
-                exit = slideOutHorizontally() + fadeOut()
+                enter = slideInVertically() + fadeIn(),
+                exit = slideOutVertically() + fadeOut()
             ) {
                 SettingsScreen(
                     viewModel = viewModel,

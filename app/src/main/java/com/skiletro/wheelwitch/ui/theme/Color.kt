@@ -9,3 +9,6 @@ val LightRed80 = Color(0xFFFFD0D0)
 val Red40 = Color(0xFFB71C1C)
 val RedGrey40 = Color(0xFF8B1A1A)
 val LightRed40 = Color(0xFFD32F2F)
+
+val OnRed80 = Color(0xFF5C0000)
+val OnRed40 = Color.White

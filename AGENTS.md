@@ -108,6 +108,17 @@ com.skiletro.wheelwitch
 | Local version file | `<storage>/RetroRewind6/version.txt` |
 | Save path (hardcoded `RMCP`) | `riivolution/save/RetroWFC/RMCP/rksys.dat` |
 
+## Completed Improvements
+
+- **Shared OkHttpClient** via `HttpClientProvider` singleton — replaces 4 separate instances
+- **Consolidated state flows** — `RoomsState` / `SaveInfoState` sealed classes replaced 5+ individual flows each
+- **R8 minification** enabled for release builds
+- **`produceState` replaced with `LaunchedEffect`** in MiiFace/MiiPlayerCard for proper cancellation
+- **VR multiplier badge** on launch buttons — fetches from `rwfc.net` and shows `2x` etc.
+- **Gamepad focus borders** use `primary` theme color (follows dynamic or custom theme)
+- **Custom red theme `onPrimary`** explicitly set for proper text contrast
+- **Sparkle animation** trimmed to 3 visible positions (avoiding wizard hat overlap)
+
 ## State
 
 All changes committed on `master`. No uncommitted work.

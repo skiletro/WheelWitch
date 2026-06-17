@@ -4,7 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
-import okhttp3.OkHttpClient
+import com.skiletro.wheelwitch.util.DolphinLauncher
+import com.skiletro.wheelwitch.util.HttpClientProvider
 import okhttp3.Request
 import java.io.File
 import java.io.FileInputStream
@@ -15,12 +16,7 @@ object MiiWadInstaller {
     private const val WAD_FILE_NAME = "Mii Channel Symbols - HACS.wad"
     private const val DOWNLOAD_BUFFER = 262144
 
-    private val httpClient by lazy {
-        OkHttpClient.Builder()
-            .followRedirects(true)
-            .followSslRedirects(true)
-            .build()
-    }
+    private val httpClient get() = HttpClientProvider.client
 
     fun getCachedWadFile(context: Context): File? {
         val dir = File(context.cacheDir, "mii_maker")
@@ -49,7 +45,7 @@ object MiiWadInstaller {
         )
 
         val intent = Intent().apply {
-            setClassName("org.dolphinemu.dolphinemu", "org.dolphinemu.dolphinemu.ui.main.MainActivity")
+            setClassName(DolphinLauncher.DOLPHIN_PACKAGE, DolphinLauncher.DOLPHIN_MAIN_ACTIVITY)
             data = contentUri
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

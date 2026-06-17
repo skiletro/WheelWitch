@@ -30,7 +30,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -41,24 +40,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.model.LicenseInfo
-import com.skiletro.wheelwitch.model.SaveFileInfo
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
+import com.skiletro.wheelwitch.util.HttpClientProvider
+import com.skiletro.wheelwitch.viewmodel.SaveInfoState
 import java.net.URLEncoder
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
 import okhttp3.Request
 
-private val httpClient = OkHttpClient()
+private val httpClient get() = HttpClientProvider.client
 private val cardShape = RoundedCornerShape(14.dp)
 private val miiUrlBase = "https://mii-unsecure.ariankordi.net/miis/image.png"
 
 @Composable
 fun SaveInfoScreen(
-    saveFileInfo: SaveFileInfo?,
-    isLoading: Boolean,
-    errorMessage: String?,
+    saveInfoState: SaveInfoState,
     onRefresh: () -> Unit,
     onClose: () -> Unit
 ) {
@@ -103,8 +99,8 @@ fun SaveInfoScreen(
                 .fillMaxSize()
                 .padding(horizontal = 20.dp, vertical = 8.dp)
         ) {
-            when {
-                isLoading -> {
+            when (saveInfoState) {
+                is SaveInfoState.Loading -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -112,14 +108,14 @@ fun SaveInfoScreen(
                         CircularProgressIndicator()
                     }
                 }
-                errorMessage != null -> {
+                is SaveInfoState.Error -> {
                     Column(
                         modifier = Modifier.fillMaxSize(),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = errorMessage,
+                            text = saveInfoState.message,
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.error,
                             textAlign = TextAlign.Center,
@@ -131,7 +127,9 @@ fun SaveInfoScreen(
                         }
                     }
                 }
-                saveFileInfo != null -> {
+                is SaveInfoState.Idle -> {}
+                is SaveInfoState.Success -> {
+                    val saveFileInfo = saveInfoState.info
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -285,27 +283,18 @@ private fun MiiFace(
         return
     }
 
-    val miiBitmap by produceState<Bitmap?>(initialValue = null, key1 = miiDataBase64) {
-        miiDataBase64?.let { b64 ->
-            try {
-                withContext(Dispatchers.IO) {
-                    val url = "$miiUrlBase?data=${URLEncoder.encode(b64, "UTF-8")}&width=96&type=face"
-                    val request = Request.Builder().url(url).build()
-                    val response = httpClient.newCall(request).execute()
-                    val bytes = response.body?.bytes()
-                    if (bytes != null) {
-                        value = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                    }
-                }
-            } catch (_: Exception) { }
-        }
-    }
-
-    var timedOut by remember { mutableStateOf(false) }
+    var miiBitmap by remember { mutableStateOf<Bitmap?>(null) }
     LaunchedEffect(miiDataBase64) {
         if (miiDataBase64 != null) {
-            delay(5000)
-            timedOut = true
+            withContext(Dispatchers.IO) {
+                val url = "$miiUrlBase?data=${URLEncoder.encode(miiDataBase64, "UTF-8")}&width=96&type=face"
+                val request = Request.Builder().url(url).build()
+                val response = httpClient.newCall(request).execute()
+                val bytes = response.body?.bytes()
+                if (bytes != null) {
+                    miiBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                }
+            }
         }
     }
 
@@ -322,7 +311,7 @@ private fun MiiFace(
                     .fillMaxSize()
                     .clip(RoundedCornerShape(10.dp))
             )
-        } else if (miiDataBase64 != null && !timedOut) {
+        } else if (miiDataBase64 != null) {
             CircularProgressIndicator(
                 strokeWidth = 3.dp
             )

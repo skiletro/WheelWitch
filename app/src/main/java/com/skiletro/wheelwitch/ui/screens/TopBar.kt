@@ -145,6 +145,9 @@ fun TopBar(
 private fun SparkleOverlay() {
     val phaseState = remember { mutableFloatStateOf(0f) }
     val tint = MaterialTheme.colorScheme.primary
+    // Only these sparkle positions are visible; the ones at 60°, 120°, and 300°
+    // were cut off by the wizard hat icon, so they were removed.
+    val visibleSparkleIndices = remember { listOf(0, 3, 4) }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -159,6 +162,7 @@ private fun SparkleOverlay() {
             .size(68.dp)
             .drawBehind {
                 val sparklePhase = phaseState.floatValue
+                // Keep 6 for position/phase math so remaining sparkles stay in their original spots
                 val sparkleCount = 6
                 val radius = 22.dp.toPx()
                 val sparkleSize = 3.dp.toPx()
@@ -166,7 +170,7 @@ private fun SparkleOverlay() {
                 val centerY = size.height / 2
                 val strokeW = 2.dp.toPx()
 
-                for (i in 0 until sparkleCount) {
+                for (i in visibleSparkleIndices) {
                     val rawPhase = (sparklePhase + i.toFloat() / sparkleCount) % 1f
                     val alpha = when {
                         rawPhase < 0.35f -> rawPhase / 0.35f

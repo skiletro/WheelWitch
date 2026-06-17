@@ -47,7 +47,6 @@ private fun StorageSectionConfiguredPreview() {
 private fun StorageSectionNotConfiguredPreview() {
     StorageSection(null)
 }
-
 @Preview(showBackground = true)
 @Composable
 private fun CacheSectionPreview() {

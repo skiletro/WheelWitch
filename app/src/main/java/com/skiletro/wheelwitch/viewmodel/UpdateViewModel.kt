@@ -54,6 +54,24 @@ data class MiiMakerState(
     val hasWad: Boolean = false,
 )
 
+sealed class RoomsState {
+    data object Idle : RoomsState()
+    data object Loading : RoomsState()
+    data class Success(
+        val rooms: List<Room>,
+        val playerCount: Int?,
+        val serverConnectivity: ServerConnectivity
+    ) : RoomsState()
+    data class Error(val message: String) : RoomsState()
+}
+
+sealed class SaveInfoState {
+    data object Idle : SaveInfoState()
+    data object Loading : SaveInfoState()
+    data class Success(val info: SaveFileInfo) : SaveInfoState()
+    data class Error(val message: String) : SaveInfoState()
+}
+
 class UpdateViewModel(application: Application) : AndroidViewModel(application) {
     private val prefs = application.getSharedPreferences("wheelwitch", Application.MODE_PRIVATE)
     private val _state = MutableStateFlow<UiState>(UiState.NoStorage)
@@ -65,20 +83,8 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
     private val _miiMakerState = MutableStateFlow(MiiMakerState())
     val miiMakerState: StateFlow<MiiMakerState> = _miiMakerState.asStateFlow()
 
-    private val _playerCount = MutableStateFlow<Int?>(null)
-    val playerCount: StateFlow<Int?> = _playerCount.asStateFlow()
-
-    private val _serverConnectivity = MutableStateFlow<ServerConnectivity>(ServerConnectivity.Unknown)
-    val serverConnectivity: StateFlow<ServerConnectivity> = _serverConnectivity.asStateFlow()
-
-    private val _rooms = MutableStateFlow<List<Room>>(emptyList())
-    val rooms: StateFlow<List<Room>> = _rooms.asStateFlow()
-
-    private val _isLoadingRooms = MutableStateFlow(false)
-    val isLoadingRooms: StateFlow<Boolean> = _isLoadingRooms.asStateFlow()
-
-    private val _roomsError = MutableStateFlow<String?>(null)
-    val roomsError: StateFlow<String?> = _roomsError.asStateFlow()
+    private val _roomsState = MutableStateFlow<RoomsState>(RoomsState.Idle)
+    val roomsState: StateFlow<RoomsState> = _roomsState.asStateFlow()
 
     private val _isInstallingWad = MutableStateFlow(false)
     val isInstallingWad: StateFlow<Boolean> = _isInstallingWad.asStateFlow()
@@ -86,17 +92,14 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
     private val _successMessage = MutableStateFlow<String?>(null)
     val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
 
+    private val _vrMultiplier = MutableStateFlow<Float?>(null)
+    val vrMultiplier: StateFlow<Float?> = _vrMultiplier.asStateFlow()
+
     private val _currentIsoPath = MutableStateFlow<String?>(null)
     val currentIsoPath: StateFlow<String?> = _currentIsoPath.asStateFlow()
 
-    private val _saveFileInfo = MutableStateFlow<SaveFileInfo?>(null)
-    val saveFileInfo: StateFlow<SaveFileInfo?> = _saveFileInfo.asStateFlow()
-
-    private val _isLoadingSaveInfo = MutableStateFlow(false)
-    val isLoadingSaveInfo: StateFlow<Boolean> = _isLoadingSaveInfo.asStateFlow()
-
-    private val _saveInfoError = MutableStateFlow<String?>(null)
-    val saveInfoError: StateFlow<String?> = _saveInfoError.asStateFlow()
+    private val _saveInfoState = MutableStateFlow<SaveInfoState>(SaveInfoState.Idle)
+    val saveInfoState: StateFlow<SaveInfoState> = _saveInfoState.asStateFlow()
 
     private var storageUri: Uri? = null
     private var storage: PackStorage? = null
@@ -151,20 +154,32 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
             }
             _state.value = UiState.Ready(status)
             val app = getApplication<Application>()
-            val (count, connectivity) = withContext(Dispatchers.IO) {
-                if (!isNetworkAvailable(app)) {
-                    null to ServerConnectivity.NoInternet
-                } else {
-                    val result = VersionFileParser.fetchPlayerCount()
+            withContext(Dispatchers.IO) {
+                if (isNetworkAvailable(app)) {
+                    val result = VersionFileParser.fetchRooms()
                     if (result.isSuccess) {
-                        result.getOrNull() to ServerConnectivity.Online
+                        val rooms = result.getOrThrow()
+                        _roomsState.value = RoomsState.Success(
+                            rooms = rooms,
+                            playerCount = rooms.sumOf { it.players.size },
+                            serverConnectivity = ServerConnectivity.Online
+                        )
                     } else {
-                        null to ServerConnectivity.Offline
+                        _roomsState.value = RoomsState.Success(
+                            rooms = emptyList(),
+                            playerCount = null,
+                            serverConnectivity = ServerConnectivity.Offline
+                        )
                     }
+                    _vrMultiplier.value = VersionFileParser.fetchVrMultiplier().getOrNull()
+                } else {
+                    _roomsState.value = RoomsState.Success(
+                        rooms = emptyList(),
+                        playerCount = null,
+                        serverConnectivity = ServerConnectivity.NoInternet
+                    )
                 }
             }
-            _playerCount.value = count
-            _serverConnectivity.value = connectivity
             refreshSaveState()
         }
     }
@@ -410,58 +425,59 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
 
     fun fetchRooms() {
         viewModelScope.launch {
-            _isLoadingRooms.value = true
-            _roomsError.value = null
+            _roomsState.value = RoomsState.Loading
             val result = withContext(Dispatchers.IO) {
                 VersionFileParser.fetchRooms()
             }
             result.onSuccess { rooms ->
-                _rooms.value = rooms
+                val old = _roomsState.value
+                val connectivity = if (old is RoomsState.Success) old.serverConnectivity else ServerConnectivity.Online
+                _roomsState.value = RoomsState.Success(
+                    rooms = rooms,
+                    playerCount = rooms.sumOf { it.players.size },
+                    serverConnectivity = connectivity
+                )
             }.onFailure { e ->
-                _roomsError.value = e.message ?: "Failed to load rooms"
-                _rooms.value = emptyList()
+                _roomsState.value = RoomsState.Error(e.message ?: "Failed to load rooms")
             }
-            _isLoadingRooms.value = false
         }
     }
 
     fun refreshSaveFileInfo() {
         viewModelScope.launch {
-            _isLoadingSaveInfo.value = true
-            _saveInfoError.value = null
+            _saveInfoState.value = SaveInfoState.Loading
             try {
                 val currentStorage = storage ?: throw Exception("Storage not configured")
                 val bytes = withContext(Dispatchers.IO) {
                     currentStorage.readBytes(SaveManager.SAVE_RELATIVE)
                 }
                 if (bytes == null) {
-                    _saveInfoError.value = "No save file found"
-                    _saveFileInfo.value = null
+                    _saveInfoState.value = SaveInfoState.Error("No save file found")
                 } else {
                     val saveInfo = RksysParser.parse(bytes)
-                    _saveFileInfo.value = saveInfo
+                    _saveInfoState.value = SaveInfoState.Success(saveInfo)
 
                     saveInfo.licenses.forEach { license ->
                         if (license.exists && license.friendCode != null) {
                             viewModelScope.launch(Dispatchers.IO) {
                                 val result = VersionFileParser.fetchPlayerLeaderboard(license.friendCode)
                                 result.onSuccess { leaderboard ->
-                                    val current = _saveFileInfo.value ?: return@launch
-                                    val updatedLicenses = current.licenses.map { lic ->
-                                        if (lic.slotIndex == license.slotIndex) lic.copy(leaderboard = leaderboard)
-                                        else lic
+                                    val current = _saveInfoState.value
+                                    if (current is SaveInfoState.Success) {
+                                        val updatedLicenses = current.info.licenses.map { lic ->
+                                            if (lic.slotIndex == license.slotIndex) lic.copy(leaderboard = leaderboard)
+                                            else lic
+                                        }
+                                        _saveInfoState.value = SaveInfoState.Success(current.info.copy(licenses = updatedLicenses))
                                     }
-                                    _saveFileInfo.value = current.copy(licenses = updatedLicenses)
                                 }
                             }
                         }
                     }
                 }
             } catch (e: Exception) {
-                _saveInfoError.value = e.message ?: "Failed to read save data"
-                _saveFileInfo.value = null
+                _saveInfoState.value = SaveInfoState.Error(e.message ?: "Failed to read save data")
             }
-            _isLoadingSaveInfo.value = false
         }
     }
 

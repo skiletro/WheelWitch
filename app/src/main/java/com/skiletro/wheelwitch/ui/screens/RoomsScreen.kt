@@ -42,19 +42,19 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.model.Room
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
+import com.skiletro.wheelwitch.viewmodel.RoomsState
 
 private val sidebarShape = RoundedCornerShape(12.dp)
 
 @Composable
 fun RoomsScreen(
-    rooms: List<Room>,
-    isLoading: Boolean,
-    errorMessage: String?,
+    roomsState: RoomsState,
     onRefresh: () -> Unit,
     onClose: () -> Unit
 ) {
     BackHandler(onBack = onClose)
 
+    val rooms = (roomsState as? RoomsState.Success)?.rooms ?: emptyList()
     var selectedRoomId by remember { mutableStateOf<String?>(null) }
     val selectedRoom = selectedRoomId?.let { id -> rooms.find { it.id == id } }
     val listFocusRequester = remember { FocusRequester() }
@@ -98,8 +98,8 @@ fun RoomsScreen(
                 .fillMaxSize()
                 .padding(horizontal = 20.dp, vertical = 8.dp)
         ) {
-            when {
-                isLoading -> {
+            when (roomsState) {
+                is RoomsState.Loading -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -107,14 +107,14 @@ fun RoomsScreen(
                         CircularProgressIndicator()
                     }
                 }
-                errorMessage != null -> {
+                is RoomsState.Error -> {
                     Column(
                         modifier = Modifier.fillMaxSize(),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = errorMessage,
+                            text = roomsState.message,
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.error,
                             textAlign = TextAlign.Center,
@@ -126,74 +126,76 @@ fun RoomsScreen(
                         }
                     }
                 }
-                rooms.isEmpty() -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = "No rooms found.",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            TextButton(onClick = onRefresh) {
-                                Text(text = "Refresh")
-                            }
-                        }
-                    }
-                }
-                else -> {
-                    Row(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        LazyColumn(
-                            modifier = Modifier
-                                .weight(0.35f)
-                                .fillMaxHeight(),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            items(rooms, key = { it.id }) { room ->
-                                RoomListItem(
-                                    room = room,
-                                    isSelected = room.id == selectedRoomId,
-                                    onClick = {
-                                        selectedRoomId = room.id
-                                        listFocusRequester.requestFocus()
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        }
-
-                        VerticalDivider()
-
+                is RoomsState.Success -> {
+                    if (rooms.isEmpty()) {
                         Box(
-                            modifier = Modifier
-                                .weight(0.65f)
-                                .fillMaxHeight()
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
                         ) {
-                            if (selectedRoom != null) {
-                                RoomDetail(selectedRoom)
-                            } else {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "Select a room",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "No rooms found.",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                TextButton(onClick = onRefresh) {
+                                    Text(text = "Refresh")
+                                }
+                            }
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .weight(0.35f)
+                                    .fillMaxHeight(),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                items(rooms, key = { it.id }) { room ->
+                                    RoomListItem(
+                                        room = room,
+                                        isSelected = room.id == selectedRoomId,
+                                        onClick = {
+                                            selectedRoomId = room.id
+                                            listFocusRequester.requestFocus()
+                                        },
+                                        modifier = Modifier.fillMaxWidth()
                                     )
+                                }
+                            }
+
+                            VerticalDivider()
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(0.65f)
+                                    .fillMaxHeight()
+                            ) {
+                                if (selectedRoom != null) {
+                                    RoomDetail(selectedRoom)
+                                } else {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "Select a room",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
+                is RoomsState.Idle -> {}
             }
         }
     }

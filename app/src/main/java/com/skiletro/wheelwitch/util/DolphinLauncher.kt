@@ -6,8 +6,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 object DolphinLauncher {
-    private const val DOLPHIN_PACKAGE = "org.dolphinemu.dolphinemu"
-    private const val DOLPHIN_MAIN_ACTIVITY = "$DOLPHIN_PACKAGE.ui.main.MainActivity"
+    const val DOLPHIN_PACKAGE = "org.dolphinemu.dolphinemu"
+    const val DOLPHIN_MAIN_ACTIVITY = "$DOLPHIN_PACKAGE.ui.main.MainActivity"
     private const val EXTRA_AUTO_START_FILE = "AutoStartFile"
     private const val RR_JSON_NAME = "RR.json"
     private const val RIIVOLUTION_FOLDER = "riivolution"

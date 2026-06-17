@@ -7,6 +7,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.model.Player
 import com.skiletro.wheelwitch.model.Room
+import com.skiletro.wheelwitch.model.ServerConnectivity
+import com.skiletro.wheelwitch.viewmodel.RoomsState
 
 private val samplePlayer = Player(name = "Jamie", friendCode = "1234-5678-9012", vr = 5000, br = 3000, isOpenHost = false, mii = null)
 private val sampleHost = Player(name = "Hosty", friendCode = "9876-5432-1098", vr = 7200, br = 4000, isOpenHost = true, mii = null)
@@ -18,25 +20,31 @@ private val sampleRooms = listOf(
 @Preview(showBackground = true, widthDp = 600, heightDp = 400)
 @Composable
 private fun RoomsScreenPreview() {
-    RoomsScreen(rooms = sampleRooms, isLoading = false, errorMessage = null, onRefresh = {}, onClose = {})
+    RoomsScreen(
+        roomsState = RoomsState.Success(sampleRooms, sampleRooms.sumOf { it.players.size }, ServerConnectivity.Online),
+        onRefresh = {}, onClose = {}
+    )
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun RoomsScreenLoadingPreview() {
-    RoomsScreen(rooms = emptyList(), isLoading = true, errorMessage = null, onRefresh = {}, onClose = {})
+    RoomsScreen(roomsState = RoomsState.Loading, onRefresh = {}, onClose = {})
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun RoomsScreenErrorPreview() {
-    RoomsScreen(rooms = emptyList(), isLoading = false, errorMessage = "Failed to connect", onRefresh = {}, onClose = {})
+    RoomsScreen(roomsState = RoomsState.Error("Failed to connect"), onRefresh = {}, onClose = {})
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun RoomsScreenEmptyPreview() {
-    RoomsScreen(rooms = emptyList(), isLoading = false, errorMessage = null, onRefresh = {}, onClose = {})
+    RoomsScreen(
+        roomsState = RoomsState.Success(emptyList(), null, ServerConnectivity.Online),
+        onRefresh = {}, onClose = {}
+    )
 }
 
 @Preview(showBackground = true)

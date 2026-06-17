@@ -1,10 +1,15 @@
 package com.skiletro.wheelwitch.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -34,33 +39,58 @@ fun PrimaryActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    badgeText: String? = null,
 ) {
-    var isFocused by remember { mutableStateOf(false) }
+    Box(modifier = modifier) {
+        var isFocused by remember { mutableStateOf(false) }
 
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        shape = buttonShape,
-        modifier = modifier
-            .height(56.dp)
-            .onFocusChanged { isFocused = it.isFocused }
-            .then(
-                if (isFocused) Modifier.border(
-                    width = 3.dp,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    shape = buttonShape
-                ) else Modifier
-            ),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary
-        )
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
-        )
+        Button(
+            onClick = onClick,
+            enabled = enabled,
+            shape = buttonShape,
+            modifier = Modifier
+                .height(56.dp)
+                .onFocusChanged { isFocused = it.isFocused }
+                .then(
+                    if (isFocused) Modifier.border(
+                        width = 3.dp,
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = buttonShape
+                    ) else Modifier
+                ),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            )
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+
+        AnimatedVisibility(
+            visible = badgeText != null,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = 8.dp, y = (-8).dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.tertiary
+            ) {
+                Text(
+                    text = badgeText ?: "",
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onTertiary
+                )
+            }
+        }
     }
 }
 
