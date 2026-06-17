@@ -110,18 +110,17 @@ fun OnboardingScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        contentAlignment = Alignment.Center
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        Column(
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .fillMaxSize()
+                .padding(horizontal = 32.dp, vertical = 48.dp),
+            contentAlignment = Alignment.Center
         ) {
             AnimatedContent(
                 targetState = step,
+                modifier = Modifier.fillMaxWidth(),
                 transitionSpec = {
                     (slideInHorizontally(
                         animationSpec = tween(350),
@@ -135,6 +134,7 @@ fun OnboardingScreen(
                 label = "step"
             ) { currentStep ->
                 Column(
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -180,9 +180,14 @@ fun OnboardingScreen(
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(32.dp))
-            StepDots(current = step, total = 6)
         }
+        StepDots(
+            current = step,
+            total = 6,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 24.dp)
+        )
     }
 }
 
@@ -775,8 +780,11 @@ private fun CompleteStep(onDone: () -> Unit) {
 }
 
 @Composable
-private fun StepDots(current: Int, total: Int) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+private fun StepDots(current: Int, total: Int, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         for (i in 0 until total) {
             val isCompleted = i <= current
             val isCurrent = i == current
