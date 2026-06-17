@@ -7,7 +7,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
@@ -65,14 +64,13 @@ import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
 import com.skiletro.wheelwitch.ui.components.MiiFace
 import com.skiletro.wheelwitch.ui.components.buttonShape
 import com.skiletro.wheelwitch.ui.components.focusBorder
-import com.skiletro.wheelwitch.ui.components.sectionShape
 import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
 import com.skiletro.wheelwitch.ui.components.TopBar
 
 
 import com.dontsaybojio.rollingnumbers.RollingNumbers
-import kotlinx.coroutines.delay
 import android.view.WindowManager
+import android.widget.Toast
 
 @Composable
 fun HomeScreen(
@@ -126,23 +124,24 @@ fun HomeScreen(
         )
     }
 
-    var showPowStamp by remember { mutableStateOf(false) }
-
-    LaunchedEffect(successMessage) {
-        if (successMessage != null) {
-            showPowStamp = true
-            delay(600)
-            showPowStamp = false
-            delay(2400)
-            packUpdate.dismissSuccess()
-        } else {
-            showPowStamp = false
-        }
-    }
-
     val isBusy = state is UiState.Downloading || state is UiState.Extracting || state is UiState.ApplyingUpdate
 
     val context = LocalContext.current
+
+    LaunchedEffect(successMessage) {
+        if (successMessage != null) {
+            Toast.makeText(context, successMessage, Toast.LENGTH_SHORT).show()
+            packUpdate.dismissSuccess()
+        }
+    }
+
+    LaunchedEffect(state) {
+        if (state is UiState.Error) {
+            val error = (state as UiState.Error).message
+            Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+        }
+    }
+
     LaunchedEffect(isBusy) {
         if (isBusy) {
             (context as? android.app.Activity)?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -216,77 +215,6 @@ fun HomeScreen(
                     .padding(padding)
             ) {
                 VersionHistoryContent(modifier = Modifier.fillMaxSize())
-
-                AnimatedVisibility(
-                    visible = successMessage != null,
-                    enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
-                    exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
-                    modifier = Modifier.align(Alignment.TopCenter)
-                ) {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        shape = sectionShape,
-                        color = MaterialTheme.colorScheme.primaryContainer
-                    ) {
-                        Text(
-                            text = successMessage.orEmpty(),
-                            modifier = Modifier.padding(16.dp),
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                }
-
-                AnimatedVisibility(
-                    visible = state is UiState.Error,
-                    enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
-                    exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
-                    modifier = Modifier.align(Alignment.TopCenter)
-                ) {
-                    val error = (state as? UiState.Error)?.message ?: return@AnimatedVisibility
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        shape = sectionShape,
-                        color = MaterialTheme.colorScheme.errorContainer
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(20.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = error,
-                                style = MaterialTheme.typography.bodyMedium,
-                                textAlign = TextAlign.Center,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                        }
-                    }
-                }
-            }
-
-            AnimatedVisibility(
-                visible = showPowStamp,
-                enter = scaleIn(initialScale = 1.6f, animationSpec = tween(300)) + fadeIn(animationSpec = tween(200)),
-                exit = scaleOut(targetScale = 0.9f, animationSpec = tween(200)) + fadeOut(animationSpec = tween(150)),
-                modifier = Modifier.align(Alignment.Center)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.92f), shape = RoundedCornerShape(16.dp))
-                        .padding(horizontal = 28.dp, vertical = 16.dp)
-                ) {
-                    Text(
-                        text = "POW!",
-                        style = MaterialTheme.typography.displayLarge,
-                        fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.onTertiary,
-                    )
-                }
             }
         }
         }
