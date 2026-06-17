@@ -1,12 +1,14 @@
 package com.skiletro.wheelwitch.network
 
 import com.skiletro.wheelwitch.model.DeletionEntry
+import com.skiletro.wheelwitch.model.LeaderboardPlayerData
 import com.skiletro.wheelwitch.model.Room
 import com.skiletro.wheelwitch.model.SemVersion
 import com.skiletro.wheelwitch.model.ServerInfo
 import com.skiletro.wheelwitch.model.UpdateEntry
 import com.skiletro.wheelwitch.model.parsePlayerCount
 import com.skiletro.wheelwitch.model.parseRooms
+import org.json.JSONObject
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.concurrent.TimeUnit
@@ -74,6 +76,16 @@ object VersionFileParser {
     }
 
     fun okHttpClient(): OkHttpClient = client
+
+    fun fetchPlayerLeaderboard(friendCode: String): Result<LeaderboardPlayerData> = runCatching {
+        val url = "https://rwfc.net/api/leaderboard/player/$friendCode/"
+        val json = fetchUrl(url)
+        val root = JSONObject(json)
+        LeaderboardPlayerData(
+            vr = root.optInt("vr", 0),
+            miiImageBase64 = root.optString("miiImageBase64", "").takeIf { it.isNotEmpty() }
+        )
+    }
 
     private fun fetchUrl(urlString: String): String {
         val request = Request.Builder().url(urlString).build()

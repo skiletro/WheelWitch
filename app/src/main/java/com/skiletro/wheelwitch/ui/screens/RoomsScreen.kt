@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.model.Room
+import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
 
 private val sidebarShape = RoundedCornerShape(12.dp)
 
@@ -244,7 +245,8 @@ fun RoomListItem(
                         fontWeight = FontWeight.SemiBold,
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        fontFamily = CtmkfFontFamily
                     )
                     Text(
                         text = "${room.players.size} player${if (room.players.size != 1) "s" else ""}",

@@ -151,7 +151,7 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
         val name = path.split("/").last()
         val parentPath = path.substringBeforeLast("/", "")
         if (parentPath.isNotEmpty()) ensureDocDirs(parentPath)
-        val parent = if (parentPath.isNotEmpty()) resolveDoc(parentPath)!! else rootDoc
+        val parent = if (parentPath.isNotEmpty()) resolveDoc(parentPath) ?: error("Parent not found: $parentPath") else rootDoc
         return parent.createFile("application/octet-stream", name) ?: error("Cannot create file: $path")
     }
 

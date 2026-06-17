@@ -63,12 +63,12 @@ fun CacheSection() {
     }
 }
 
-fun cacheSize(dir: File): Long {
+private fun cacheSize(dir: File): Long {
     if (!dir.exists()) return 0
     return dir.walkTopDown().filter { it.isFile }.sumOf { it.length() }
 }
 
-fun formatSize(bytes: Long): String = when {
+private fun formatSize(bytes: Long): String = when {
     bytes < 1024 -> "$bytes B"
     bytes < 1024 * 1024 -> "${bytes / 1024} KB"
     else -> "%.2f MB".format(bytes / (1024.0 * 1024.0))

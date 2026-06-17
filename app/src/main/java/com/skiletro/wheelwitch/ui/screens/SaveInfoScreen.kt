@@ -2,6 +2,7 @@ package com.skiletro.wheelwitch.ui.screens
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.util.Base64
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -35,13 +36,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.model.LicenseInfo
 import com.skiletro.wheelwitch.model.SaveFileInfo
+import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
 import java.net.URLEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -181,7 +182,8 @@ private fun LicenseCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 MiiFace(
-                    base64Data = info.miiDataBase64,
+                    imageBase64 = info.leaderboard?.miiImageBase64,
+                    miiDataBase64 = info.miiDataBase64,
                     modifier = Modifier.size(72.dp)
                 )
                 Spacer(modifier = Modifier.width(14.dp))
@@ -190,7 +192,8 @@ private fun LicenseCard(
                         text = info.miiName ?: "Player",
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1
+                        maxLines = 1,
+                        fontFamily = CtmkfFontFamily
                     )
                     info.friendCode?.let { fc ->
                         Text(
@@ -204,7 +207,8 @@ private fun LicenseCard(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        StatLabel("VR", info.vr)
+                        val displayVr = info.leaderboard?.vr ?: info.vr
+                        StatLabel("VR", displayVr)
                         StatLabel("BR", info.br)
                     }
                     Spacer(modifier = Modifier.height(2.dp))
@@ -258,11 +262,31 @@ private fun StatLabel(label: String, value: Int?) {
 
 @Composable
 private fun MiiFace(
-    base64Data: String?,
+    imageBase64: String?,
+    miiDataBase64: String?,
     modifier: Modifier = Modifier
 ) {
-    val miiBitmap by produceState<Bitmap?>(initialValue = null, key1 = base64Data) {
-        base64Data?.let { b64 ->
+    val pngBitmap = remember(imageBase64) {
+        imageBase64?.let { b64 ->
+            try {
+                val bytes = Base64.decode(b64, Base64.DEFAULT)
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            } catch (_: Exception) { null }
+        }
+    }
+
+    if (pngBitmap != null) {
+        Image(
+            bitmap = pngBitmap.asImageBitmap(),
+            contentDescription = null,
+            modifier = modifier
+                .clip(RoundedCornerShape(10.dp))
+        )
+        return
+    }
+
+    val miiBitmap by produceState<Bitmap?>(initialValue = null, key1 = miiDataBase64) {
+        miiDataBase64?.let { b64 ->
             try {
                 withContext(Dispatchers.IO) {
                     val url = "$miiUrlBase?data=${URLEncoder.encode(b64, "UTF-8")}&width=96&type=face"
@@ -278,8 +302,8 @@ private fun MiiFace(
     }
 
     var timedOut by remember { mutableStateOf(false) }
-    LaunchedEffect(base64Data) {
-        if (base64Data != null) {
+    LaunchedEffect(miiDataBase64) {
+        if (miiDataBase64 != null) {
             delay(5000)
             timedOut = true
         }
@@ -298,7 +322,7 @@ private fun MiiFace(
                     .fillMaxSize()
                     .clip(RoundedCornerShape(10.dp))
             )
-        } else if (base64Data != null && !timedOut) {
+        } else if (miiDataBase64 != null && !timedOut) {
             CircularProgressIndicator(
                 strokeWidth = 3.dp
             )

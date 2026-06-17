@@ -438,7 +438,24 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
                     _saveInfoError.value = "No save file found"
                     _saveFileInfo.value = null
                 } else {
-                    _saveFileInfo.value = RksysParser.parse(bytes)
+                    val saveInfo = RksysParser.parse(bytes)
+                    _saveFileInfo.value = saveInfo
+
+                    saveInfo.licenses.forEach { license ->
+                        if (license.exists && license.friendCode != null) {
+                            viewModelScope.launch(Dispatchers.IO) {
+                                val result = VersionFileParser.fetchPlayerLeaderboard(license.friendCode)
+                                result.onSuccess { leaderboard ->
+                                    val current = _saveFileInfo.value ?: return@launch
+                                    val updatedLicenses = current.licenses.map { lic ->
+                                        if (lic.slotIndex == license.slotIndex) lic.copy(leaderboard = leaderboard)
+                                        else lic
+                                    }
+                                    _saveFileInfo.value = current.copy(licenses = updatedLicenses)
+                                }
+                            }
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 _saveInfoError.value = e.message ?: "Failed to read save data"

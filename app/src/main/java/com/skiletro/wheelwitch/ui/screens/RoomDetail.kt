@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.model.Player
 import com.skiletro.wheelwitch.model.Room
+import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
 import java.net.URLEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -181,14 +182,16 @@ fun MiiPlayerCard(player: Player) {
                         Text(
                             text = player.name,
                             fontWeight = FontWeight.SemiBold,
-                            style = MaterialTheme.typography.bodyLarge
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontFamily = CtmkfFontFamily
                         )
                         if (player.mii?.name != null && player.mii.name != player.name) {
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "\u201C${player.mii.name}\u201D",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = CtmkfFontFamily
                             )
                         }
                     }

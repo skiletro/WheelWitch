@@ -2,6 +2,11 @@ package com.skiletro.wheelwitch.model
 
 data class SaveFileInfo(val licenses: List<LicenseInfo>)
 
+data class LeaderboardPlayerData(
+    val vr: Int,
+    val miiImageBase64: String?
+)
+
 data class LicenseInfo(
     val slotIndex: Int,
     val exists: Boolean,
@@ -13,5 +18,6 @@ data class LicenseInfo(
     val raceLosses: Int? = null,
     val battleWins: Int? = null,
     val battleLosses: Int? = null,
-    val miiDataBase64: String? = null
+    val miiDataBase64: String? = null,
+    val leaderboard: LeaderboardPlayerData? = null
 )

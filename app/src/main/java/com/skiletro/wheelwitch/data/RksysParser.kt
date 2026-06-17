@@ -96,9 +96,9 @@ object RksysParser {
     }
 
     private fun readUTF16BE(bytes: ByteArray, offset: Int, maxBytes: Int): String {
+        if (offset + 2 > bytes.size) return ""
         val sb = StringBuilder()
-        for (i in offset until offset + maxBytes step 2) {
-            if (i + 2 > bytes.size) break
+        for (i in offset until offset + maxBytes.coerceAtMost(bytes.size - offset) step 2) {
             val codePoint = ((bytes[i].toInt() and 0xFF) shl 8) or (bytes[i + 1].toInt() and 0xFF)
             if (codePoint == 0) break
             sb.append(codePoint.toChar())
