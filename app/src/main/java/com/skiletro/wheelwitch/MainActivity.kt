@@ -31,6 +31,7 @@ import com.skiletro.wheelwitch.ui.screens.SettingsScreen
 import com.skiletro.wheelwitch.ui.theme.ThemeMode
 import com.skiletro.wheelwitch.ui.theme.WheelWitchTheme
 import com.skiletro.wheelwitch.data.PackStorage
+import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
 
 /** Single-activity entry point. Hosts [HomeScreen] with onboarding wizard, settings navigation, and save info/rooms overlays. */
@@ -70,6 +71,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun MainScreen(
     viewModel: UpdateViewModel = viewModel(),
+    onlineViewModel: OnlineViewModel = viewModel(),
     useDynamicColor: Boolean = false,
     onToggleDynamicColor: (Boolean) -> Unit = {},
     themeMode: ThemeMode = ThemeMode.System,
@@ -137,6 +139,7 @@ private fun MainScreen(
         if (onboardingComplete) {
             HomeScreen(
                 viewModel = viewModel,
+                onlineViewModel = onlineViewModel,
                 onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
                 onOpenSettings = { showSettings = true }
             )

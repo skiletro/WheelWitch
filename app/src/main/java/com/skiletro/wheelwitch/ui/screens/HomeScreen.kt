@@ -46,6 +46,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.ServerConnectivity
+import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 import com.skiletro.wheelwitch.viewmodel.RoomsState
 import com.skiletro.wheelwitch.viewmodel.UiState
 import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
@@ -55,22 +56,23 @@ import android.view.WindowManager
 @Composable
 fun HomeScreen(
     viewModel: UpdateViewModel,
+    onlineViewModel: OnlineViewModel,
     onPickIso: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val successMessage by viewModel.successMessage.collectAsState()
     val miiMakerState by viewModel.miiMakerState.collectAsState()
-    val roomsState by viewModel.roomsState.collectAsState()
+    val roomsState by onlineViewModel.roomsState.collectAsState()
     val saveInfoState by viewModel.saveInfoState.collectAsState()
-    val vrMultiplier by viewModel.vrMultiplier.collectAsState()
+    val vrMultiplier by onlineViewModel.vrMultiplier.collectAsState()
     val currentIsoPath by viewModel.currentIsoPath.collectAsState()
     val hasIso = currentIsoPath != null
 
     val playerCount = (roomsState as? RoomsState.Success)?.playerCount
     val serverConnectivity = (roomsState as? RoomsState.Success)?.serverConnectivity ?: ServerConnectivity.Unknown
 
-    var showRooms by remember { mutableStateOf(false) }
+    var showOnlineMenu by remember { mutableStateOf(false) }
     var showSaveInfo by remember { mutableStateOf(false) }
 
     LaunchedEffect(successMessage) {
@@ -112,11 +114,10 @@ fun HomeScreen(
                         onOpenSettings = onOpenSettings,
                         onLaunchMiiMaker = { viewModel.launchMiiMaker() },
                         miiMakerEnabled = miiMakerState.hasWad,
-                        onOpenNetplay = {
-                            viewModel.fetchRooms()
-                            showRooms = true
+                        onOpenOnlineMenu = {
+                            showOnlineMenu = true
                         },
-                        roomsEnabled = serverConnectivity is ServerConnectivity.Online,
+                        onlineMenuEnabled = serverConnectivity is ServerConnectivity.Online,
                         onOpenSaveInfo = {
                             viewModel.refreshSaveFileInfo()
                             showSaveInfo = true
@@ -201,14 +202,13 @@ fun HomeScreen(
         }
 
         AnimatedVisibility(
-            visible = showRooms,
+            visible = showOnlineMenu,
             enter = slideInVertically() + fadeIn(),
             exit = slideOutVertically() + fadeOut()
         ) {
-            RoomsScreen(
-                roomsState = roomsState,
-                onRefresh = { viewModel.fetchRooms() },
-                onClose = { showRooms = false }
+            OnlineMenuScreen(
+                viewModel = onlineViewModel,
+                onClose = { showOnlineMenu = false }
             )
         }
 

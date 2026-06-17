@@ -1,6 +1,6 @@
 package com.skiletro.wheelwitch.data
 
-import android.util.Base64
+import java.util.Base64
 import com.skiletro.wheelwitch.model.LicenseInfo
 import com.skiletro.wheelwitch.model.SaveFileInfo
 import java.security.MessageDigest
@@ -50,7 +50,7 @@ object RksysParser {
 
         val miiDataBase64 = if (base + MII_RFL_OFFSET + MII_RFL_DATA_LENGTH <= bytes.size) {
             val rflData = bytes.copyOfRange(base + MII_RFL_OFFSET, base + MII_RFL_OFFSET + MII_RFL_DATA_LENGTH)
-            Base64.encodeToString(rflData, Base64.NO_WRAP)
+            Base64.getEncoder().encodeToString(rflData)
         } else null
 
         return LicenseInfo(

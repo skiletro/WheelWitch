@@ -53,8 +53,8 @@ fun TopBar(
     onOpenSettings: () -> Unit,
     onLaunchMiiMaker: () -> Unit,
     miiMakerEnabled: Boolean,
-    onOpenNetplay: () -> Unit,
-    roomsEnabled: Boolean,
+    onOpenOnlineMenu: () -> Unit,
+    onlineMenuEnabled: Boolean,
     onOpenSaveInfo: () -> Unit = {}
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "bob")
@@ -102,10 +102,10 @@ fun TopBar(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-    IconButton(onClick = onOpenNetplay, enabled = roomsEnabled) {
+    IconButton(onClick = onOpenOnlineMenu, enabled = onlineMenuEnabled) {
         Icon(
             painter = painterResource(com.skiletro.wheelwitch.R.drawable.ic_server),
-            contentDescription = "Online Rooms",
+            contentDescription = "Online Menu",
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }

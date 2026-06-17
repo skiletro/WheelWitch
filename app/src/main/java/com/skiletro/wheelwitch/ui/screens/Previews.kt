@@ -233,8 +233,8 @@ private fun TopBarPreview() {
         onOpenSettings = {},
         onLaunchMiiMaker = {},
         miiMakerEnabled = true,
-        onOpenNetplay = {},
-        roomsEnabled = true,
+        onOpenOnlineMenu = {},
+        onlineMenuEnabled = true,
         onOpenSaveInfo = {}
     )
 }
