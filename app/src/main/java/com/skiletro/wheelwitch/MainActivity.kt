@@ -32,6 +32,7 @@ import com.skiletro.wheelwitch.ui.screens.SettingsScreen
 import com.skiletro.wheelwitch.ui.theme.ThemeMode
 import com.skiletro.wheelwitch.ui.theme.WheelWitchTheme
 import com.skiletro.wheelwitch.data.PackStorage
+import com.skiletro.wheelwitch.util.DolphinLauncher
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
 
@@ -183,15 +184,26 @@ private fun MainScreen(
                     themeMode = themeMode,
                     onChangeThemeMode = onChangeThemeMode,
                     onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
-                    onSimulateQuickLaunch = { quickLaunchMode = true }
+                    onSimulateQuickLaunch = { quickLaunchMode = true },
+                    onRelaunchOnboarding = {
+                        prefs.edit().putBoolean("onboarding_completed", false).apply()
+                        onboardingComplete = false
+                        onboardingStorageSelected = false
+                        onboardingIsoSelected = false
+                        showSettings = false
+                    }
                 )
             }
         } else {
             OnboardingScreen(
                 storageSelected = onboardingStorageSelected,
                 isoSelected = onboardingIsoSelected,
+                storageConfigured = viewModel.storageRootPath != null,
+                isoConfigured = DolphinLauncher.getGameIsoPath(context) != null,
                 onPickStorage = { storagePicker.launch(null) },
+                onSkipStorage = { onboardingStorageSelected = true },
                 onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
+                onSkipIso = { onboardingIsoSelected = true },
                 onComplete = {
                     prefs.edit().putBoolean("onboarding_completed", true).apply()
                     onboardingComplete = true

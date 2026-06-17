@@ -61,40 +61,6 @@ import com.skiletro.wheelwitch.ui.theme.ThemeMode
 import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
 
 @Composable
-fun SettingOverlay(
-    onClose: () -> Unit,
-    viewModel: UpdateViewModel,
-    onBackupSave: () -> Unit,
-    onRestoreSave: () -> Unit,
-    onDeleteSave: () -> Unit,
-    useDynamicColor: Boolean,
-    onToggleDynamicColor: (Boolean) -> Unit,
-    themeMode: ThemeMode,
-    onChangeThemeMode: (ThemeMode) -> Unit,
-    onPickIso: () -> Unit,
-    onSimulateQuickLaunch: () -> Unit,
-    onRelaunchOnboarding: () -> Unit
-) {
-    Box(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
-        SettingsScreen(
-            viewModel = viewModel,
-            onBackupSave = onBackupSave,
-            onRestoreSave = onRestoreSave,
-            onDeleteSave = onDeleteSave,
-            onClose = onClose,
-            useDynamicColor = useDynamicColor,
-            onToggleDynamicColor = onToggleDynamicColor,
-            themeMode = themeMode,
-            onChangeThemeMode = onChangeThemeMode,
-            onPickIso = onPickIso,
-            onSimulateQuickLaunch = onSimulateQuickLaunch,
-            onRelaunchOnboarding = onRelaunchOnboarding
-        )
-    }
-}
-
-@Composable
 fun SettingsScreen(
     viewModel: UpdateViewModel,
     onBackupSave: () -> Unit,
