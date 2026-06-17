@@ -4,10 +4,6 @@
 
 <h1 align="center">Wheel Witch</h1>
 
-<div align="center">
-  Downloads/updates the Retro Rewind Mario Kart Wii Pack and launches Dolphin Emulator.
-</div>
-
 <br>
 
 <div align="center">
@@ -41,9 +37,8 @@
 
 ## About
 
-Wheel Witch is a sideloaded Android companion app for [Retro Rewind](https://wiki.tockdom.com/wiki/Retro_Rewind), a custom Mario Kart Wii distribution. It downloads and incrementally updates the pack from the same server WheelWizard uses, then launches Dolphin Emulator with the pack pre-loaded.
-
-This is **not** a replacement for WheelWizard's PC tool — it's a phone-first way to keep your Wii's pack install fresh without booting a desktop.
+Wheel Witch is an Android companion app for [Retro Rewind](https://wiki.tockdom.com/wiki/Retro_Rewind), a custom Mario Kart Wii distribution.
+It downloads and incrementally updates the pack from the RWFC server, then launches Dolphin with the pack pre-loaded.
 
 ## Features
 
@@ -55,7 +50,7 @@ This is **not** a replacement for WheelWizard's PC tool — it's a phone-first w
 - Multiple themes including Material You dynamic colour, with dark, light, and system modes
 
 > [!NOTE]
-> Save backup/restore currently only supports the **PAL** version of Mario Kart Wii (`RMCP`). — see [#todo](##todo)
+> Save backup/restore currently only supports the **PAL** version of Mario Kart Wii (`RMCP`). - see [TODO](##todo)
 
 ## Download
 
