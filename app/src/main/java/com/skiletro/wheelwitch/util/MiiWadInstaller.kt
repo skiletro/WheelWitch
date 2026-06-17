@@ -27,7 +27,11 @@ object MiiWadInstaller {
         cacheDir.mkdirs()
 
         val zipFile = File(cacheDir, "mii_channel_symbols.zip")
-        FileDownloader.downloadToFile(MII_MAKER_ZIP_URL, zipFile)
+        FileDownloader.downloadToFile(
+            MII_MAKER_ZIP_URL,
+            zipFile,
+            client = HttpClientProvider.largeDownloadClient
+        )
 
         val wadFile = extractWad(zipFile, cacheDir)
         zipFile.delete()

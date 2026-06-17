@@ -7,6 +7,7 @@ import com.skiletro.wheelwitch.model.SemVersion
 import com.skiletro.wheelwitch.model.ServerInfo
 import com.skiletro.wheelwitch.network.VersionFileParser
 import com.skiletro.wheelwitch.util.FileDownloader
+import com.skiletro.wheelwitch.util.HttpClientProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -61,9 +62,14 @@ object RewindPackManager {
         cacheBase.mkdirs()
         val zipFile = File.createTempFile("install_", ".zip", cacheBase)
         withContext(Dispatchers.IO) {
-            FileDownloader.downloadToFile(VersionFileParser.getFullZipUrl(), zipFile) { progress ->
-                onProgress(ProgressInfo.Downloading(progress, "Downloading Retro Rewind Pack..."))
-            }
+            FileDownloader.downloadToFile(
+                VersionFileParser.getFullZipUrl(),
+                zipFile,
+                onProgress = { progress ->
+                    onProgress(ProgressInfo.Downloading(progress, "Downloading Retro Rewind Pack..."))
+                },
+                client = HttpClientProvider.largeDownloadClient
+            )
         }
 
         onProgress(ProgressInfo.Extracting(0f))
@@ -108,10 +114,15 @@ object RewindPackManager {
             val deferred = steps.map { step ->
                 async(Dispatchers.IO) {
                     val file = File.createTempFile("update_", ".zip", cacheBase)
-                    FileDownloader.downloadToFile(step.url, file) { progress ->
-                        onProgress(ProgressInfo.Downloading(progress,
-                            "${step.description} - downloading"))
-                    }
+                    FileDownloader.downloadToFile(
+                        step.url,
+                        file,
+                        onProgress = { progress ->
+                            onProgress(ProgressInfo.Downloading(progress,
+                                "${step.description} - downloading"))
+                        },
+                        client = HttpClientProvider.largeDownloadClient
+                    )
                     step to file
                 }
             }

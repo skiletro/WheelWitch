@@ -1,5 +1,6 @@
 package com.skiletro.wheelwitch.util
 
+import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
 
@@ -12,14 +13,18 @@ object FileDownloader {
      * Throws on non-2xx HTTP status or missing body.
      *
      * @param onProgress Optional callback with progress as 0..1 (throttled to ≥1% changes, always emits 1f).
+     * @param client OkHttp client to use. Defaults to [HttpClientProvider.client];
+     *   pass [HttpClientProvider.largeDownloadClient] for big payloads to
+     *   avoid spurious 15s read timeouts.
      */
     fun downloadToFile(
         url: String,
         targetFile: File,
         onProgress: ((Float) -> Unit)? = null,
+        client: OkHttpClient = HttpClientProvider.client,
     ): File {
         val request = Request.Builder().url(url).build()
-        val response = HttpClientProvider.client.newCall(request).execute()
+        val response = client.newCall(request).execute()
         check(response.isSuccessful) { "Download failed: HTTP ${response.code} ${response.message}" }
         val body = requireNotNull(response.body) { "No response body" }
         val totalBytes = body.contentLength()
