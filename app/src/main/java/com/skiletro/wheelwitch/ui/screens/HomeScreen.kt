@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -37,6 +38,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -236,11 +238,12 @@ private fun TopBar(
             onClick = onLaunchMiiMaker,
             enabled = miiMakerEnabled
         ) {
-            Text(
-                text = "\u270E",
-                style = MaterialTheme.typography.headlineMedium,
-                color = if (miiMakerEnabled) MaterialTheme.colorScheme.onSurfaceVariant
-                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+            Icon(
+                painter = painterResource(com.skiletro.wheelwitch.R.drawable.ic_tshirt),
+                contentDescription = "Mii Maker",
+                tint = if (miiMakerEnabled) MaterialTheme.colorScheme.onSurfaceVariant
+                       else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
+                modifier = Modifier.size(24.dp)
             )
         }
         TextButton(onClick = onOpenSettings) {
