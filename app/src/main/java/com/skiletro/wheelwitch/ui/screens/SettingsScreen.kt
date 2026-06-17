@@ -47,12 +47,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.BuildConfig
 import com.skiletro.wheelwitch.ui.theme.ThemeMode
+import java.io.File
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import com.skiletro.wheelwitch.viewmodel.MiiMakerState
@@ -178,6 +180,12 @@ fun SettingsScreen(
                 themeMode = themeMode,
                 onChangeThemeMode = onChangeThemeMode
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(16.dp))
+
+            CacheSection()
 
             Spacer(modifier = Modifier.height(16.dp))
             HorizontalDivider()
@@ -485,6 +493,59 @@ private fun ThemeSection(
             }
         }
     }
+}
+
+@Composable
+private fun CacheSection() {
+    val context = LocalContext.current
+    val cacheDir = remember { File(context.cacheDir, "rewind_pack_downloads") }
+    var sizeBytes by remember { mutableStateOf(cacheSize(cacheDir)) }
+
+    Text(
+        text = "Cache",
+        style = MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurface
+    )
+    Spacer(modifier = Modifier.height(4.dp))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Temporary download files",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = formatSize(sizeBytes),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        OutlinedButton(
+            onClick = {
+                cacheDir.deleteRecursively()
+                sizeBytes = 0
+            },
+            enabled = sizeBytes > 0,
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Text("Clear")
+        }
+    }
+}
+
+private fun cacheSize(dir: File): Long {
+    if (!dir.exists()) return 0
+    return dir.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+}
+
+private fun formatSize(bytes: Long): String = when {
+    bytes < 1024 -> "$bytes B"
+    bytes < 1024 * 1024 -> "${bytes / 1024} KB"
+    else -> "%.2f MB".format(bytes / (1024.0 * 1024.0))
 }
 
 @Composable
