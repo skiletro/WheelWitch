@@ -235,6 +235,13 @@ private fun TopBar(
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Icon(
+            painter = painterResource(com.skiletro.wheelwitch.R.drawable.ic_hat_wizard),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(48.dp)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
         Column(
             modifier = Modifier.weight(1f)
         ) {
