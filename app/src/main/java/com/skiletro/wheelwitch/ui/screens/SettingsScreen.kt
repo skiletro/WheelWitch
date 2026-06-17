@@ -1,7 +1,14 @@
 package com.skiletro.wheelwitch.ui.screens
 
+import android.content.Context
+import android.content.Intent
+import android.content.pm.ShortcutInfo
+import android.content.pm.ShortcutManager
+import android.graphics.drawable.Icon
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,15 +16,33 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.Restore
+import androidx.compose.material.icons.filled.Cached
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Gamepad
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Nightlight
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.SaveAlt
+import androidx.compose.material.icons.automirrored.filled.Shortcut
+import androidx.compose.material.icons.filled.Checkroom
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -28,19 +53,46 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import android.content.Intent
-import android.content.pm.ShortcutInfo
-import android.content.pm.ShortcutManager
-import android.graphics.drawable.Icon
-import android.os.Build
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.ui.platform.LocalContext
 import com.skiletro.wheelwitch.ui.theme.ThemeMode
 import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
+
+@Composable
+fun SettingOverlay(
+    onClose: () -> Unit,
+    viewModel: UpdateViewModel,
+    onBackupSave: () -> Unit,
+    onRestoreSave: () -> Unit,
+    onDeleteSave: () -> Unit,
+    useDynamicColor: Boolean,
+    onToggleDynamicColor: (Boolean) -> Unit,
+    themeMode: ThemeMode,
+    onChangeThemeMode: (ThemeMode) -> Unit,
+    onPickIso: () -> Unit,
+    onSimulateQuickLaunch: () -> Unit,
+    onRelaunchOnboarding: () -> Unit
+) {
+    Box(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
+        SettingsScreen(
+            viewModel = viewModel,
+            onBackupSave = onBackupSave,
+            onRestoreSave = onRestoreSave,
+            onDeleteSave = onDeleteSave,
+            onClose = onClose,
+            useDynamicColor = useDynamicColor,
+            onToggleDynamicColor = onToggleDynamicColor,
+            themeMode = themeMode,
+            onChangeThemeMode = onChangeThemeMode,
+            onPickIso = onPickIso,
+            onSimulateQuickLaunch = onSimulateQuickLaunch,
+            onRelaunchOnboarding = onRelaunchOnboarding
+        )
+    }
+}
 
 @Composable
 fun SettingsScreen(
@@ -54,27 +106,26 @@ fun SettingsScreen(
     themeMode: ThemeMode,
     onChangeThemeMode: (ThemeMode) -> Unit,
     onPickIso: () -> Unit,
-    onSimulateQuickLaunch: () -> Unit
+    onSimulateQuickLaunch: () -> Unit,
+    onRelaunchOnboarding: () -> Unit
 ) {
     val saveState by viewModel.saveState.collectAsState()
     val miiMakerState by viewModel.miiMakerState.collectAsState()
     val isInstallingWad by viewModel.isInstallingWad.collectAsState()
     val miiMakerError by viewModel.miiMakerError.collectAsState()
+    val isoPath by viewModel.currentIsoPath.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showWadDeleteConfirm by remember { mutableStateOf(false) }
+    var showThemeDropdown by remember { mutableStateOf(false) }
 
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
             title = { Text("Delete Save Data") },
-            text = {
-                Text("Are you sure you want to delete the save file? This cannot be undone.")
-            },
+            text = { Text("Are you sure you want to delete the save file? This cannot be undone.") },
             confirmButton = {
-                Button(onClick = {
-                    onDeleteSave()
-                    showDeleteConfirm = false
-                }) { Text("Delete") }
+                Button(onClick = { onDeleteSave(); showDeleteConfirm = false }) { Text("Delete") }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
@@ -86,14 +137,9 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { showWadDeleteConfirm = false },
             title = { Text("Delete Mii Channel WAD") },
-            text = {
-                Text("Delete the cached Mii Channel WAD file? It will be re-downloaded the next time you use Mii Maker.")
-            },
+            text = { Text("Delete the cached Mii Channel WAD file? It will be re-downloaded the next time you use Mii Maker.") },
             confirmButton = {
-                Button(onClick = {
-                    viewModel.deleteWad()
-                    showWadDeleteConfirm = false
-                }) { Text("Delete") }
+                Button(onClick = { viewModel.deleteWad(); showWadDeleteConfirm = false }) { Text("Delete") }
             },
             dismissButton = {
                 TextButton(onClick = { showWadDeleteConfirm = false }) { Text("Cancel") }
@@ -128,126 +174,352 @@ fun SettingsScreen(
             )
         }
 
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 32.dp)
-                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            SaveDataSection(
-                saveState = saveState,
-                onBackup = onBackupSave,
-                onRestore = onRestoreSave,
-                onDelete = { showDeleteConfirm = true }
-            )
+            // Save Data
+            item {
+                SettingsCategoryHeader("Save Data")
+            }
+            item {
+                SettingsItem(
+                    icon = Icons.Filled.SaveAlt,
+                    title = "Backup",
+                    summary = if (saveState.hasSave) "Save file found" else "No save file found",
+                    trailing = {
+                        Button(
+                            onClick = onBackupSave,
+                            enabled = saveState.hasSave,
+                            shape = RoundedCornerShape(14.dp),
+                            contentPadding = ButtonDefaults.TextButtonContentPadding,
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        ) { Text("Backup", fontWeight = FontWeight.Medium) }
+                    }
+                )
+                SettingsItem(
+                    icon = Icons.Filled.Restore,
+                    title = "Restore",
+                    summary = "Replace current save with a backup",
+                    trailing = {
+                        Button(
+                            onClick = onRestoreSave,
+                            shape = RoundedCornerShape(14.dp),
+                            contentPadding = ButtonDefaults.TextButtonContentPadding,
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        ) { Text("Restore", fontWeight = FontWeight.Medium) }
+                    }
+                )
+                if (saveState.hasSave) {
+                    SettingsItem(
+                        icon = Icons.Filled.Delete,
+                        title = "Delete save data",
+                        titleColor = MaterialTheme.colorScheme.error,
+                        summary = "This cannot be undone",
+                        trailing = {
+                            TextButton(onClick = { showDeleteConfirm = true }) {
+                                Text("Delete", color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    )
+                }
+            }
 
-            Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider()
-            Spacer(modifier = Modifier.height(16.dp))
+            // Appearance
+            item {
+                SettingsCategoryHeader("Appearance")
+            }
+            item {
+                SettingsItem(
+                    icon = Icons.Filled.Palette,
+                    title = "Dynamic color",
+                    summary = if (useDynamicColor) "Using wallpaper colors" else "Using custom theme color",
+                    trailing = {
+                        Switch(checked = useDynamicColor, onCheckedChange = onToggleDynamicColor)
+                    }
+                )
+                SettingsItem(
+                    icon = Icons.Filled.Nightlight,
+                    title = "Dark mode",
+                    summary = when (themeMode) {
+                        ThemeMode.Light -> "Always light"
+                        ThemeMode.Dark -> "Always dark"
+                        ThemeMode.System -> "Follow system"
+                    },
+                    trailing = {
+                        Box {
+                            TextButton(
+                                onClick = { showThemeDropdown = true },
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Text(
+                                    text = when (themeMode) {
+                                        ThemeMode.Light -> "Light"
+                                        ThemeMode.Dark -> "Dark"
+                                        ThemeMode.System -> "System"
+                                    }
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showThemeDropdown,
+                                onDismissRequest = { showThemeDropdown = false }
+                            ) {
+                                ThemeMode.entries.forEach { mode ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                when (mode) {
+                                                    ThemeMode.Light -> "Light"
+                                                    ThemeMode.Dark -> "Dark"
+                                                    ThemeMode.System -> "System"
+                                                }
+                                            )
+                                        },
+                                        onClick = {
+                                            onChangeThemeMode(mode)
+                                            showThemeDropdown = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                )
+            }
 
-            MiiMakerSection(
-                miiMakerState = miiMakerState,
-                isInstallingWad = isInstallingWad,
-                miiMakerError = miiMakerError,
-                onInstallWad = { viewModel.installMiiMakerWad() },
-                onDeleteWad = { showWadDeleteConfirm = true }
-            )
+            // Retro Rewind
+            item {
+                SettingsCategoryHeader("Retro Rewind")
+            }
+            item {
+                val fileName = isoPath?.substringAfterLast('/')?.ifBlank { null }
+                SettingsItem(
+                    icon = Icons.Filled.Gamepad,
+                    title = "Mario Kart Wii",
+                    summary = fileName ?: "ROM not selected",
+                    trailing = {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TextButton(
+                                onClick = onPickIso,
+                                shape = RoundedCornerShape(14.dp)
+                            ) { Text("Pick") }
+                            if (fileName != null) {
+                                TextButton(
+                                    onClick = { viewModel.clearIsoPath() },
+                                    shape = RoundedCornerShape(14.dp)
+                                ) { Text("Clear") }
+                            }
+                        }
+                    }
+                )
+                SettingsItem(
+                    icon = Icons.Filled.Dns,
+                    title = "Pack storage",
+                    summary = viewModel.storageRootPath ?: "Not configured",
+                    trailing = null
+                )
+            }
 
-            Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider()
-            Spacer(modifier = Modifier.height(16.dp))
+            // Mii Maker
+            item {
+                SettingsCategoryHeader("Mii Maker")
+            }
+            item {
+                val wadStatus = if (miiMakerState.hasWad) "Installed" else "Not installed"
+                SettingsItem(
+                    icon = Icons.Filled.Checkroom,
+                    title = "Mii Channel WAD",
+                    summary = if (miiMakerError != null) miiMakerError else wadStatus,
+                    summaryColor = if (miiMakerError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    trailing = {
+                        if (isInstallingWad) {
+                            Text("Installing...", style = MaterialTheme.typography.bodySmall)
+                        } else if (miiMakerState.hasWad) {
+                            TextButton(onClick = { showWadDeleteConfirm = true }) {
+                                Text("Delete", color = MaterialTheme.colorScheme.error)
+                            }
+                        } else {
+                            Button(
+                                onClick = { viewModel.installMiiMakerWad() },
+                                shape = RoundedCornerShape(14.dp),
+                                contentPadding = ButtonDefaults.TextButtonContentPadding
+                            ) { Text("Install") }
+                        }
+                    }
+                )
+            }
 
-            ThemeSection(
-                useDynamicColor = useDynamicColor,
-                onToggleDynamicColor = onToggleDynamicColor,
-                themeMode = themeMode,
-                onChangeThemeMode = onChangeThemeMode
-            )
+            // Advanced
+            item {
+                SettingsCategoryHeader("Advanced")
+            }
+            item {
+                val cacheDir = remember { java.io.File(context.cacheDir, "rewind_pack_downloads") }
+                var cacheSizeBytes by remember { mutableStateOf(cacheSize(cacheDir)) }
+                SettingsItem(
+                    icon = Icons.Filled.Cached,
+                    title = "Download cache",
+                    summary = formatSize(cacheSizeBytes),
+                    trailing = {
+                        TextButton(
+                            onClick = {
+                                cacheDir.deleteRecursively()
+                                cacheSizeBytes = 0
+                            },
+                            enabled = cacheSizeBytes > 0,
+                            shape = RoundedCornerShape(14.dp)
+                        ) { Text("Clear") }
+                    }
+                )
+            }
+            item {
+                SettingsItem(
+                    icon = Icons.AutoMirrored.Filled.Shortcut,
+                    title = "Quick launch",
+                    summary = "Launch Retro Rewind directly from a home screen shortcut",
+                    trailing = {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TextButton(
+                                onClick = onSimulateQuickLaunch,
+                                shape = RoundedCornerShape(14.dp)
+                            ) { Text("Simulate") }
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                val shortcutManager = remember { context.getSystemService(Context.SHORTCUT_SERVICE) as? ShortcutManager }
+                                if (shortcutManager?.isRequestPinShortcutSupported == true) {
+                                    TextButton(
+                                        onClick = {
+                                            val intent = Intent("com.skiletro.wheelwitch.action.QUICK_LAUNCH").apply {
+                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                                                `package` = context.packageName
+                                            }
+                                            val shortcut = ShortcutInfo.Builder(context, "quick_launch")
+                                                .setShortLabel("Quick Launch")
+                                                .setLongLabel("Launch Retro Rewind")
+                                                .setIcon(Icon.createWithResource(context, com.skiletro.wheelwitch.R.mipmap.ic_launcher))
+                                                .setIntent(intent)
+                                                .build()
+                                            shortcutManager.requestPinShortcut(shortcut, null)
+                                        },
+                                        shape = RoundedCornerShape(14.dp)
+                                    ) { Text("Shortcut") }
+                                }
+                            }
+                        }
+                    }
+                )
+            }
+            item {
+                SettingsItem(
+                    icon = Icons.AutoMirrored.Filled.ExitToApp,
+                    title = "Onboarding",
+                    summary = "Re-run the initial setup wizard",
+                    trailing = {
+                        TextButton(
+                            onClick = onRelaunchOnboarding,
+                            shape = RoundedCornerShape(14.dp)
+                        ) { Text("Relaunch") }
+                    }
+                )
+            }
 
-            Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider()
-            Spacer(modifier = Modifier.height(16.dp))
+            // About
+            item {
+                SettingsCategoryHeader("About")
+            }
+            item {
+                val version = if (com.skiletro.wheelwitch.BuildConfig.DEBUG)
+                    "v${com.skiletro.wheelwitch.BuildConfig.VERSION_NAME}-debug-${com.skiletro.wheelwitch.BuildConfig.GIT_HASH}"
+                else
+                    "v${com.skiletro.wheelwitch.BuildConfig.VERSION_NAME}"
+                SettingsItem(
+                    icon = Icons.Filled.Info,
+                    title = "Wheel Witch",
+                    summary = "$version \u2014 Manages Retro Rewind Pack for MKWii",
+                    trailing = null
+                )
+            }
 
-            IsoSection(viewModel = viewModel, onPickIso = onPickIso)
-
-            Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider()
-            Spacer(modifier = Modifier.height(16.dp))
-
-            CacheSection()
-
-            Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider()
-            Spacer(modifier = Modifier.height(16.dp))
-
-            StorageSection(storageRootPath = viewModel.storageRootPath)
-
-            Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider()
-            Spacer(modifier = Modifier.height(16.dp))
-
-            AboutSection()
-
-            Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider()
-            Spacer(modifier = Modifier.height(16.dp))
-
-            QuickLaunchSection(onSimulate = onSimulateQuickLaunch)
-
-            Spacer(modifier = Modifier.height(32.dp))
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
+            }
         }
     }
 }
 
 @Composable
-private fun QuickLaunchSection(onSimulate: () -> Unit) {
-    val context = LocalContext.current
+private fun SettingsCategoryHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 4.dp)
+    )
+}
 
-    Text(
-        text = "Quick Launch",
-        style = MaterialTheme.typography.titleLarge,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onSurface
-    )
-    Spacer(modifier = Modifier.height(4.dp))
-    Text(
-        text = "Test the quick-launch intent flow from a game launcher.",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
-    Spacer(modifier = Modifier.height(12.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        OutlinedButton(
-            onClick = onSimulate,
-            shape = buttonShape,
-            modifier = Modifier.height(48.dp).weight(1f)
-        ) {
-            Text("Simulate Quick Launch", fontWeight = FontWeight.Medium)
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val shortcutManager = remember { context.getSystemService(ShortcutManager::class.java) }
-            val canPin = remember { shortcutManager?.isRequestPinShortcutSupported == true }
-            if (canPin) {
-                OutlinedButton(
-                    onClick = {
-                        val intent = Intent("com.skiletro.wheelwitch.action.QUICK_LAUNCH").apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                            `package` = context.packageName
-                        }
-                        val shortcut = ShortcutInfo.Builder(context, "quick_launch")
-                            .setShortLabel("Quick Launch")
-                            .setLongLabel("Launch Retro Rewind")
-                            .setIcon(Icon.createWithResource(context, com.skiletro.wheelwitch.R.mipmap.ic_launcher))
-                            .setIntent(intent)
-                            .build()
-                            shortcutManager?.requestPinShortcut(shortcut, null)
-                    },
-                    shape = buttonShape,
-                    modifier = Modifier.height(48.dp).weight(1f)
-                ) {
-                    Text("Add Shortcut", fontWeight = FontWeight.Medium)
-                }
+@Composable
+private fun SettingsItem(
+    icon: ImageVector,
+    title: String,
+    summary: String? = null,
+    iconTint: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    titleColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface,
+    summaryColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    trailing: @Composable (() -> Unit)? = null,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = iconTint,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = titleColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (summary != null) {
+                Text(
+                    text = summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = summaryColor,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
+        if (trailing != null) {
+            Spacer(modifier = Modifier.width(12.dp))
+            trailing()
+        }
     }
+}
+
+private fun cacheSize(dir: java.io.File): Long {
+    if (!dir.exists()) return 0
+    return dir.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+}
+
+private fun formatSize(bytes: Long): String = when {
+    bytes < 1024 -> "$bytes B"
+    bytes < 1024 * 1024 -> "${bytes / 1024} KB"
+    else -> "%.2f MB".format(bytes / (1024.0 * 1024.0))
 }

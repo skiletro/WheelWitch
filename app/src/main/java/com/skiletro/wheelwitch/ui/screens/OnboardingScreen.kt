@@ -2,6 +2,11 @@ package com.skiletro.wheelwitch.ui.screens
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -23,6 +28,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -32,29 +38,39 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.util.DolphinLauncher
+import com.skiletro.wheelwitch.util.MiiWadInstaller
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
 fun OnboardingScreen(
     storageSelected: Boolean,
     isoSelected: Boolean,
+    storageConfigured: Boolean,
+    isoConfigured: Boolean,
     onPickStorage: () -> Unit,
+    onSkipStorage: () -> Unit,
     onPickIso: () -> Unit,
+    onSkipIso: () -> Unit,
     onComplete: () -> Unit
 ) {
     var step by remember { mutableStateOf(0) }
     var dolphinRetry by remember { mutableStateOf(0) }
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var dolphinInstalled by remember { mutableStateOf<Boolean?>(null) }
 
     LaunchedEffect(step, dolphinRetry) {
@@ -72,6 +88,17 @@ fun OnboardingScreen(
 
     LaunchedEffect(isoSelected) {
         if (isoSelected && step == 3) step = 4
+    }
+
+    var miiWadState by remember { mutableStateOf<MiiWadOnboarding?>(null) }
+
+    LaunchedEffect(step) {
+        if (step == 4) {
+            miiWadState = withContext(Dispatchers.IO) {
+                if (MiiWadInstaller.getCachedWadFile(context) != null) MiiWadOnboarding.Installed
+                else MiiWadOnboarding.NotInstalled
+            }
+        }
     }
 
     Box(
@@ -114,17 +141,41 @@ fun OnboardingScreen(
                             onDownload = { DolphinLauncher.openDolphinDownload(context) }
                         )
                         2 -> StorageStep(
-                            onPickStorage = onPickStorage
+                            onPickStorage = onPickStorage,
+                            onContinue = onSkipStorage,
+                            alreadyConfigured = storageConfigured
                         )
                         3 -> IsoStep(
-                            onPickIso = onPickIso
+                            onPickIso = onPickIso,
+                            onContinue = onSkipIso,
+                            alreadyConfigured = isoConfigured
                         )
-                        4 -> CompleteStep(onDone = onComplete)
+                        4 -> MiiStep(
+                            state = miiWadState,
+                            onInstall = {
+                                miiWadState = MiiWadOnboarding.Installing
+                                scope.launch {
+                                    try {
+                                        withContext(Dispatchers.IO) {
+                                            MiiWadInstaller.downloadAndExtractWad(context)
+                                        }
+                                        miiWadState = MiiWadOnboarding.Installed
+                                    } catch (e: Exception) {
+                                        miiWadState = MiiWadOnboarding.Error(
+                                            e.message ?: "Failed to install Mii Channel WAD"
+                                        )
+                                    }
+                                }
+                            },
+                            onSkip = { step = 5 },
+                            onNext = { step = 5 }
+                        )
+                        5 -> CompleteStep(onDone = onComplete)
                     }
                 }
             }
             Spacer(modifier = Modifier.height(32.dp))
-            StepDots(current = step, total = 5)
+            StepDots(current = step, total = 6)
         }
     }
 }
@@ -303,7 +354,7 @@ private fun DolphinCheckStep(
 }
 
 @Composable
-private fun StorageStep(onPickStorage: () -> Unit) {
+private fun StorageStep(onPickStorage: () -> Unit, onContinue: () -> Unit, alreadyConfigured: Boolean) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = sectionShape,
@@ -320,36 +371,77 @@ private fun StorageStep(onPickStorage: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = "Choose a folder where the Retro Rewind Pack files will be stored. Pick a location that Dolphin Emulator can access.",
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(
-                onClick = onPickStorage,
-                shape = buttonShape,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            ) {
+            if (alreadyConfigured) {
                 Text(
-                    text = "Select Folder",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    text = "A storage location is already configured. Continue to the next step.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = onContinue,
+                    shape = buttonShape,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Text(
+                        text = "Continue",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            } else {
+                Text(
+                    text = "Choose a folder where the Retro Rewind Pack files will be stored. Pick a location that Dolphin Emulator can access.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = onPickStorage,
+                    shape = buttonShape,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Text(
+                        text = "Select Folder",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = onContinue,
+                    shape = buttonShape,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                ) {
+                    Text(
+                        text = "Skip",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun IsoStep(onPickIso: () -> Unit) {
+private fun IsoStep(onPickIso: () -> Unit, onContinue: () -> Unit, alreadyConfigured: Boolean) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = sectionShape,
@@ -366,29 +458,272 @@ private fun IsoStep(onPickIso: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(12.dp))
+            if (alreadyConfigured) {
+                Text(
+                    text = "A Mario Kart Wii ROM is already configured. Continue to the next step.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = onContinue,
+                    shape = buttonShape,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Text(
+                        text = "Continue",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            } else {
+                Text(
+                    text = "Select your Mario Kart Wii ROM file. Wheel Witch needs this to launch the game with Retro Rewind in Dolphin.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = onPickIso,
+                    shape = buttonShape,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Text(
+                        text = "Select ROM File",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = onContinue,
+                    shape = buttonShape,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                ) {
+                    Text(
+                        text = "Skip",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+    }
+}
+
+private sealed class MiiWadOnboarding {
+    data object NotInstalled : MiiWadOnboarding()
+    data object Installing : MiiWadOnboarding()
+    data object Installed : MiiWadOnboarding()
+    data class Error(val message: String) : MiiWadOnboarding()
+}
+
+@Composable
+private fun MiiStep(
+    state: MiiWadOnboarding?,
+    onInstall: () -> Unit,
+    onSkip: () -> Unit,
+    onNext: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = sectionShape,
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Column(
+            modifier = Modifier.padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Text(
-                text = "Select your Mario Kart Wii ROM file. Wheel Witch needs this to launch the game with Retro Rewind in Dolphin.",
+                text = "Mii Channel WAD",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Optionally install the Mii Channel WAD to create and edit Miis within Dolphin.",
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(
-                onClick = onPickIso,
-                shape = buttonShape,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            ) {
-                Text(
-                    text = "Select ROM File",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
+            Spacer(modifier = Modifier.height(20.dp))
+
+            when (state) {
+                null -> {
+                    Text(
+                        text = "Checking...",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                is MiiWadOnboarding.Installed -> {
+                    Text(
+                        text = "Mii Channel is installed!",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = onNext,
+                        shape = buttonShape,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
+                        Text(
+                            text = "Continue",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+                is MiiWadOnboarding.Installing -> {
+                    val infiniteTransition = rememberInfiniteTransition(label = "wad_rotate")
+                    val rotation by infiniteTransition.animateFloat(
+                        initialValue = 0f,
+                        targetValue = 360f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(durationMillis = 1500, easing = LinearEasing),
+                            repeatMode = RepeatMode.Restart
+                        ),
+                        label = "rotation"
+                    )
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(com.skiletro.wheelwitch.R.drawable.ic_hat_wizard),
+                            contentDescription = "Installing",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .rotate(rotation)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Installing Mii Channel WAD...",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                is MiiWadOnboarding.Error -> {
+                    Text(
+                        text = state.message,
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onSkip,
+                            shape = buttonShape,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                        ) {
+                            Text(
+                                text = "Skip",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                        Button(
+                            onClick = onInstall,
+                            shape = buttonShape,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        ) {
+                            Text(
+                                text = "Retry",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+                is MiiWadOnboarding.NotInstalled -> {
+                    Text(
+                        text = "Not installed",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "You can skip this step and install later from Settings if you change your mind.",
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onSkip,
+                            shape = buttonShape,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                        ) {
+                            Text(
+                                text = "Skip",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                        Button(
+                            onClick = onInstall,
+                            shape = buttonShape,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        ) {
+                            Text(
+                                text = "Install",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
             }
         }
     }
