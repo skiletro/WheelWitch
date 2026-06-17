@@ -2,23 +2,6 @@ package com.skiletro.wheelwitch.model
 
 import org.json.JSONObject
 
-data class RoomStatusResponse(
-    val rooms: List<Room>,
-) {
-    fun totalPlayerCount(): Int = rooms.sumOf { it.players.size }
-}
-
-data class Room(
-    val id: String,
-    val type: String,
-    val players: List<Player>,
-)
-
-data class Player(
-    val pid: String,
-    val name: String,
-)
-
 sealed interface ServerConnectivity {
     data object Online : ServerConnectivity
     data object Offline : ServerConnectivity

@@ -15,7 +15,7 @@ import okhttp3.Request
 import java.io.File
 
 object RewindPackManager {
-    private const val VERSION_FILE = "RetroRewind6/version.txt"
+    internal const val VERSION_FILE = "RetroRewind6/version.txt"
     private const val FOLDER_NAME = "RetroRewind6"
     private const val MIN_FULL_REINSTALL_VERSION = "3.2.6"
     private const val DOWNLOAD_BUFFER = 262144

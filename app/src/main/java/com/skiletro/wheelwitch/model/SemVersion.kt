@@ -7,6 +7,9 @@ data class SemVersion(val major: Int, val minor: Int, val patch: Int, val preRel
         major.compareTo(other.major).let { if (it != 0) return it }
         minor.compareTo(other.minor).let { if (it != 0) return it }
         patch.compareTo(other.patch).let { if (it != 0) return it }
+        if (preRelease != null && other.preRelease != null) {
+            preRelease.compareTo(other.preRelease).let { if (it != 0) return it }
+        }
         if (preRelease == null && other.preRelease != null) return 1
         if (preRelease != null && other.preRelease == null) return -1
         return 0

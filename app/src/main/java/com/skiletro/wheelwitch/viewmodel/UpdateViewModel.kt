@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.skiletro.wheelwitch.data.PackStorage
 import com.skiletro.wheelwitch.data.SaveManager
 import com.skiletro.wheelwitch.domain.RewindPackManager
+import com.skiletro.wheelwitch.domain.RewindPackManager.VERSION_FILE
 import com.skiletro.wheelwitch.network.VersionFileParser
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.ProgressInfo
@@ -359,7 +360,7 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun getDisplayVersion(): String {
         return try {
-            val text = storage?.readFile("RetroRewind6/version.txt")?.trim() ?: "Unknown"
+            val text = storage?.readFile(VERSION_FILE)?.trim() ?: "Unknown"
             text
         } catch (e: Exception) {
             "Unknown"

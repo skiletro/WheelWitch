@@ -46,9 +46,9 @@ object VersionFileParser {
             }
     }
 
-    private fun fetchDeletions(): List<DeletionEntry> = runCatching {
+    private fun fetchDeletions(): List<DeletionEntry> {
         val text = fetchUrl(DELETE_URL)
-        text.lines()
+        return text.lines()
             .map { it.trim() }
             .filter { it.isNotEmpty() }
             .mapNotNull { line ->
@@ -57,7 +57,7 @@ object VersionFileParser {
                 val version = SemVersion.parse(parts[0].trim()) ?: return@mapNotNull null
                 DeletionEntry(version, parts[1].trim())
             }
-    }.getOrDefault(emptyList())
+    }
 
     fun getFullZipUrl(): String = FULL_ZIP_URL
 

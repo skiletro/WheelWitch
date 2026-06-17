@@ -11,6 +11,12 @@ An Android app that downloads/updates the Retro Rewind Mario Kart Wii Pack and l
 
 No test framework — test sources deleted.
 
+## Git
+
+- Commit after each logical feature change; use descriptive messages matching the existing conversational style (e.g. "add room status thingie").
+- Stage only the intended files with `git add <file>` and commit with `git commit -m "<message>"`.
+- Read `git status` before every commit; never use `git add -A` or `git commit -a` without first verifying the diff.
+
 ## Architecture
 
 - **Min SDK**: 31 (Android 12)
@@ -43,7 +49,8 @@ com.skiletro.wheelwitch
 │   ├── DeletionEntry.kt
 │   ├── ServerInfo.kt
 │   ├── PackStatus.kt
-│   └── ProgressInfo.kt
+│   ├── ProgressInfo.kt
+│   └── RoomStatus.kt    — Online rooms API + ServerConnectivity
 ├── data/                — Storage and persistence
 │   ├── PackStorage.kt   — SAF + direct file I/O
 │   └── SaveManager.kt   — Save file management

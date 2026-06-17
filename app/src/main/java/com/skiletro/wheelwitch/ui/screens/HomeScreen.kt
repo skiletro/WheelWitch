@@ -109,15 +109,12 @@ fun HomeScreen(
             else -> null
         }
 
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            VersionHistoryWebView(modifier = Modifier.fillMaxSize())
-
             Surface(
-                modifier = Modifier.align(Alignment.TopStart).fillMaxWidth(),
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 0.dp
             ) {
@@ -128,8 +125,9 @@ fun HomeScreen(
                 )
             }
 
+            VersionHistoryWebView(modifier = Modifier.weight(1f).fillMaxWidth())
+
             Surface(
-                modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth(),
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 0.dp
             ) {
@@ -181,8 +179,7 @@ fun HomeScreen(
                         is UiState.Checking -> CheckingContent()
                         is UiState.Ready -> ReadyContent(
                             status = currentState.status,
-                            viewModel = viewModel,
-                            compact = false
+                            viewModel = viewModel
                         )
                         is UiState.Downloading -> ProgressContent(
                             currentState.progress,
@@ -309,11 +306,10 @@ private fun SuccessBanner(message: String) {
 
 @Composable
 private fun ContentSection(
-    modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         shape = sectionShape,
         color = MaterialTheme.colorScheme.surfaceVariant,
         tonalElevation = 0.dp
@@ -543,54 +539,49 @@ private fun CheckingContent() {
 @Composable
 private fun ReadyContent(
     status: PackStatus,
-    viewModel: UpdateViewModel,
-    compact: Boolean
+    viewModel: UpdateViewModel
 ) {
-    if (compact) {
-        // No center content — version info shown below Launch button
-    } else {
-        val (title, subtitle, actionText) = when (status) {
-            is PackStatus.NotInstalled -> Triple(
-                PACK_NAME, "Not installed", "Download & Install"
-            )
-            is PackStatus.Installed -> Triple(
-                PACK_NAME, "Version ${status.version} (offline)", ""
-            )
-            is PackStatus.UpdateAvailable -> Triple(
-                "Update Available",
-                "${status.currentVersion} \u2192 ${status.latestVersion}",
-                "Update to v${status.latestVersion}"
-            )
-            is PackStatus.UpToDate -> Triple(
-                PACK_NAME,
-                "v${status.currentVersion} (latest is v${status.latestVersion})",
-                ""
-            )
-        }
+    val (title, subtitle, actionText) = when (status) {
+        is PackStatus.NotInstalled -> Triple(
+            PACK_NAME, "Not installed", "Download & Install"
+        )
+        is PackStatus.Installed -> Triple(
+            PACK_NAME, "Version ${status.version} (offline)", ""
+        )
+        is PackStatus.UpdateAvailable -> Triple(
+            "Update Available",
+            "${status.currentVersion} \u2192 ${status.latestVersion}",
+            "Update to v${status.latestVersion}"
+        )
+        is PackStatus.UpToDate -> Triple(
+            PACK_NAME,
+            "v${status.currentVersion} (latest is v${status.latestVersion})",
+            ""
+        )
+    }
 
-        ContentSection {
-            SectionTitle(title)
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(24.dp))
+    ContentSection {
+        SectionTitle(title)
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(24.dp))
 
-            if (actionText.isNotEmpty()) {
-                PrimaryActionButton(
-                    text = actionText,
-                    onClick = { viewModel.downloadOrUpdate(status) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            } else {
-                PrimaryActionButton(
-                    text = "Launch Dolphin",
-                    onClick = { viewModel.launchDolphin() },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+        if (actionText.isNotEmpty()) {
+            PrimaryActionButton(
+                text = actionText,
+                onClick = { viewModel.downloadOrUpdate(status) },
+                modifier = Modifier.fillMaxWidth()
+            )
+        } else {
+            PrimaryActionButton(
+                text = "Launch Dolphin",
+                onClick = { viewModel.launchDolphin() },
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
