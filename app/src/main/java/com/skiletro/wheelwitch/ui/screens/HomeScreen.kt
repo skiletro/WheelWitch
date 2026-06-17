@@ -196,17 +196,21 @@ fun HomeScreen(
             ) {
                 VersionHistoryContent(modifier = Modifier.fillMaxSize())
 
-                if (successMessage != null) {
+                AnimatedVisibility(
+                    visible = successMessage != null,
+                    enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+                    exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+                    modifier = Modifier.align(Alignment.TopCenter)
+                ) {
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .align(Alignment.TopCenter)
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         shape = sectionShape,
                         color = MaterialTheme.colorScheme.primaryContainer
                     ) {
                         Text(
-                            text = successMessage!!,
+                            text = successMessage.orEmpty(),
                             modifier = Modifier.padding(16.dp),
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
