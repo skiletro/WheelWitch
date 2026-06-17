@@ -2,6 +2,7 @@ package com.skiletro.wheelwitch.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -13,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import android.app.Activity
+import com.skiletro.wheelwitch.R
 
 private val PurpleDarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -164,7 +166,25 @@ private val CatppuccinLightColorScheme = lightColorScheme(
 
 enum class ThemeMode { Light, Dark, Oled, System }
 
-enum class AppTheme { Hex, Swamp, Wizard, Catppuccin, MaterialYou }
+enum class AppTheme(val labelRes: Int) {
+    Hex(R.string.settings_app_theme_purple),
+    Swamp(R.string.settings_app_theme_green),
+    Wizard(R.string.settings_app_theme_wizard),
+    Catppuccin(R.string.settings_app_theme_catppuccin),
+    MaterialYou(R.string.settings_app_theme_material_you);
+
+    @Composable
+    fun colorScheme(darkTheme: Boolean): ColorScheme = when (this) {
+        Hex -> if (darkTheme) PurpleDarkColorScheme else PurpleLightColorScheme
+        Swamp -> if (darkTheme) SwampDarkColorScheme else SwampLightColorScheme
+        Wizard -> if (darkTheme) WizardDarkColorScheme else WizardLightColorScheme
+        Catppuccin -> if (darkTheme) CatppuccinDarkColorScheme else CatppuccinLightColorScheme
+        MaterialYou -> {
+            val context = LocalContext.current
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+    }
+}
 
 @Composable
 fun WheelWitchTheme(
@@ -177,16 +197,7 @@ fun WheelWitchTheme(
         ThemeMode.Dark, ThemeMode.Oled -> true
         ThemeMode.System -> isSystemInDarkTheme()
     }
-    val colorScheme = when (appTheme) {
-        AppTheme.Hex -> if (darkTheme) PurpleDarkColorScheme else PurpleLightColorScheme
-        AppTheme.Swamp -> if (darkTheme) SwampDarkColorScheme else SwampLightColorScheme
-        AppTheme.Wizard -> if (darkTheme) WizardDarkColorScheme else WizardLightColorScheme
-        AppTheme.Catppuccin -> if (darkTheme) CatppuccinDarkColorScheme else CatppuccinLightColorScheme
-        AppTheme.MaterialYou -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-    }.let { scheme ->
+    val colorScheme = appTheme.colorScheme(darkTheme).let { scheme ->
         if (themeMode == ThemeMode.Oled) scheme.copy(
             background = Color.Black,
             surface = Color.Black,

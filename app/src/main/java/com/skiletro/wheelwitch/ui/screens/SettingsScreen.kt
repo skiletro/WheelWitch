@@ -217,13 +217,7 @@ fun SettingsScreen(
                 SettingsCategoryHeader(stringResource(R.string.settings_appearance))
             }
             item {
-                val appThemeLabel = when (appTheme) {
-                    AppTheme.Hex -> stringResource(R.string.settings_app_theme_purple)
-                    AppTheme.Swamp -> stringResource(R.string.settings_app_theme_green)
-                    AppTheme.Wizard -> stringResource(R.string.settings_app_theme_wizard)
-                    AppTheme.Catppuccin -> stringResource(R.string.settings_app_theme_catppuccin)
-                    AppTheme.MaterialYou -> stringResource(R.string.settings_app_theme_material_you)
-                }
+                val appThemeLabel = stringResource(appTheme.labelRes)
                 SettingsItem(
                     icon = Icons.Filled.Palette,
                     title = stringResource(R.string.settings_app_theme),
@@ -242,17 +236,7 @@ fun SettingsScreen(
                             ) {
                                 AppTheme.entries.forEach { theme ->
                                     DropdownMenuItem(
-                                        text = {
-                                            Text(
-                                                when (theme) {
-                                                    AppTheme.Hex -> stringResource(R.string.settings_app_theme_purple)
-                                                    AppTheme.Swamp -> stringResource(R.string.settings_app_theme_green)
-                                                    AppTheme.Wizard -> stringResource(R.string.settings_app_theme_wizard)
-                                                    AppTheme.Catppuccin -> stringResource(R.string.settings_app_theme_catppuccin)
-                                                    AppTheme.MaterialYou -> stringResource(R.string.settings_app_theme_material_you)
-                                                }
-                                            )
-                                        },
+                                        text = { Text(stringResource(theme.labelRes)) },
                                         onClick = {
                                             onChangeAppTheme(theme)
                                             showAppThemeDropdown = false
