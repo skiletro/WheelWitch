@@ -2,21 +2,15 @@
 
 An Android app that downloads/updates the Retro Rewind Mario Kart Wii Pack and launches Dolphin Emulator.
 
+> Build instructions, commit conventions, and contribution guidelines live in [CONTRIBUTING.md](CONTRIBUTING.md). This file covers architecture, key decisions, constants, and testing — the things that don't change often.
+
 ## Build & Dev
 
-```bash
-./gradlew assembleDebug                  # build APK
-./gradlew assembleDebug --build-cache    # cached build
-./gradlew testDebugUnitTest              # run all unit tests
-./gradlew testDebugUnitTest --tests "com.skiletro.wheelwitch.model.SemVersionTest"  # single test class
-./gradlew assembleRelease                # release build (R8/ProGuard)
-```
+See [CONTRIBUTING.md#build](CONTRIBUTING.md#build) for build commands and signing setup.
 
-## Git
+## Git & Commits
 
-- Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) — `<type>(<scope>): <description>`, lowercase imperative, no trailing period.
-- Common types: `feat:` (new user-facing), `fix:` (bug fix), `refactor:` (neither), `perf:`, `test:`, `docs:`, `chore:`, `build:`.
-- Use scopes matching the package layout: `dolphin`, `pack`, `save`, `mii-maker`, `online`, `leaderboard`, `rooms`, `race-stats`, `changelog`, `onboarding`, `home`, `settings`, `quick-launch`, `theme`, `gamepad`, `ui`, `storage`, `i18n`, `viewmodel`.
+- Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) — `<type>(<scope>): <description>`, lowercase imperative, no trailing period. See [CONTRIBUTING.md#commit-messages](CONTRIBUTING.md#commit-messages) for types and scopes.
 - Stage only intended files with `git add <file>`; read `git status` before every commit; never use `git add -A` or `git commit -a` without verifying the diff.
 
 ## Architecture
