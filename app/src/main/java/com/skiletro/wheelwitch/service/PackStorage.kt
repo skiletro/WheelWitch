@@ -5,12 +5,37 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.documentfile.provider.DocumentFile
 import java.io.File
+import java.io.InputStream
+import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
+import java.util.zip.ZipInputStream
 
 class PackStorage(private val context: Context, private val rootUri: Uri) {
     private val resolver get() = context.contentResolver
     private val rootDoc: DocumentFile by lazy { DocumentFile.fromTreeUri(context, rootUri)!! }
     val rootPath: String? = resolveToRealPath(rootUri)
+
+    companion object {
+        const val COPY_BUFFER_SIZE = 262144
+
+        private fun resolveToRealPath(treeUri: Uri): String? {
+            val docId = try {
+                DocumentsContract.getTreeDocumentId(treeUri)
+            } catch (e: Exception) {
+                return null
+            }
+            val parts = docId.split(":")
+            if (parts.size < 2) return null
+            val storageType = parts[0]
+            val relativePath = parts[1]
+            return when {
+                storageType.equals("primary", ignoreCase = true) ->
+                    "/storage/emulated/0/$relativePath"
+                else ->
+                    "/storage/$storageType/$relativePath"
+            }
+        }
+    }
 
     fun readFile(childPath: String): String? {
         val file = resolveDirect(childPath)
@@ -59,7 +84,7 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
                         target.parentFile?.mkdirs()
                         zf.getInputStream(entry).use { input ->
                             target.outputStream().use { output ->
-                                input.copyTo(output, 8192)
+                                input.copyTo(output, COPY_BUFFER_SIZE)
                             }
                         }
                     }
@@ -69,7 +94,7 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
                         val doc = getOrCreateDoc(name)
                         zf.getInputStream(entry).use { input ->
                             resolver.openOutputStream(doc.uri)?.use { output ->
-                                input.copyTo(output, 8192)
+                                input.copyTo(output, COPY_BUFFER_SIZE)
                             }
                         }
                     }
@@ -81,6 +106,45 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
                 }
             }
         }
+    }
+
+    fun extractStreamed(
+        inputStream: InputStream,
+        onProgress: (Float) -> Unit
+    ): Result<Unit> = runCatching {
+        val zipInput = ZipInputStream(inputStream)
+        var entry: ZipEntry? = zipInput.nextEntry
+        var processed = 0
+
+        val useDirect = rootPath != null
+
+        while (entry != null) {
+            val name = entry.name.trimStart('/')
+            if (name.isNotEmpty() && !entry.isDirectory) {
+                if (useDirect) {
+                    val target = File(rootPath, name)
+                    target.parentFile?.mkdirs()
+                    target.outputStream().use { output ->
+                        zipInput.copyTo(output, COPY_BUFFER_SIZE)
+                    }
+                } else {
+                    ensureDocDirs(name)
+                    val doc = getOrCreateDoc(name)
+                    resolver.openOutputStream(doc.uri)?.use { output ->
+                        zipInput.copyTo(output, COPY_BUFFER_SIZE)
+                    }
+                }
+            }
+
+            processed++
+            if (processed % 50 == 0) {
+                onProgress(-1f)
+            }
+            zipInput.closeEntry()
+            entry = zipInput.nextEntry
+        }
+
+        onProgress(1f)
     }
 
     fun getFileUri(childPath: String): Uri? {
@@ -123,23 +187,4 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
         }
     }
 
-    companion object {
-        private fun resolveToRealPath(treeUri: Uri): String? {
-            val docId = try {
-                DocumentsContract.getTreeDocumentId(treeUri)
-            } catch (e: Exception) {
-                return null
-            }
-            val parts = docId.split(":")
-            if (parts.size < 2) return null
-            val storageType = parts[0]
-            val relativePath = parts[1]
-            return when {
-                storageType.equals("primary", ignoreCase = true) ->
-                    "/storage/emulated/0/$relativePath"
-                else ->
-                    "/storage/$storageType/$relativePath"
-            }
-        }
-    }
 }

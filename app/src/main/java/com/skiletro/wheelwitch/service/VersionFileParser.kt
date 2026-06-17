@@ -1,7 +1,40 @@
 package com.skiletro.wheelwitch.service
 
-import java.net.HttpURLConnection
-import java.net.URL
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.util.concurrent.TimeUnit
+
+data class SemVersion(val major: Int, val minor: Int, val patch: Int, val preRelease: String? = null) :
+    Comparable<SemVersion> {
+
+    override fun compareTo(other: SemVersion): Int {
+        major.compareTo(other.major).let { if (it != 0) return it }
+        minor.compareTo(other.minor).let { if (it != 0) return it }
+        patch.compareTo(other.patch).let { if (it != 0) return it }
+        if (preRelease == null && other.preRelease != null) return 1
+        if (preRelease != null && other.preRelease == null) return -1
+        return 0
+    }
+
+    override fun toString(): String {
+        return if (preRelease != null) "$major.$minor.$patch-$preRelease" else "$major.$minor.$patch"
+    }
+
+    companion object {
+        fun parse(text: String): SemVersion? {
+            val cleaned = text.trimStart('v', 'V')
+            val dashIdx = cleaned.indexOf('-')
+            val versionPart = if (dashIdx >= 0) cleaned.substring(0, dashIdx) else cleaned
+            val preRelease = if (dashIdx >= 0) cleaned.substring(dashIdx + 1) else null
+            val parts = versionPart.split(".")
+            if (parts.size < 3) return null
+            val major = parts[0].toIntOrNull() ?: return null
+            val minor = parts[1].toIntOrNull() ?: return null
+            val patch = parts[2].toIntOrNull() ?: return null
+            return SemVersion(major, minor, patch, preRelease)
+        }
+    }
+}
 
 data class UpdateEntry(
     val version: SemVersion,
@@ -20,6 +53,11 @@ object VersionFileParser {
     private const val VERSION_URL = "${RR_BASE}RetroRewind/RetroRewindVersion.txt"
     private const val DELETE_URL = "${RR_BASE}RetroRewind/RetroRewindDelete.txt"
     private const val FULL_ZIP_URL = "${RR_BASE}RetroRewind/zip/RetroRewind.zip"
+
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .build()
 
     data class ServerInfo(
         val latestVersion: SemVersion,
@@ -67,44 +105,12 @@ object VersionFileParser {
 
     fun getFullZipUrl(): String = FULL_ZIP_URL
 
+    fun okHttpClient(): OkHttpClient = client
+
     private fun fetchUrl(urlString: String): String {
-        val url = URL(urlString)
-        val connection = url.openConnection() as HttpURLConnection
-        connection.connectTimeout = 15000
-        connection.readTimeout = 15000
-        connection.requestMethod = "GET"
-        return connection.inputStream.bufferedReader().use { it.readText() }
-    }
-}
-
-data class SemVersion(val major: Int, val minor: Int, val patch: Int, val preRelease: String? = null) :
-    Comparable<SemVersion> {
-
-    override fun compareTo(other: SemVersion): Int {
-        major.compareTo(other.major).let { if (it != 0) return it }
-        minor.compareTo(other.minor).let { if (it != 0) return it }
-        patch.compareTo(other.patch).let { if (it != 0) return it }
-        if (preRelease == null && other.preRelease != null) return 1
-        if (preRelease != null && other.preRelease == null) return -1
-        return 0
-    }
-
-    override fun toString(): String {
-        return if (preRelease != null) "$major.$minor.$patch-$preRelease" else "$major.$minor.$patch"
-    }
-
-    companion object {
-        fun parse(text: String): SemVersion? {
-            val cleaned = text.trimStart('v', 'V')
-            val dashIdx = cleaned.indexOf('-')
-            val versionPart = if (dashIdx >= 0) cleaned.substring(0, dashIdx) else cleaned
-            val preRelease = if (dashIdx >= 0) cleaned.substring(dashIdx + 1) else null
-            val parts = versionPart.split(".")
-            if (parts.size < 3) return null
-            val major = parts[0].toIntOrNull() ?: return null
-            val minor = parts[1].toIntOrNull() ?: return null
-            val patch = parts[2].toIntOrNull() ?: return null
-            return SemVersion(major, minor, patch, preRelease)
+        val request = Request.Builder().url(urlString).build()
+        client.newCall(request).execute().use { response ->
+            return response.body?.string() ?: error("Empty response from $urlString")
         }
     }
 }

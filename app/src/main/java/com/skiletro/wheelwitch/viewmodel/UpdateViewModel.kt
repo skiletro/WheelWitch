@@ -163,6 +163,10 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setGameIsoPath(path: String) {
         DolphinLauncher.setGameIsoPath(getApplication(), path)
+        val currentState = _state.value
+        if (currentState is UiState.Error && currentState.message.contains("ROM file", ignoreCase = true)) {
+            launchDolphin()
+        }
     }
 
     fun clearError() {
