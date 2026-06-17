@@ -42,9 +42,11 @@ import com.skiletro.wheelwitch.viewmodel.SaveDataViewModel
 
 /** Single-activity entry point. Hosts [HomeScreen] with onboarding wizard, settings navigation, and save info/rooms overlays. */
 class MainActivity : ComponentActivity() {
+    private var pendingQuickLaunch by mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val initialQuickLaunch = intent?.action == ACTION_QUICK_LAUNCH
+        pendingQuickLaunch = intent?.action == ACTION_QUICK_LAUNCH
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val controller = WindowCompat.getInsetsController(window, window.decorView)
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -60,6 +62,7 @@ class MainActivity : ComponentActivity() {
                 themeMode = themeMode,
                 dynamicColor = useDynamicColor
             ) {
+                val initialQuickLaunch = pendingQuickLaunch
                 MainScreen(
                     quickLaunchFromIntent = initialQuickLaunch,
                     useDynamicColor = useDynamicColor,
@@ -80,7 +83,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         if (intent.action == ACTION_QUICK_LAUNCH) {
-            recreate()
+            pendingQuickLaunch = true
         }
     }
 
