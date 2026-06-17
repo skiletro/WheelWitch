@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,7 +55,8 @@ fun TopBar(
     onLaunchMiiMaker: () -> Unit,
     miiMakerEnabled: Boolean,
     onOpenNetplay: () -> Unit,
-    roomsEnabled: Boolean
+    roomsEnabled: Boolean,
+    onOpenSaveInfo: () -> Unit = {}
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "bob")
     val bobOffset by infiniteTransition.animateFloat(
@@ -101,14 +103,21 @@ fun TopBar(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        IconButton(onClick = onOpenNetplay, enabled = roomsEnabled) {
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = "Online Rooms",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        TextButton(
+    IconButton(onClick = onOpenNetplay, enabled = roomsEnabled) {
+        Icon(
+            imageVector = Icons.Default.Person,
+            contentDescription = "Online Rooms",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+    IconButton(onClick = onOpenSaveInfo) {
+        Icon(
+            imageVector = Icons.Default.Info,
+            contentDescription = "Save Data",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+    TextButton(
             onClick = onLaunchMiiMaker,
             enabled = miiMakerEnabled
         ) {

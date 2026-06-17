@@ -72,8 +72,12 @@ fun HomeScreen(
     val rooms by viewModel.rooms.collectAsState()
     val isLoadingRooms by viewModel.isLoadingRooms.collectAsState()
     val roomsError by viewModel.roomsError.collectAsState()
+    val saveFileInfo by viewModel.saveFileInfo.collectAsState()
+    val isLoadingSaveInfo by viewModel.isLoadingSaveInfo.collectAsState()
+    val saveInfoError by viewModel.saveInfoError.collectAsState()
 
     var showRooms by remember { mutableStateOf(false) }
+    var showSaveInfo by remember { mutableStateOf(false) }
 
     LaunchedEffect(successMessage) {
         if (successMessage != null) {
@@ -95,7 +99,15 @@ fun HomeScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (showRooms) {
+        if (showSaveInfo) {
+            SaveInfoScreen(
+                saveFileInfo = saveFileInfo,
+                isLoading = isLoadingSaveInfo,
+                errorMessage = saveInfoError,
+                onRefresh = { viewModel.refreshSaveFileInfo() },
+                onClose = { showSaveInfo = false }
+            )
+        } else if (showRooms) {
             RoomsScreen(
                 rooms = rooms,
                 isLoading = isLoadingRooms,
@@ -133,7 +145,11 @@ fun HomeScreen(
                                 viewModel.fetchRooms()
                                 showRooms = true
                             },
-                            roomsEnabled = serverConnectivity is ServerConnectivity.Online
+                            roomsEnabled = serverConnectivity is ServerConnectivity.Online,
+                            onOpenSaveInfo = {
+                                viewModel.refreshSaveFileInfo()
+                                showSaveInfo = true
+                            }
                         )
                     }
                 },
@@ -180,7 +196,11 @@ fun HomeScreen(
                         viewModel.fetchRooms()
                         showRooms = true
                     },
-                    roomsEnabled = serverConnectivity is ServerConnectivity.Online
+                    roomsEnabled = serverConnectivity is ServerConnectivity.Online,
+                    onOpenSaveInfo = {
+                        viewModel.refreshSaveFileInfo()
+                        showSaveInfo = true
+                    }
                 )
 
                 Box(

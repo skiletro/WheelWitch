@@ -8,6 +8,7 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.skiletro.wheelwitch.data.PackStorage
+import com.skiletro.wheelwitch.data.RksysParser
 import com.skiletro.wheelwitch.data.SaveManager
 import com.skiletro.wheelwitch.domain.RewindPackManager
 import com.skiletro.wheelwitch.domain.RewindPackManager.VERSION_FILE
@@ -15,6 +16,7 @@ import com.skiletro.wheelwitch.network.VersionFileParser
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.ProgressInfo
 import com.skiletro.wheelwitch.model.Room
+import com.skiletro.wheelwitch.model.SaveFileInfo
 import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.util.DolphinLauncher
 import com.skiletro.wheelwitch.util.MiiWadInstaller
@@ -86,6 +88,15 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _currentIsoPath = MutableStateFlow<String?>(null)
     val currentIsoPath: StateFlow<String?> = _currentIsoPath.asStateFlow()
+
+    private val _saveFileInfo = MutableStateFlow<SaveFileInfo?>(null)
+    val saveFileInfo: StateFlow<SaveFileInfo?> = _saveFileInfo.asStateFlow()
+
+    private val _isLoadingSaveInfo = MutableStateFlow(false)
+    val isLoadingSaveInfo: StateFlow<Boolean> = _isLoadingSaveInfo.asStateFlow()
+
+    private val _saveInfoError = MutableStateFlow<String?>(null)
+    val saveInfoError: StateFlow<String?> = _saveInfoError.asStateFlow()
 
     private var storageUri: Uri? = null
     private var storage: PackStorage? = null
@@ -411,6 +422,29 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
                 _rooms.value = emptyList()
             }
             _isLoadingRooms.value = false
+        }
+    }
+
+    fun refreshSaveFileInfo() {
+        viewModelScope.launch {
+            _isLoadingSaveInfo.value = true
+            _saveInfoError.value = null
+            try {
+                val currentStorage = storage ?: throw Exception("Storage not configured")
+                val bytes = withContext(Dispatchers.IO) {
+                    currentStorage.readBytes(SaveManager.SAVE_RELATIVE)
+                }
+                if (bytes == null) {
+                    _saveInfoError.value = "No save file found"
+                    _saveFileInfo.value = null
+                } else {
+                    _saveFileInfo.value = RksysParser.parse(bytes)
+                }
+            } catch (e: Exception) {
+                _saveInfoError.value = e.message ?: "Failed to read save data"
+                _saveFileInfo.value = null
+            }
+            _isLoadingSaveInfo.value = false
         }
     }
 
