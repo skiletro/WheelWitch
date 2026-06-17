@@ -28,6 +28,13 @@ object MiiFaceCache {
         cacheDir = File(context.cacheDir, DIR_NAME).also { it.mkdirs() }
     }
 
+    /** Test/init hook: point the cache at an arbitrary directory. */
+    @Synchronized
+    fun initWith(@Suppress("UNUSED_PARAMETER") context: Context, target: File) {
+        target.mkdirs()
+        cacheDir = target
+    }
+
     @Synchronized
     fun get(rflDataBase64: String): Bitmap? {
         val file = fileFor(rflDataBase64)
@@ -48,13 +55,25 @@ object MiiFaceCache {
 
     @Synchronized
     fun clear() {
-        cacheDir.listFiles()?.forEach { it.delete() }
+        clear(cacheDir)
+    }
+
+    /** Static helper: clear all files in [dir]. */
+    @JvmStatic
+    fun clear(dir: File) {
+        dir.listFiles()?.forEach { it.delete() }
     }
 
     @Synchronized
     fun cacheSize(): Long {
-        if (!cacheDir.exists()) return 0
-        return cacheDir.listFiles()?.sumOf { it.length() } ?: 0
+        return cacheSize(cacheDir)
+    }
+
+    /** Static helper: sum of file lengths in [dir], or 0 if it doesn't exist. */
+    @JvmStatic
+    fun cacheSize(dir: File): Long {
+        if (!dir.exists()) return 0
+        return dir.listFiles()?.sumOf { it.length() } ?: 0
     }
 
     private fun fileFor(rflDataBase64: String): File {

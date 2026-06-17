@@ -181,6 +181,17 @@ class RksysParserTest {
     }
 
     @Test
+    fun `friend code is deterministic for known PID 0x12345678`() {
+        val buf = createBuffer()
+        val base = LICENSE_BASES[0]
+        buf.writeAscii(base, "RKPD")
+        buf.writeUInt32BE(base + PID_OFFSET, 0x12345678L)
+
+        val info = RksysParser.parse(buf)
+        assertThat(info.licenses[0].friendCode).isEqualTo("1892-8398-0920")
+    }
+
+    @Test
     fun `parse license UTF-16BE name with null terminator`() {
         val buf = createBuffer()
         val base = LICENSE_BASES[0]

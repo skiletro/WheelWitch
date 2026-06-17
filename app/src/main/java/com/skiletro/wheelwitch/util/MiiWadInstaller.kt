@@ -39,7 +39,7 @@ object MiiWadInstaller {
         return wadFile
     }
 
-    private fun isValidWad(file: File): Boolean {
+    fun isValidWad(file: File): Boolean {
         return try {
             val bytes = file.readBytes().take(4)
             bytes.size == 4 && bytes[0] == 0x00.toByte() && bytes[1] == 0x00.toByte() &&
@@ -66,6 +66,8 @@ object MiiWadInstaller {
         }
         context.startActivity(intent)
     }
+
+    fun extractWadForTest(zipFile: File, destDir: File): File = extractWad(zipFile, destDir)
 
     private fun extractWad(zipFile: File, destDir: File): File {
         val wadFiles = mutableListOf<File>()
