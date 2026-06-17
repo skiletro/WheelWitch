@@ -35,14 +35,12 @@ Drop PNGs into `docs/screenshots/` to fill in the placeholders.
 
 ## Features
 
-- One-tap full install + incremental updates over OkHttp
+- One-tap full install + incremental updates
 - Save data (license) backup/restore via file picker
 - Live in-app leaderboard, online rooms, server health, race stats
-- Home-screen quick launch shortcut for power users
-- Material You dynamic colour support, dark/light/system theme
-- Landscape-locked, fullscreen, optimised for couch play
-- 89 unit tests, full R8/ProGuard release pipeline
-- 13 hand-tuned animations: bobbing wizard hat, sparkle ring, MKWii race-start countdown, theme crossfade, pulsing online dots, animated list stagger, POW! item-box celebration, shared-element online menu transitions, and more
+- Home-screen quick launch shortcut
+- On-device Mii Channel WAD installer from GameBanana
+- Multiple themes including Material You dynamic colour, with dark, light, and system modes
 
 ## Download
 
@@ -67,7 +65,7 @@ The debug APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
 
 - Android 12+ (API 31)
 - [Dolphin Emulator](https://dolphinemu.com) installed
-- Mario Kart Wii ISO (NTSC-U region)
+- Mario Kart Wii ISO
 
 ## First Time Setup
 
@@ -85,10 +83,6 @@ For returning users, the gear icon opens Settings, and the **Quick Launch** sect
 4. Open a pull request
 
 Build gates: `./gradlew assembleDebug testDebugUnitTest` must stay green. No formal CLA; if you contribute code, please add yourself to a credits section if we add one.
-
-## License
-
-[GPL-3.0](LICENSE) — use as you like, attribution required.
 
 ## Credits
 
