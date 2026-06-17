@@ -61,7 +61,8 @@ fun RoomDetail(room: Room) {
                     Text(
                         text = "${room.players.size} player${if (room.players.size != 1) "s" else ""}",
                         fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleLarge
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     if (room.isJoinable) {
                         Surface(
@@ -105,7 +106,8 @@ fun RoomDetail(room: Room) {
                 Text(
                     text = "Players",
                     fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }

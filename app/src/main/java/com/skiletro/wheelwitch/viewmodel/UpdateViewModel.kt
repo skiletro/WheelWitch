@@ -473,6 +473,17 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
                                         }
                                         _saveInfoState.value = SaveInfoState.Success(current.info.copy(licenses = updatedLicenses))
                                     }
+                                }.onFailure { error ->
+                                    if (error.message?.contains("not found", ignoreCase = true) == true) {
+                                        val current = _saveInfoState.value
+                                        if (current is SaveInfoState.Success) {
+                                            val updatedLicenses = current.info.licenses.map { lic ->
+                                                if (lic.slotIndex == license.slotIndex) lic.copy(friendCode = null, miiDataBase64 = null)
+                                                else lic
+                                            }
+                                            _saveInfoState.value = SaveInfoState.Success(current.info.copy(licenses = updatedLicenses))
+                                        }
+                                    }
                                 }
                             }
                         }

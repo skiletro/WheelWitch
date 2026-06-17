@@ -86,7 +86,9 @@ object VersionFileParser {
     private fun fetchUrl(urlString: String): String {
         val request = Request.Builder().url(urlString).build()
         client.newCall(request).execute().use { response ->
-            return response.body?.string() ?: error("Empty response from $urlString")
+            val body = response.body?.string() ?: error("Empty response from $urlString")
+            if (!response.isSuccessful) error("$urlString returned ${response.code}: $body")
+            return body
         }
     }
 }
