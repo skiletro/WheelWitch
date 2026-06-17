@@ -24,24 +24,57 @@ data class MemoryInfo(
 
 fun parseHealthResponse(jsonString: String): ServerHealth {
     val root = JSONObject(jsonString)
-    val checks = root.optJSONObject("checks")
+    val rawStatus = root.optString("status", "unknown")
+    val checksArray = root.optJSONArray("checks")
+
+    var database: HealthCheckItem? = null
+    var postgresql: HealthCheckItem? = null
+    var retroWfcApi: HealthCheckItem? = null
+    var memoryInfo: MemoryInfo? = null
+
+    if (checksArray != null) {
+        for (i in 0 until checksArray.length()) {
+            val check = checksArray.getJSONObject(i)
+            val name = check.optString("name", "")
+            val status = normalizeStatus(check.optString("status", "unknown"))
+            val description = if (!check.isNull("description")) check.optString("description", "").takeIf { it.isNotEmpty() } else null
+
+            when (name) {
+                "LeaderboardDbContext" -> database = HealthCheckItem(status, description)
+                "npgsql" -> postgresql = HealthCheckItem(status, description)
+                "retro-wfc-api" -> retroWfcApi = HealthCheckItem(status, description)
+                "memory" -> memoryInfo = parseMemoryFromDescription(status, description)
+            }
+        }
+    }
+
     return ServerHealth(
-        status = root.optString("status", "unknown"),
-        database = checks?.optJSONObject("database")?.let { parseCheckItem(it) },
-        postgresql = checks?.optJSONObject("postgresql")?.let { parseCheckItem(it) },
-        retroWfcApi = checks?.optJSONObject("retro_wfc_api")?.let { parseCheckItem(it) },
-        memory = checks?.optJSONObject("memory")?.let { parseMemoryInfo(it) }
+        status = normalizeStatus(rawStatus),
+        database = database,
+        postgresql = postgresql,
+        retroWfcApi = retroWfcApi,
+        memory = memoryInfo
     )
 }
 
-private fun parseCheckItem(obj: JSONObject) = HealthCheckItem(
-    status = obj.optString("status", "unknown"),
-    message = if (!obj.isNull("message")) obj.optString("message", "").takeIf { it.isNotEmpty() } else null
-)
+private fun normalizeStatus(status: String): String = when {
+    status.equals("healthy", ignoreCase = true) -> "ok"
+    status.equals("unhealthy", ignoreCase = true) -> "error"
+    status.equals("degraded", ignoreCase = true) -> "degraded"
+    else -> status.lowercase()
+}
 
-private fun parseMemoryInfo(obj: JSONObject) = MemoryInfo(
-    status = obj.optString("status", "unknown"),
-    usagePercent = if (obj.has("usage")) obj.optDouble("usage", -1.0).let { if (it >= 0) it else null } else null,
-    used = if (!obj.isNull("used")) obj.optString("used", "").takeIf { it.isNotEmpty() } else null,
-    total = if (!obj.isNull("total")) obj.optString("total", "").takeIf { it.isNotEmpty() } else null
-)
+private fun parseMemoryFromDescription(status: String, description: String?): MemoryInfo {
+    val used = description?.let { desc ->
+        val regex = Regex("""Memory usage:\s*(\d+)\s*(MB|GB|KB)""", RegexOption.IGNORE_CASE)
+        regex.find(desc)?.let { match ->
+            "${match.groupValues[1]}${match.groupValues[2]}"
+        }
+    }
+    return MemoryInfo(
+        status = status,
+        usagePercent = null,
+        used = used,
+        total = null
+    )
+}

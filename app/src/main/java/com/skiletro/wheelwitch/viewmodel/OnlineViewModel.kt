@@ -184,7 +184,22 @@ class OnlineViewModel : ViewModel() {
             result.onSuccess { health ->
                 _healthState.value = HealthState.Success(health)
             }.onFailure { e ->
-                _healthState.value = HealthState.Error(e.message ?: "Failed to fetch server health")
+                val liveOk = withContext(Dispatchers.IO) {
+                    VersionFileParser.fetchHealthLive().getOrDefault(false)
+                }
+                if (liveOk) {
+                    val connectivity = serverConnectivity
+                    val simpleHealth = ServerHealth(
+                        status = "ok",
+                        database = null,
+                        postgresql = null,
+                        retroWfcApi = null,
+                        memory = null
+                    )
+                    _healthState.value = HealthState.Success(simpleHealth)
+                } else {
+                    _healthState.value = HealthState.Error(e.message ?: "Failed to fetch server health")
+                }
             }
         }
     }

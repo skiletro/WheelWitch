@@ -60,6 +60,7 @@ object VersionFileParser {
     private const val MULTIPLIER_URL = "https://rwfc.net/updates/RetroRewind/multiplier.txt"
     private const val LEADERBOARD_URL = "$RWFC_API/api/leaderboard"
     private const val HEALTH_URL = "$RWFC_API/api/health"
+    private const val HEALTH_LIVE_URL = "$RWFC_API/api/health/live"
     private const val HEALTH_READY_URL = "$RWFC_API/api/health/ready"
     private const val RACE_STATS_URL = "$RWFC_API/api/racestats/global"
     private const val TIME_TRIAL_TRACKS_URL = "$RWFC_API/api/timetrial/tracks"
@@ -108,10 +109,18 @@ object VersionFileParser {
         }
     }
 
-    /** Fetches the full server health report. */
+    /** Fetches the full server health report. Returns a basic ServerHealth if the detailed endpoint fails. */
     fun fetchHealth(): Result<ServerHealth> = runCatching {
         val json = fetchUrl(HEALTH_URL)
         parseHealthResponse(json)
+    }
+
+    /** Simple liveness check — returns true if the process is up. */
+    fun fetchHealthLive(): Result<Boolean> = runCatching {
+        val request = Request.Builder().url(HEALTH_LIVE_URL).build()
+        httpClient.newCall(request).execute().use { response ->
+            response.isSuccessful
+        }
     }
 
     /** Fetches global race statistics. */
