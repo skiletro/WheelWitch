@@ -45,9 +45,14 @@ Drop PNGs into `docs/screenshots/` to fill in the placeholders.
 ## Download
 
 <p align="center">
-  <a href="#"><img src="./docs/badges/github.webp" alt="GitHub Releases" width="220"></a>
+  <a href="https://github.com/skiletro/WheelWitch/releases/tag/latest"><img src="./docs/badges/github.webp" alt="Latest Build" width="220"></a>
   <a href="#"><img src="./docs/badges/obtainium.webp" alt="Add to Obtainium" width="220"></a>
 </p>
+
+The latest signed release APK is built automatically on every push to `main`
+and published as a [pre-release](https://github.com/skiletro/WheelWitch/releases/tag/latest)
+with auto-generated changelog. You can also trigger a build manually from the
+[Actions tab](https://github.com/skiletro/WheelWitch/actions).
 
 Or [build from source](#build) with Gradle.
 
@@ -60,6 +65,18 @@ Or [build from source](#build) with Gradle.
 ```
 
 The debug APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
+
+For a **signed release APK**, set these environment variables and run
+`./gradlew assembleRelease`:
+
+```bash
+export KEYSTORE_PATH=./release.keystore
+export KEYSTORE_PASSWORD=your-store-pass
+export KEY_ALIAS=wheelwitch
+export KEY_PASSWORD=your-key-pass
+```
+
+Run `scripts/setup-signing.sh` to generate a keystore interactively.
 
 ## Requirements
 
