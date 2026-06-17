@@ -39,6 +39,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.viewmodel.MiiMakerState
 import com.skiletro.wheelwitch.viewmodel.UiState
@@ -80,87 +83,121 @@ fun HomeScreen(
         else -> false
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        TopBar(
-            onOpenSettings = onOpenSettings,
-            onLaunchMiiMaker = { viewModel.launchMiiMaker() },
-            miiMakerEnabled = miiMakerState.hasWad
-        )
+    if (showBottomLaunch) {
+        val onLaunch = when (val s = state) {
+            is UiState.ReadyToLaunch -> ({ viewModel.launchDolphin() })
+            is UiState.Ready -> ({ viewModel.launchDolphin() })
+            else -> ({})
+        }
+        val versionInfo = when (val s = state) {
+            is UiState.ReadyToLaunch -> "v${s.version}"
+            is UiState.Ready -> when (val st = s.status) {
+                is PackStatus.Installed -> "v${st.version}"
+                is PackStatus.UpToDate -> "v${st.currentVersion} (latest v${st.latestVersion})"
+                else -> null
+            }
+            else -> null
+        }
 
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .padding(bottom = if (showBottomLaunch) 0.dp else 24.dp),
-            contentAlignment = Alignment.Center
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            VersionHistoryWebView(modifier = Modifier.fillMaxSize())
+
+            Surface(
+                modifier = Modifier.align(Alignment.TopStart).fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 0.dp
             ) {
-                if (successMessage != null) {
-                    SuccessBanner(successMessage!!)
-                }
+                TopBar(
+                    onOpenSettings = onOpenSettings,
+                    onLaunchMiiMaker = { viewModel.launchMiiMaker() },
+                    miiMakerEnabled = miiMakerState.hasWad
+                )
+            }
 
-                when (val currentState = state) {
-                    is UiState.NoStorage -> NoStorageContent(onPickStorage)
-                    is UiState.Checking -> CheckingContent()
-                    is UiState.Ready -> ReadyContent(
-                        status = currentState.status,
-                        viewModel = viewModel,
-                        compact = showBottomLaunch
-                    )
-                    is UiState.Downloading -> ProgressContent(
-                        currentState.progress,
-                        currentState.message
-                    )
-                    is UiState.Extracting -> ProgressContent(
-                        currentState.progress,
-                        "Extracting files..."
-                    )
-                    is UiState.ApplyingUpdate -> ProgressContent(
-                        currentState.progress,
-                        "Applying update ${currentState.index}/${currentState.total}: ${currentState.description}"
-                    )
-                    is UiState.ReadyToLaunch -> ReadyToLaunchContent(
-                        version = currentState.version
-                    )
-                    is UiState.Error -> ErrorContent(
-                        currentState.message,
-                        onRetry = { viewModel.clearError() },
-                        onPickIso = onPickIso
+            Surface(
+                modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 0.dp
+            ) {
+                Column(
+                    modifier = Modifier.padding(vertical = 12.dp)
+                ) {
+                    BottomLaunchBar(
+                        onLaunch = onLaunch,
+                        onRefresh = { viewModel.checkStatus() },
+                        versionInfo = versionInfo
                     )
                 }
             }
         }
-
-        if (showBottomLaunch) {
-            val onLaunch = when (val s = state) {
-                is UiState.ReadyToLaunch -> ({ viewModel.launchDolphin() })
-                is UiState.Ready -> ({ viewModel.launchDolphin() })
-                else -> ({})
-            }
-            val versionInfo = when (val s = state) {
-                is UiState.ReadyToLaunch -> "v${s.version}"
-                is UiState.Ready -> when (val st = s.status) {
-                    is PackStatus.Installed -> "v${st.version}"
-                    is PackStatus.UpToDate -> "v${st.currentVersion} (latest v${st.latestVersion})"
-                    else -> null
-                }
-                else -> null
-            }
-            BottomLaunchBar(
-                onLaunch = onLaunch,
-                onRefresh = { viewModel.checkStatus() },
-                versionInfo = versionInfo
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            TopBar(
+                onOpenSettings = onOpenSettings,
+                onLaunchMiiMaker = { viewModel.launchMiiMaker() },
+                miiMakerEnabled = miiMakerState.hasWad
             )
-        }
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(bottom = 24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    if (successMessage != null) {
+                        SuccessBanner(successMessage!!)
+                    }
+
+                    when (val currentState = state) {
+                        is UiState.NoStorage -> NoStorageContent(onPickStorage)
+                        is UiState.Checking -> CheckingContent()
+                        is UiState.Ready -> ReadyContent(
+                            status = currentState.status,
+                            viewModel = viewModel,
+                            compact = false
+                        )
+                        is UiState.Downloading -> ProgressContent(
+                            currentState.progress,
+                            currentState.message
+                        )
+                        is UiState.Extracting -> ProgressContent(
+                            currentState.progress,
+                            "Extracting files..."
+                        )
+                        is UiState.ApplyingUpdate -> ProgressContent(
+                            currentState.progress,
+                            "Applying update ${currentState.index}/${currentState.total}: ${currentState.description}"
+                        )
+                        is UiState.ReadyToLaunch -> ReadyToLaunchContent(
+                            version = currentState.version
+                        )
+                        is UiState.Error -> ErrorContent(
+                            currentState.message,
+                            onRetry = { viewModel.clearError() },
+                            onPickIso = onPickIso
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+        }
     }
 }
 
@@ -359,6 +396,24 @@ private fun BottomLaunchBar(
         Spacer(modifier = Modifier.width(12.dp))
         PrimaryActionButton(text = "Launch", onClick = onLaunch)
     }
+}
+
+@Composable
+private fun VersionHistoryWebView(modifier: Modifier = Modifier) {
+    AndroidView(
+        factory = { context ->
+            WebView(context).apply {
+                isFocusable = false
+                isFocusableInTouchMode = false
+                settings.javaScriptEnabled = true
+                settings.loadWithOverviewMode = true
+                settings.useWideViewPort = true
+                webViewClient = WebViewClient()
+                loadUrl("https://wiki.tockdom.com/wiki/Retro_Rewind#Version_History")
+            }
+        },
+        modifier = modifier
+    )
 }
 
 @Preview(showBackground = true)
