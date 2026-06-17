@@ -1,4 +1,4 @@
-package com.skiletro.wheelwitch.service
+package com.skiletro.wheelwitch.util
 
 import android.content.Context
 import android.content.Intent

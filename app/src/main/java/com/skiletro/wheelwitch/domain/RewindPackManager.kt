@@ -1,5 +1,11 @@
-package com.skiletro.wheelwitch.service
+package com.skiletro.wheelwitch.domain
 
+import com.skiletro.wheelwitch.data.PackStorage
+import com.skiletro.wheelwitch.model.PackStatus
+import com.skiletro.wheelwitch.model.ProgressInfo
+import com.skiletro.wheelwitch.model.SemVersion
+import com.skiletro.wheelwitch.model.ServerInfo
+import com.skiletro.wheelwitch.network.VersionFileParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -7,28 +13,6 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import okhttp3.Request
 import java.io.File
-
-sealed class PackStatus {
-    data object NotInstalled : PackStatus()
-    data class Installed(val version: SemVersion) : PackStatus()
-    data class UpdateAvailable(
-        val currentVersion: SemVersion,
-        val latestVersion: SemVersion,
-        val serverInfo: VersionFileParser.ServerInfo
-    ) : PackStatus()
-
-    data class UpToDate(val currentVersion: SemVersion, val latestVersion: SemVersion) : PackStatus()
-}
-
-sealed class ProgressInfo {
-    data class Checking(val message: String) : ProgressInfo()
-    data class Downloading(val progress: Float, val message: String) : ProgressInfo()
-    data class Extracting(val progress: Float) : ProgressInfo()
-    data class ApplyingUpdate(
-        val index: Int, val total: Int,
-        val description: String, val progress: Float
-    ) : ProgressInfo()
-}
 
 object RewindPackManager {
     private const val VERSION_FILE = "RetroRewind6/version.txt"
@@ -88,7 +72,7 @@ object RewindPackManager {
 
     suspend fun incrementalUpdate(
         storage: PackStorage,
-        serverInfo: VersionFileParser.ServerInfo,
+        serverInfo: ServerInfo,
         currentVersion: SemVersion,
         onProgress: (ProgressInfo) -> Unit
     ): Result<SemVersion> = runCatching {

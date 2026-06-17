@@ -1,4 +1,4 @@
-package com.skiletro.wheelwitch.service
+package com.skiletro.wheelwitch.data
 
 object SaveManager {
     const val SAVE_RELATIVE = "riivolution/save/RetroWFC/RMCP/rksys.dat"

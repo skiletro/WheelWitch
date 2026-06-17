@@ -1,52 +1,12 @@
-package com.skiletro.wheelwitch.service
+package com.skiletro.wheelwitch.network
 
+import com.skiletro.wheelwitch.model.DeletionEntry
+import com.skiletro.wheelwitch.model.SemVersion
+import com.skiletro.wheelwitch.model.ServerInfo
+import com.skiletro.wheelwitch.model.UpdateEntry
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.concurrent.TimeUnit
-
-data class SemVersion(val major: Int, val minor: Int, val patch: Int, val preRelease: String? = null) :
-    Comparable<SemVersion> {
-
-    override fun compareTo(other: SemVersion): Int {
-        major.compareTo(other.major).let { if (it != 0) return it }
-        minor.compareTo(other.minor).let { if (it != 0) return it }
-        patch.compareTo(other.patch).let { if (it != 0) return it }
-        if (preRelease == null && other.preRelease != null) return 1
-        if (preRelease != null && other.preRelease == null) return -1
-        return 0
-    }
-
-    override fun toString(): String {
-        return if (preRelease != null) "$major.$minor.$patch-$preRelease" else "$major.$minor.$patch"
-    }
-
-    companion object {
-        fun parse(text: String): SemVersion? {
-            val cleaned = text.trimStart('v', 'V')
-            val dashIdx = cleaned.indexOf('-')
-            val versionPart = if (dashIdx >= 0) cleaned.substring(0, dashIdx) else cleaned
-            val preRelease = if (dashIdx >= 0) cleaned.substring(dashIdx + 1) else null
-            val parts = versionPart.split(".")
-            if (parts.size < 3) return null
-            val major = parts[0].toIntOrNull() ?: return null
-            val minor = parts[1].toIntOrNull() ?: return null
-            val patch = parts[2].toIntOrNull() ?: return null
-            return SemVersion(major, minor, patch, preRelease)
-        }
-    }
-}
-
-data class UpdateEntry(
-    val version: SemVersion,
-    val url: String,
-    val path: String,
-    val description: String
-)
-
-data class DeletionEntry(
-    val version: SemVersion,
-    val path: String
-)
 
 object VersionFileParser {
     private const val RR_BASE = "https://update.rwfc.net/"
@@ -58,12 +18,6 @@ object VersionFileParser {
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
         .build()
-
-    data class ServerInfo(
-        val latestVersion: SemVersion,
-        val allUpdates: List<UpdateEntry>,
-        val deletions: List<DeletionEntry>
-    )
 
     fun fetchServerInfo(): Result<ServerInfo> = runCatching {
         val updates = fetchUpdates()

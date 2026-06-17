@@ -13,7 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.skiletro.wheelwitch.ui.screens.SplashScreen
+import com.skiletro.wheelwitch.ui.screens.HomeScreen
 import com.skiletro.wheelwitch.ui.theme.WheelWitchTheme
 import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
 
@@ -73,7 +73,7 @@ private fun MainScreen(viewModel: UpdateViewModel = viewModel()) {
     }
 
     Scaffold(modifier = Modifier.fillMaxSize()) {
-        SplashScreen(
+        HomeScreen(
             viewModel = viewModel,
             onPickStorage = { storagePicker.launch(null) },
             onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
