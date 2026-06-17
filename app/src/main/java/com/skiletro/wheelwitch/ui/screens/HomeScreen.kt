@@ -109,12 +109,15 @@ fun HomeScreen(
             else -> null
         }
 
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
+            VersionHistoryWebView(modifier = Modifier.fillMaxSize())
+
             Surface(
+                modifier = Modifier.align(Alignment.TopStart).fillMaxWidth(),
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 0.dp
             ) {
@@ -125,9 +128,8 @@ fun HomeScreen(
                 )
             }
 
-            VersionHistoryWebView(modifier = Modifier.weight(1f).fillMaxWidth())
-
             Surface(
+                modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth(),
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 0.dp
             ) {
