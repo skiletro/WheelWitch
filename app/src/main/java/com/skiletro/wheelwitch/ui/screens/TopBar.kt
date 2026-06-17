@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Checkroom
+import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -33,8 +35,9 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.geometry.Offset
+
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
@@ -104,7 +107,7 @@ fun TopBar(
         }
     IconButton(onClick = onOpenOnlineMenu, enabled = onlineMenuEnabled) {
         Icon(
-            painter = painterResource(com.skiletro.wheelwitch.R.drawable.ic_server),
+            imageVector = Icons.Filled.Dns,
             contentDescription = "Online Menu",
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -121,7 +124,7 @@ fun TopBar(
             enabled = miiMakerEnabled
         ) {
             Icon(
-                painter = painterResource(com.skiletro.wheelwitch.R.drawable.ic_tshirt),
+                imageVector = Icons.Filled.Checkroom,
                 contentDescription = "Mii Maker",
                 tint = if (miiMakerEnabled) MaterialTheme.colorScheme.onSurfaceVariant
                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),

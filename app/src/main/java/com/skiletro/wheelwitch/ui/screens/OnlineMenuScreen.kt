@@ -65,37 +65,27 @@ fun OnlineMenuScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        when (currentPage) {
-            OnlineMenuPage.Hub -> {
-                HubPage(
-                    viewModel = viewModel,
-                    onClose = onClose
-                )
-            }
-            OnlineMenuPage.Rooms -> {
-                val roomsState by viewModel.roomsState.collectAsState()
-                RoomsSubScreen(
-                    roomsState = roomsState,
-                    onRefresh = { viewModel.fetchRooms() },
-                    onBack = { viewModel.goBack() }
-                )
-            }
-            else -> {
-                AnimatedContent(
-                    targetState = currentPage,
-                    transitionSpec = {
-                        (slideInHorizontally { it } + fadeIn()).togetherWith(slideOutHorizontally { -it } + fadeOut())
-                    },
-                    label = "online_subpage"
-                ) { page ->
-                    when (page) {
-                        OnlineMenuPage.Leaderboard -> LeaderboardScreen(viewModel)
-                        OnlineMenuPage.Health -> HealthScreen(viewModel)
-                        OnlineMenuPage.RaceStats -> RaceStatsScreen(viewModel)
-                        OnlineMenuPage.TimeTrial -> TimeTrialScreen(viewModel)
-                        else -> {}
-                    }
+        AnimatedContent(
+            targetState = currentPage,
+            transitionSpec = {
+                (slideInHorizontally { it } + fadeIn()).togetherWith(slideOutHorizontally { -it } + fadeOut())
+            },
+            label = "online_pages"
+        ) { page ->
+            when (page) {
+                OnlineMenuPage.Hub -> HubPage(viewModel = viewModel, onClose = onClose)
+                OnlineMenuPage.Rooms -> {
+                    val roomsState by viewModel.roomsState.collectAsState()
+                    RoomsSubScreen(
+                        roomsState = roomsState,
+                        onRefresh = { viewModel.fetchRooms() },
+                        onBack = { viewModel.goBack() }
+                    )
                 }
+                OnlineMenuPage.Leaderboard -> LeaderboardScreen(viewModel)
+                OnlineMenuPage.Health -> HealthScreen(viewModel)
+                OnlineMenuPage.RaceStats -> RaceStatsScreen(viewModel)
+                OnlineMenuPage.TimeTrial -> TimeTrialScreen(viewModel)
             }
         }
     }
@@ -106,26 +96,15 @@ private fun HubPage(
     viewModel: OnlineViewModel,
     onClose: () -> Unit
 ) {
-    val roomsState by viewModel.roomsState.collectAsState()
-
-    val connectivity = (roomsState as? RoomsState.Success)?.serverConnectivity
-
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
+        modifier = Modifier.fillMaxSize()
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Online Menu",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
             IconButton(onClick = onClose) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
@@ -133,19 +112,22 @@ private fun HubPage(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Online Menu",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.weight(1f))
         }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        HealthIndicator(connectivity = connectivity)
-
-        Spacer(modifier = Modifier.height(24.dp))
 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             HubOption(

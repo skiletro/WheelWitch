@@ -129,14 +129,14 @@ private fun HealthContent(health: ServerHealth) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         HealthStatusCard(
             title = "Overall Status",
             status = health.status,
             isOk = health.status == "ok"
         )
-        Spacer(modifier = Modifier.height(8.dp))
 
         health.database?.let { HealthCheckRow("Database", it) }
         health.postgresql?.let { HealthCheckRow("PostgreSQL", it) }
