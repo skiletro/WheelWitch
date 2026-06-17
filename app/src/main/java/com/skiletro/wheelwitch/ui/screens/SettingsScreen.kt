@@ -2,27 +2,27 @@ package com.skiletro.wheelwitch.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -44,7 +44,6 @@ import com.skiletro.wheelwitch.viewmodel.MiiMakerState
 import com.skiletro.wheelwitch.viewmodel.SaveState
 import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
 
-private val sectionShape = RoundedCornerShape(20.dp)
 private val buttonShape = RoundedCornerShape(14.dp)
 
 @Composable
@@ -126,210 +125,212 @@ fun SettingsScreen(
             )
         }
 
-        Box(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .padding(bottom = 24.dp),
-            contentAlignment = Alignment.Center
+                .fillMaxSize()
+                .padding(horizontal = 32.dp)
+                .verticalScroll(rememberScrollState())
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 32.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                SaveSettingsContent(
-                    saveState = saveState,
-                    onBackup = onBackupSave,
-                    onRestore = onRestoreSave,
-                    onDelete = { showDeleteConfirm = true }
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                MiiMakerSettingsContent(
-                    miiMakerState = miiMakerState,
-                    isInstallingWad = isInstallingWad,
-                    onInstallWad = { viewModel.installMiiMakerWad() },
-                    onDeleteWad = { showWadDeleteConfirm = true }
-                )
-            }
-        }
+            SaveDataSection(
+                saveState = saveState,
+                onBackup = onBackupSave,
+                onRestore = onRestoreSave,
+                onDelete = { showDeleteConfirm = true }
+            )
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(8.dp))
+
+            MiiMakerSection(
+                miiMakerState = miiMakerState,
+                isInstallingWad = isInstallingWad,
+                onInstallWad = { viewModel.installMiiMakerWad() },
+                onDeleteWad = { showWadDeleteConfirm = true }
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+        }
     }
 }
 
 @Composable
-private fun SaveSettingsContent(
+private fun SaveDataSection(
     saveState: SaveState,
     onBackup: () -> Unit,
     onRestore: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Surface(
+    Text(
+        text = "Save Data",
+        style = MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurface
+    )
+    Spacer(modifier = Modifier.height(4.dp))
+    Text(
+        text = if (saveState.hasSave) "Save file found" else "No save file found",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+    Spacer(modifier = Modifier.height(16.dp))
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        shape = sectionShape,
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        tonalElevation = 0.dp
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(28.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        var backupFocused by remember { mutableStateOf(false) }
+        Button(
+            onClick = onBackup,
+            enabled = saveState.hasSave,
+            shape = buttonShape,
+            modifier = Modifier
+                .weight(1f)
+                .height(48.dp)
+                .onFocusChanged { backupFocused = it.isFocused }
+                .then(
+                    if (backupFocused) Modifier.border(
+                        width = 3.dp,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        shape = buttonShape
+                    ) else Modifier
+                ),
+            colors = ButtonDefaults.filledTonalButtonColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+            )
         ) {
             Text(
-                text = "Save Data",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = if (saveState.hasSave) "Save file found" else "No save file found",
+                text = "Backup",
                 style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                fontWeight = FontWeight.Medium
             )
-            Spacer(modifier = Modifier.height(20.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                var backupFocused by remember { mutableStateOf(false) }
-                Button(
-                    onClick = onBackup,
-                    enabled = saveState.hasSave,
-                    shape = buttonShape,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp)
-                        .onFocusChanged { backupFocused = it.isFocused }
-                        .then(
-                            if (backupFocused) Modifier.border(
-                                width = 3.dp,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                shape = buttonShape
-                            ) else Modifier
-                        ),
-                    colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                ) {
-                    Text(
-                        text = "Backup",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-                var restoreFocused by remember { mutableStateOf(false) }
-                Button(
-                    onClick = onRestore,
-                    shape = buttonShape,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp)
-                        .onFocusChanged { restoreFocused = it.isFocused }
-                        .then(
-                            if (restoreFocused) Modifier.border(
-                                width = 3.dp,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                shape = buttonShape
-                            ) else Modifier
-                        ),
-                    colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                ) {
-                    Text(
-                        text = "Restore",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-            if (saveState.hasSave) {
-                Spacer(modifier = Modifier.height(12.dp))
-                TextButton(onClick = onDelete) {
-                    Text(
-                        "Delete save data",
+        }
+        var restoreFocused by remember { mutableStateOf(false) }
+        Button(
+            onClick = onRestore,
+            shape = buttonShape,
+            modifier = Modifier
+                .weight(1f)
+                .height(48.dp)
+                .onFocusChanged { restoreFocused = it.isFocused }
+                .then(
+                    if (restoreFocused) Modifier.border(
+                        width = 3.dp,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        shape = buttonShape
+                    ) else Modifier
+                ),
+            colors = ButtonDefaults.filledTonalButtonColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        ) {
+            Text(
+                text = "Restore",
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+    if (saveState.hasSave) {
+        Spacer(modifier = Modifier.height(8.dp))
+        var deleteFocused by remember { mutableStateOf(false) }
+        TextButton(
+            onClick = onDelete,
+            modifier = Modifier
+                .onFocusChanged { deleteFocused = it.isFocused }
+                .then(
+                    if (deleteFocused) Modifier.border(
+                        width = 3.dp,
                         color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
+                        shape = RoundedCornerShape(8.dp)
+                    ) else Modifier
+                )
+        ) {
+            Text(
+                "Delete save data",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
     }
 }
 
 @Composable
-private fun MiiMakerSettingsContent(
+private fun MiiMakerSection(
     miiMakerState: MiiMakerState,
     isInstallingWad: Boolean,
     onInstallWad: () -> Unit,
     onDeleteWad: () -> Unit
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = sectionShape,
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        tonalElevation = 0.dp
-    ) {
-        Column(
-            modifier = Modifier.padding(28.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+    Text(
+        text = "Mii Channel WAD",
+        style = MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurface
+    )
+    Spacer(modifier = Modifier.height(4.dp))
+    Text(
+        text = "Status: " + if (miiMakerState.hasWad) "Installed" else "Not installed",
+        style = MaterialTheme.typography.bodyMedium,
+        color = if (miiMakerState.hasWad) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
+    )
+    Spacer(modifier = Modifier.height(16.dp))
+    if (isInstallingWad) {
+        LinearProgressIndicator(
+            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.primary
+        )
+    } else if (miiMakerState.hasWad) {
+        var deleteFocused by remember { mutableStateOf(false) }
+        Button(
+            onClick = onDeleteWad,
+            shape = buttonShape,
+            modifier = Modifier
+                .onFocusChanged { deleteFocused = it.isFocused }
+                .then(
+                    if (deleteFocused) Modifier.border(
+                        width = 3.dp,
+                        color = MaterialTheme.colorScheme.onError,
+                        shape = buttonShape
+                    ) else Modifier
+                ),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.error,
+                contentColor = MaterialTheme.colorScheme.onError
+            )
         ) {
             Text(
-                text = "Mii Channel WAD",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                "Delete cached WAD",
+                fontWeight = FontWeight.Medium
             )
-            Spacer(modifier = Modifier.height(12.dp))
+        }
+    } else {
+        var installFocused by remember { mutableStateOf(false) }
+        Button(
+            onClick = onInstallWad,
+            shape = buttonShape,
+            modifier = Modifier
+                .height(56.dp)
+                .fillMaxWidth()
+                .onFocusChanged { installFocused = it.isFocused }
+                .then(
+                    if (installFocused) Modifier.border(
+                        width = 3.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        shape = buttonShape
+                    ) else Modifier
+                ),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            )
+        ) {
             Text(
-                text = "Status: " + if (miiMakerState.hasWad) "Installed" else "Not installed",
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center,
-                color = if (miiMakerState.hasWad) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
+                "Install Mii Channel",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
             )
-            Spacer(modifier = Modifier.height(16.dp))
-            if (isInstallingWad) {
-                LinearProgressIndicator(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.primary
-                )
-            } else if (miiMakerState.hasWad) {
-                Button(
-                    onClick = onDeleteWad,
-                    shape = buttonShape,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                        contentColor = MaterialTheme.colorScheme.onError
-                    )
-                ) {
-                    Text(
-                        "Delete cached WAD",
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            } else {
-                Button(
-                    onClick = onInstallWad,
-                    shape = buttonShape,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    ),
-                    modifier = Modifier.height(56.dp)
-                ) {
-                    Text(
-                        "Install Mii Channel",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
         }
     }
 }
