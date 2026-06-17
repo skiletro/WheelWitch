@@ -1,37 +1,49 @@
-<p align="center">
-  <img src="docs/logo/wizard-hat.png" alt="Wheel Witch" width="120">
-</p>
+<div align="center">
+  <img src=".github/assets/logo/wizard-hat.svg" alt="Wheel Witch" width="120">
+</div>
 
 <h1 align="center">Wheel Witch</h1>
 
-<p align="center">
+<div align="center">
   Downloads/updates the Retro Rewind Mario Kart Wii Pack and launches Dolphin Emulator.
-</p>
+</div>
 
-<p align="center">
-  <img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg" alt="License: GPL-3.0">
-  <img src="https://img.shields.io/badge/min%20SDK-31-green.svg" alt="Min SDK 31">
-  <img src="https://img.shields.io/badge/Kotlin-1.9-purple.svg" alt="Kotlin">
+<br>
+
+<div align="center">
+  <a href="https://github.com/skiletro/WheelWitch/actions/workflows/build.yml"><img src="https://github.com/skiletro/WheelWitch/actions/workflows/build.yml/badge.svg" alt="Build"></a>&nbsp;&nbsp;
+  <img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg" alt="License: GPL-3.0">&nbsp;&nbsp;
+  <img src="https://img.shields.io/badge/min%20SDK-31-green.svg" alt="Min SDK 31">&nbsp;&nbsp;
+  <img src="https://img.shields.io/badge/Kotlin-1.9-purple.svg" alt="Kotlin">&nbsp;&nbsp;
   <img src="https://img.shields.io/badge/Jetpack%20Compose-2026.02-blue.svg" alt="Compose">
-</p>
+</div>
+
+<br>
+
+<div align="center">
+  <a href="https://github.com/skiletro/WheelWitch/releases/tag/latest"><img src="./.github/assets/badges/github.webp" alt="Latest Build" width="220"></a>&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://raw.githubusercontent.com/skiletro/WheelWitch/master/obtainium.json"><img src="./.github/assets/badges/obtainium.webp" alt="Add to Obtainium" width="220"></a>
+</div>
+
+## Screenshots
+
+| Home | Online Menu | Online Rooms |
+|------|-------------|--------------|
+| ![Home](.github/assets/screenshots/home.webp) | ![Online Menu](.github/assets/screenshots/online_menu.webp) | ![Online Rooms](.github/assets/screenshots/online_rooms.webp) |
+
+| Quick Launch | Licenses | Settings |
+|--------------|----------|----------|
+| ![Quick Launch](.github/assets/screenshots/quick_launch.webp) | ![Licenses](.github/assets/screenshots/licenses.webp) | ![Settings](.github/assets/screenshots/settings.webp) |
+
+| Race Stats | | |
+|------------|---|---|
+| ![Race Stats](.github/assets/screenshots/race_stats.webp) | | |
 
 ## About
 
 Wheel Witch is a sideloaded Android companion app for [Retro Rewind](https://wiki.tockdom.com/wiki/Retro_Rewind), a custom Mario Kart Wii distribution. It downloads and incrementally updates the pack from the same server WheelWizard uses, then launches Dolphin Emulator with the pack pre-loaded.
 
 This is **not** a replacement for WheelWizard's PC tool — it's a phone-first way to keep your Wii's pack install fresh without booting a desktop.
-
-## Screenshots
-
-| Home | Online Menu | Quick Launch |
-|------|-------------|--------------|
-| ![Home](docs/screenshots/home.png) | ![Online Menu](docs/screenshots/online-menu.png) | ![Quick Launch](docs/screenshots/quick-launch.png) |
-
-| Licenses | Settings | Race Stats |
-|----------|----------|------------|
-| ![Licenses](docs/screenshots/licenses.png) | ![Settings](docs/screenshots/settings.png) | ![Race Stats](docs/screenshots/race-stats.png) |
-
-Drop PNGs into `docs/screenshots/` to fill in the placeholders.
 
 ## Features
 
@@ -42,41 +54,14 @@ Drop PNGs into `docs/screenshots/` to fill in the placeholders.
 - On-device Mii Channel WAD installer from GameBanana
 - Multiple themes including Material You dynamic colour, with dark, light, and system modes
 
+> [!NOTE]
+> Save backup/restore currently only supports the **PAL** version of Mario Kart Wii (`RMCP`). — see [#todo](##todo)
+
 ## Download
 
-<p align="center">
-  <a href="https://github.com/skiletro/WheelWitch/releases/tag/latest"><img src="./docs/badges/github.webp" alt="Latest Build" width="220"></a>
-  <a href="#"><img src="./docs/badges/obtainium.webp" alt="Add to Obtainium" width="220"></a>
-</p>
+The latest signed release APK is built automatically on every push to `master` and published as a [pre-release](https://github.com/skiletro/WheelWitch/releases/tag/latest) with auto-generated changelog. You can also install it via [Obtainium](https://github.com/ImranR98/Obtainium) by importing the config from the button above.
 
-The latest signed release APK is built automatically on every push to `main`
-and published as a [pre-release](https://github.com/skiletro/WheelWitch/releases/tag/latest)
-with auto-generated changelog. You can also trigger a build manually from the
-[Actions tab](https://github.com/skiletro/WheelWitch/actions).
-
-Or [build from source](#build) with Gradle.
-
-## Build
-
-```bash
-./gradlew assembleDebug                  # build APK
-./gradlew assembleRelease                # release build (R8/ProGuard)
-./gradlew testDebugUnitTest              # run unit tests
-```
-
-The debug APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
-
-For a **signed release APK**, set these environment variables and run
-`./gradlew assembleRelease`:
-
-```bash
-export KEYSTORE_PATH=./release.keystore
-export KEYSTORE_PASSWORD=your-store-pass
-export KEY_ALIAS=wheelwitch
-export KEY_PASSWORD=your-key-pass
-```
-
-Run `scripts/setup-signing.sh` to generate a keystore interactively.
+To build from source or contribute, see [CONTRIBUTING.md](CONTRIBUTING.md#build).
 
 ## Requirements
 
@@ -92,14 +77,14 @@ Run `scripts/setup-signing.sh` to generate a keystore interactively.
 
 For returning users, the gear icon opens Settings, and the **Quick Launch** section lets you pin a home-screen shortcut that skips onboarding entirely.
 
-## Contributing
+## Building & Contributing
 
-1. Fork this repository
-2. Create a feature branch (`git checkout -b fix-the-thing`)
-3. Commit your changes with a conversational message (e.g. `add the widget`, `fix the bobble`) — match the existing style
-4. Open a pull request
+See [CONTRIBUTING.md](CONTRIBUTING.md) for build instructions, signing setup, and contribution guidelines.
 
-Build gates: `./gradlew assembleDebug testDebugUnitTest` must stay green. No formal CLA; if you contribute code, please add yourself to a credits section if we add one.
+## TODO
+
+- [ ] Back up `wc24scr.vff` - either the file itself or the entire `RMCP` folder
+- [ ] Generalise save backup/restore to support other `RMCx` save types (not just `RMCP` - see `SaveManager.kt:8`)
 
 ## Credits
 
@@ -110,3 +95,11 @@ Build gates: `./gradlew assembleDebug testDebugUnitTest` must stay green. No for
 - **[Obtainium](https://github.com/ImranR98/Obtainium)** for making sideloaded auto-updates painless
 
 Nintendo owns Mario Kart Wii. This project is unofficial and not affiliated with Nintendo.
+
+> [!IMPORTANT]
+> Parts of this codebase were written with assistance from [MiniMax M3](https://minimax.io) and [GLM-4.7](https://z.ai) as a way to get more familiar with AI tooling.
+> It was especially useful for writing test cases and porting save-related logic from the original Wheel Wizard project.
+> I'm always open to conversation about AI in development and I believe it would have been disingenuous to omit the fact that it was used; I see these tools as a way to help write code, not a replacement for understanding what you're building.
+> They should be used with care and in moderation.
+>
+> Small disclaimer over. Please don't hate me. :(

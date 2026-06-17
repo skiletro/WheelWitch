@@ -124,7 +124,7 @@
     <string name="settings_about">About</string>
     <string name="settings_wheel_witch">Wheel Witch</string>
     <string name="settings_app_subtitle">Manages Retro Rewind Pack for MKWii</string>
-    <string name="settings_version_debug">v%s-debug-%s</string>
+    <string name="settings_version_debug">v%s-debug</string>
     <string name="settings_version_release">v%s</string>
     <string name="settings_delete_save_dialog_title">Delete Save Data</string>
     <string name="settings_delete_save_dialog_body">Are you sure you want to delete the save file? This cannot be undone.</string>

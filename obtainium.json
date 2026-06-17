@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "appName": "WheelWitch",
+  "appId": "com.skiletro.wheelwitch",
+  "sourceUrl": "https://github.com/skiletro/WheelWitch",
+  "sourceType": "GitHubReleases",
+  "additionalSettings": "{\"includePrereleases\":true}"
+}

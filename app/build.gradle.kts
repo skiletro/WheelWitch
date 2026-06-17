@@ -15,8 +15,12 @@ android {
         applicationId = "com.skiletro.wheelwitch"
         minSdk = 31
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        val commitCount = try {
+            Runtime.getRuntime().exec("git rev-list --count HEAD")
+                .inputStream.readBytes().decodeToString().trim().toInt()
+        } catch (_: Exception) { 1 }
+        versionCode = commitCount
+        versionName = "0.$commitCount.0"
         val gitHash = try {
             Runtime.getRuntime().exec("git rev-parse --short HEAD")
                 .inputStream.readBytes().decodeToString().trim()
@@ -37,6 +41,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "GIT_HASH", "\"debug\"")
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
