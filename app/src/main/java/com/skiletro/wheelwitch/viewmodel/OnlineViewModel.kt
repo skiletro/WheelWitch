@@ -94,9 +94,6 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
     val playerCount: Int?
         get() = (_roomsState.value as? RoomsState.Success)?.playerCount
 
-    val serverConnectivity: ServerConnectivity
-        get() = (_roomsState.value as? RoomsState.Success)?.serverConnectivity ?: ServerConnectivity.Unknown
-
     init {
         initialFetch()
         launchLeaderboardConsumer()
@@ -196,8 +193,6 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    private var isLeaderboardLoading = false
-
     fun fetchLeaderboard() {
         leaderboardRequests.trySend(Unit)
     }
@@ -215,7 +210,6 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
                     VersionFileParser.fetchHealthLive().getOrDefault(false)
                 }
                 if (liveOk) {
-                    val connectivity = serverConnectivity
                     val simpleHealth = ServerHealth(
                         status = "ok",
                         database = null,

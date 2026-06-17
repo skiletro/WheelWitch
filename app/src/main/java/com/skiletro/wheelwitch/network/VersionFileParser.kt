@@ -61,7 +61,6 @@ object VersionFileParser {
     private const val LEADERBOARD_URL = "$RWFC_API/api/leaderboard"
     private const val HEALTH_URL = "$RWFC_API/api/health"
     private const val HEALTH_LIVE_URL = "$RWFC_API/api/health/live"
-    private const val HEALTH_READY_URL = "$RWFC_API/api/health/ready"
     private const val RACE_STATS_URL = "$RWFC_API/api/racestats/global"
     private const val TIME_TRIAL_TRACKS_URL = "$RWFC_API/api/timetrial/tracks"
 
@@ -101,14 +100,6 @@ object VersionFileParser {
         parseLeaderboardResponse(json)
     }
 
-    /** Checks whether the server is fully ready (all subsystems pass). Returns true if 200. */
-    fun fetchHealthReady(): Result<Boolean> = runCatching {
-        val request = Request.Builder().url(HEALTH_READY_URL).build()
-        httpClient.newCall(request).execute().use { response ->
-            response.isSuccessful
-        }
-    }
-
     /** Fetches the full server health report. Returns a basic ServerHealth if the detailed endpoint fails. */
     fun fetchHealth(): Result<ServerHealth> = runCatching {
         val json = fetchUrl(HEALTH_URL)
@@ -121,12 +112,6 @@ object VersionFileParser {
         httpClient.newCall(request).execute().use { response ->
             response.isSuccessful
         }
-    }
-
-    /** Fetches global race statistics. */
-    fun fetchGlobalRaceStats(): Result<RaceStats> = runCatching {
-        val json = fetchUrl(RACE_STATS_URL)
-        parseRaceStats(json)
     }
 
     /** Fetches global race statistics and returns the raw JSON for caching. */

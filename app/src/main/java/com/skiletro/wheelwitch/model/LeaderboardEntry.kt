@@ -10,10 +10,8 @@ data class LeaderboardEntry(
     val friendCode: String,
     val name: String,
     val vr: Int,
-    val br: Int,
     val miiImageBase64: String?,
-    val miiData: String?,
-    val country: String?
+    val miiData: String?
 )
 
 data class LeaderboardResponse(
@@ -52,10 +50,8 @@ fun parseLeaderboardResponse(jsonString: String): LeaderboardResponse {
                 friendCode = obj.optString("friendCode", obj.optString("friend_code", obj.optString("fc", ""))),
                 name = obj.optString("name", "Unknown"),
                 vr = obj.optInt("vr", 0),
-                br = obj.optInt("br", 0),
                 miiImageBase64 = if (!obj.isNull("miiImageBase64")) obj.optString("miiImageBase64", "").takeIf { it.isNotEmpty() } else null,
-                miiData = if (!obj.isNull("miiData")) obj.optString("miiData", "").takeIf { it.isNotEmpty() } else null,
-                country = if (!obj.isNull("country")) obj.optString("country", "").takeIf { it.isNotEmpty() } else null
+                miiData = if (!obj.isNull("miiData")) obj.optString("miiData", "").takeIf { it.isNotEmpty() } else null
             )
         )
     }

@@ -13,10 +13,7 @@ class RksysParserTest {
         private const val PID_OFFSET = 0x5C
         private const val RACE_WINS_OFFSET = 0x88
         private const val RACE_LOSSES_OFFSET = 0x8C
-        private const val BATTLE_WINS_OFFSET = 0x90
-        private const val BATTLE_LOSSES_OFFSET = 0x94
         private const val VR_OFFSET = 0xB0
-        private const val BR_OFFSET = 0xB2
         private const val MII_RFL_OFFSET = 0x5684
         private const val MII_RFL_DATA_LENGTH = 74
 
@@ -90,11 +87,8 @@ class RksysParserTest {
         buf.writeUTF16BE(base + MII_NAME_OFFSET, "TestName")
         buf.writeUInt32BE(base + PID_OFFSET, 12345678L)
         buf.writeUInt16BE(base + VR_OFFSET, 5000)
-        buf.writeUInt16BE(base + BR_OFFSET, 3000)
         buf.writeInt32BE(base + RACE_WINS_OFFSET, 100)
         buf.writeInt32BE(base + RACE_LOSSES_OFFSET, 50)
-        buf.writeInt32BE(base + BATTLE_WINS_OFFSET, 30)
-        buf.writeInt32BE(base + BATTLE_LOSSES_OFFSET, 20)
 
         val rflData = ByteArray(MII_RFL_DATA_LENGTH) { (it + 1).toByte() }
         buf.writeBytes(base + MII_RFL_OFFSET, rflData)
@@ -105,11 +99,8 @@ class RksysParserTest {
         assertThat(license.slotIndex).isEqualTo(0)
         assertThat(license.miiName).isEqualTo("TestName")
         assertThat(license.vr).isEqualTo(5000)
-        assertThat(license.br).isEqualTo(3000)
         assertThat(license.raceWins).isEqualTo(100)
         assertThat(license.raceLosses).isEqualTo(50)
-        assertThat(license.battleWins).isEqualTo(30)
-        assertThat(license.battleLosses).isEqualTo(20)
         assertThat(license.miiDataBase64).isEqualTo(Base64.getEncoder().encodeToString(rflData))
     }
 
@@ -122,7 +113,6 @@ class RksysParserTest {
             buf.writeUTF16BE(base + MII_NAME_OFFSET, "Slot$slotIndex")
             buf.writeUInt32BE(base + PID_OFFSET, (slotIndex + 1) * 1000000L)
             buf.writeUInt16BE(base + VR_OFFSET, 1000 + slotIndex * 100)
-            buf.writeUInt16BE(base + BR_OFFSET, 500 + slotIndex * 50)
         }
 
         val info = RksysParser.parse(buf)
@@ -134,7 +124,6 @@ class RksysParserTest {
             assertThat(license.slotIndex).isEqualTo(i)
             assertThat(license.miiName).isEqualTo("Slot$i")
             assertThat(license.vr).isEqualTo(1000 + i * 100)
-            assertThat(license.br).isEqualTo(500 + i * 50)
         }
     }
 

@@ -135,7 +135,7 @@ fun SettingsScreen(
             IconButton(onClick = onClose) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.cd_back),
+                    contentDescription = "Back",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

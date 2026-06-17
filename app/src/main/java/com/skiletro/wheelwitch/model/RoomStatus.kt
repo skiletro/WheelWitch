@@ -16,15 +16,12 @@ sealed interface ServerConnectivity {
 /** A room on the RWFC multiplayer server parsed from the rooms API. */
 data class Room(
     val id: String,
-    val type: String,
-    val host: String,
     val players: List<Player>,
     val averageVR: Int,
     val trackName: String?,
     val roomType: String,
     val isPublic: Boolean,
-    val isJoinable: Boolean,
-    val isSuspended: Boolean
+    val isJoinable: Boolean
 )
 
 /** Mii appearance data from the rooms API. */
@@ -54,15 +51,12 @@ fun parseRooms(jsonString: String): List<Room> {
         rooms.add(
             Room(
                 id = obj.getString("id"),
-                type = obj.getString("type"),
-                host = obj.getString("host"),
                 players = parsePlayers(obj.getJSONArray("players")),
                 averageVR = obj.optInt("averageVR", 0),
                 trackName = race?.optString("trackName")?.ifEmpty { null },
                 roomType = obj.optString("roomType", "Unknown"),
                 isPublic = obj.optBoolean("isPublic", false),
-                isJoinable = obj.optBoolean("isJoinable", false),
-                isSuspended = obj.optBoolean("isSuspended", false)
+                isJoinable = obj.optBoolean("isJoinable", false)
             )
         )
     }

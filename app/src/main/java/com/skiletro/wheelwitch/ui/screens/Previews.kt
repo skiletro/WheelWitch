@@ -16,8 +16,8 @@ import com.skiletro.wheelwitch.viewmodel.SaveInfoState
 // ── Sample data ──
 
 private val sampleLicenses = listOf(
-    LicenseInfo(slotIndex = 0, exists = true, miiName = "Jamie", friendCode = "1234-5678-9012", vr = 5000, br = 3000, raceWins = 120, raceLosses = 45, battleWins = 30, battleLosses = 15),
-    LicenseInfo(slotIndex = 1, exists = true, miiName = "Guest", friendCode = "9876-5432-1098", vr = 7200, br = 4000, raceWins = 200, raceLosses = 60, battleWins = 50, battleLosses = 20),
+    LicenseInfo(slotIndex = 0, exists = true, miiName = "Jamie", friendCode = "1234-5678-9012", vr = 5000, raceWins = 120, raceLosses = 45),
+    LicenseInfo(slotIndex = 1, exists = true, miiName = "Guest", friendCode = "9876-5432-1098", vr = 7200, raceWins = 200, raceLosses = 60),
     LicenseInfo(slotIndex = 2, exists = false),
     LicenseInfo(slotIndex = 3, exists = false)
 )
@@ -25,8 +25,8 @@ private val sampleLicenses = listOf(
 private val samplePlayer = Player(name = "Jamie", friendCode = "1234-5678-9012", vr = 5000, br = 3000, isOpenHost = false, mii = null)
 private val sampleHost = Player(name = "Hosty", friendCode = "9876-5432-1098", vr = 7200, br = 4000, isOpenHost = true, mii = null)
 private val sampleRooms = listOf(
-    Room(id = "1", type = "race", host = "Hosty", players = listOf(sampleHost, samplePlayer), averageVR = 6100, trackName = "GCN Peach Beach", roomType = "FFA", isPublic = true, isJoinable = true, isSuspended = false),
-    Room(id = "2", type = "race", host = "Player2", players = listOf(Player(name = "Player2", friendCode = "1111-2222-3333", vr = 3000, br = 2500, isOpenHost = false, mii = null)), averageVR = 3000, trackName = null, roomType = "FFA", isPublic = true, isJoinable = false, isSuspended = false)
+    Room(id = "1", players = listOf(sampleHost, samplePlayer), averageVR = 6100, trackName = "GCN Peach Beach", roomType = "FFA", isPublic = true, isJoinable = true),
+    Room(id = "2", players = listOf(Player(name = "Player2", friendCode = "1111-2222-3333", vr = 3000, br = 2500, isOpenHost = false, mii = null)), averageVR = 3000, trackName = null, roomType = "FFA", isPublic = true, isJoinable = false)
 )
 
 // ── Home screen previews ──
@@ -105,12 +105,6 @@ private fun MiiPlayerCardPlayerPreview() {
 @Composable
 private fun PrimaryActionButtonDefaultPreview() {
     PrimaryActionButton(text = "Launch Retro Rewind", onClick = {})
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun PrimaryActionButtonBadgePreview() {
-    PrimaryActionButton(text = "Launch Retro Rewind", onClick = {}, badgeText = "2x VR")
 }
 
 @Preview(showBackground = true)

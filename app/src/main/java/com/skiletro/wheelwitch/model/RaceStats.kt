@@ -3,7 +3,7 @@ package com.skiletro.wheelwitch.model
 import org.json.JSONArray
 import org.json.JSONObject
 
-data class TrackStat(val name: String, val raceCount: Int, val courseId: Int)
+data class TrackStat(val name: String, val raceCount: Int)
 data class NamedStat(val name: String, val raceCount: Int)
 data class WinRateStat(val name: String, val raceCount: Int, val winCount: Int, val winRate: Double)
 data class ActivePlayer(val name: String, val pid: String, val fc: String, val raceCount: Int)
@@ -24,9 +24,6 @@ data class RaceStats(
     val topCharactersByWinRate: List<WinRateStat>,
     val topVehiclesByWinRate: List<WinRateStat>,
     val topCombosByWinRate: List<WinRateStat>,
-    val topCharactersByWinCount: List<WinRateStat>,
-    val topVehiclesByWinCount: List<WinRateStat>,
-    val topCombosByWinCount: List<WinRateStat>,
 )
 
 fun parseRaceStats(jsonString: String): RaceStats {
@@ -45,9 +42,6 @@ fun parseRaceStats(jsonString: String): RaceStats {
         topCharactersByWinRate = root.optJSONArray("topCharactersByWinRate")?.let { parseWinRateStats(it) } ?: emptyList(),
         topVehiclesByWinRate = root.optJSONArray("topVehiclesByWinRate")?.let { parseWinRateStats(it) } ?: emptyList(),
         topCombosByWinRate = root.optJSONArray("topCombosByWinRate")?.let { parseWinRateStats(it) } ?: emptyList(),
-        topCharactersByWinCount = root.optJSONArray("topCharactersByWinCount")?.let { parseWinRateStats(it) } ?: emptyList(),
-        topVehiclesByWinCount = root.optJSONArray("topVehiclesByWinCount")?.let { parseWinRateStats(it) } ?: emptyList(),
-        topCombosByWinCount = root.optJSONArray("topCombosByWinCount")?.let { parseWinRateStats(it) } ?: emptyList(),
     )
 }
 
@@ -56,8 +50,7 @@ private fun parseTrackStats(arr: JSONArray): List<TrackStat> {
         val obj = arr.getJSONObject(i)
         TrackStat(
             name = obj.optString("trackName", ""),
-            raceCount = obj.optInt("raceCount", 0),
-            courseId = obj.optInt("courseId", 0)
+            raceCount = obj.optInt("raceCount", 0)
         )
     }
 }

@@ -5,7 +5,6 @@ import android.net.Uri
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.data.RksysParser
 import com.skiletro.wheelwitch.data.SaveManager
 import com.skiletro.wheelwitch.model.LicenseInfo
@@ -39,7 +38,6 @@ sealed class SaveInfoState {
  * and the license currently active in the selected slot.
  */
 class SaveDataViewModel(application: Application) : AndroidViewModel(application), SaveDataDelegate {
-    private val app = application
     private val prefs = application.getSharedPreferences("wheelwitch", Application.MODE_PRIVATE)
 
     private val _saveState = MutableStateFlow(SaveState())
@@ -54,12 +52,6 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
     private val _activeLicenseInfo = MutableStateFlow<LicenseInfo?>(null)
     val activeLicenseInfo: StateFlow<LicenseInfo?> = _activeLicenseInfo.asStateFlow()
 
-    private val _state = MutableStateFlow<UiState>(UiState.NoStorage)
-    val state: StateFlow<UiState> = _state.asStateFlow()
-
-    private val _successMessage = MutableStateFlow<String?>(null)
-    val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
-
     private var saveInfoJob: Job? = null
 
     init {
@@ -70,14 +62,6 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
     override fun onPackStatusChanged() {
         refreshSaveState()
         refreshActiveLicense()
-    }
-
-    fun setUiState(state: UiState) {
-        _state.value = state
-    }
-
-    fun setSuccessMessage(message: String) {
-        _successMessage.value = message
     }
 
     fun refreshSaveState() {
@@ -104,7 +88,6 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
                 app.contentResolver.openOutputStream(destUri)?.use { it.write(data) }
                     ?: throw Exception("Cannot write to selected location")
             }
-            _successMessage.value = "Backup successful"
             refreshSaveState()
         }
     }
@@ -113,19 +96,10 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             val storage = PackUpdateViewModel.currentStorage ?: return@launch
             val app = getApplication<Application>()
-            val result = withContext(Dispatchers.IO) {
-                runCatching {
-                    val data = app.contentResolver.openInputStream(sourceUri)?.use { it.readBytes() }
-                        ?: throw Exception("Cannot read from selected file")
-                    storage.writeBytes(SaveManager.SAVE_RELATIVE, data)
-                }
-            }
-            result.onSuccess {
-                _successMessage.value = "Restore successful"
-            }.onFailure {
-                _state.value = UiState.Error(
-                    getApplication<Application>().getString(R.string.vm_restore_failed_format, it.message ?: "")
-                )
+            withContext(Dispatchers.IO) {
+                val data = app.contentResolver.openInputStream(sourceUri)?.use { it.readBytes() }
+                    ?: throw Exception("Cannot read from selected file")
+                storage.writeBytes(SaveManager.SAVE_RELATIVE, data)
             }
             refreshSaveState()
         }
@@ -139,10 +113,6 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
             }
             refreshSaveState()
         }
-    }
-
-    fun dismissSuccess() {
-        _successMessage.value = null
     }
 
     fun selectSlot(index: Int) {

@@ -48,14 +48,11 @@ class RoomStatusTest {
 
         val room = rooms[0]
         assertThat(room.id).isEqualTo("abc123")
-        assertThat(room.type).isEqualTo("mkw")
-        assertThat(room.host).isEqualTo("Player1")
         assertThat(room.averageVR).isEqualTo(6300)
         assertThat(room.trackName).isEqualTo("Luigi Circuit")
         assertThat(room.roomType).isEqualTo("Friend")
         assertThat(room.isPublic).isFalse()
         assertThat(room.isJoinable).isTrue()
-        assertThat(room.isSuspended).isFalse()
     }
 
     @Test
@@ -95,8 +92,7 @@ class RoomStatusTest {
                   "race": null,
                   "roomType": "Public",
                   "isPublic": true,
-                  "isJoinable": true,
-                  "isSuspended": false
+                  "isJoinable": true
                 }
               ]
             }
@@ -117,8 +113,7 @@ class RoomStatusTest {
                   "players": [],
                   "roomType": "Public",
                   "isPublic": true,
-                  "isJoinable": true,
-                  "isSuspended": false
+                  "isJoinable": true
                 }
               ]
             }
@@ -151,8 +146,7 @@ class RoomStatusTest {
                   ],
                   "roomType": "Unknown",
                   "isPublic": false,
-                  "isJoinable": false,
-                  "isSuspended": true
+                  "isJoinable": false
                 }
               ]
             }
@@ -179,8 +173,7 @@ class RoomStatusTest {
                   "race": { "trackName": "" },
                   "roomType": "Public",
                   "isPublic": true,
-                  "isJoinable": true,
-                  "isSuspended": false
+                  "isJoinable": true
                 }
               ]
             }

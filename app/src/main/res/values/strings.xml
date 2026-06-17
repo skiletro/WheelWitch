@@ -1,11 +1,5 @@
 <resources>
     <string name="app_name">Wheel Witch</string>
-    <string name="app_subtitle">Retro Rewind Pack Manager</string>
-    <string name="cd_back">Back</string>
-    <string name="cd_settings">Settings</string>
-    <string name="cd_mii_maker">Mii Maker</string>
-    <string name="cd_save_data">Licenses</string>
-    <string name="cd_online_menu">Online Menu</string>
 
     <!-- home -->
     <string name="home_checking">Checking...</string>
@@ -36,7 +30,6 @@
     <string name="home_no_iso_cant_launch">Cannot resolve storage path. Please pick a new storage folder.</string>
     <string name="home_launch_failed">Failed to launch Dolphin</string>
     <string name="home_cannot_reach_server">Cannot reach the update server. Please check your internet connection and try again.</string>
-    <string name="home_storage_error">Storage not configured</string>
 
     <!-- onboarding -->
     <string name="onboarding_welcome_to">Welcome to</string>
@@ -153,19 +146,15 @@
     <string name="leaderboard_title">Leaderboard</string>
     <string name="leaderboard_no_entries">No entries yet.</string>
     <string name="leaderboard_retry">Retry</string>
-    <string name="leaderboard_failed_connect">Failed to load leaderboard</string>
     <string name="leaderboard_rank_format">#%d</string>
     <string name="leaderboard_vr_label">VR</string>
 
     <!-- rooms -->
     <string name="rooms_title">Online Rooms</string>
-    <string name="rooms_failed_connect">Failed to connect</string>
-    <string name="rooms_loading">Loading rooms...</string>
     <string name="rooms_no_rooms">No rooms found.</string>
     <string name="rooms_select_a_room">Select a room</string>
     <string name="rooms_try_again">Try Again</string>
     <string name="rooms_refresh">Refresh</string>
-    <string name="rooms_players">player(s)</string>
     <string name="rooms_open">Open</string>
     <string name="rooms_empty">Empty</string>
     <string name="rooms_player_count_format">%d player%s</string>
@@ -231,11 +220,9 @@
 
     <!-- save info -->
     <string name="save_info_title">Licenses</string>
-    <string name="save_info_failed_load">Failed to load save data</string>
     <string name="save_info_try_again">Try Again</string>
     <string name="save_info_empty">Empty</string>
     <string name="save_info_player_default">Player</string>
-    <string name="save_info_no_save_file">No save file found</string>
     <string name="save_info_race_format">Race: W %d / L %d</string>
 
     <!-- quick launch -->
@@ -261,7 +248,4 @@
     <string name="version_history_failed">Failed to load version history</string>
 
     <!-- formatting helpers -->
-    <string name="format_b">%d B</string>
-    <string name="format_kb">%d KB</string>
-    <string name="format_mb">%.2f MB</string>
 </resources>

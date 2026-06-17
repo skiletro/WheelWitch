@@ -65,7 +65,6 @@ import com.skiletro.wheelwitch.ui.components.ScreenHeader
 import com.skiletro.wheelwitch.ui.components.focusBorder
 import com.skiletro.wheelwitch.viewmodel.OnlineMenuPage
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
-import com.skiletro.wheelwitch.viewmodel.RoomsState
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -101,10 +100,10 @@ fun OnlineMenuScreen(
                     )
                     OnlineMenuPage.Rooms -> {
                         val roomsState by viewModel.roomsState.collectAsState()
-                        RoomsSubScreen(
+                        RoomsScreen(
                             roomsState = roomsState,
                             onRefresh = { viewModel.fetchRooms() },
-                            onBack = { viewModel.goBack() },
+                            onClose = { viewModel.goBack() },
                             sharedTransitionScope = this@SharedTransitionLayout,
                             animatedContentScope = this,
                         )
@@ -331,22 +330,4 @@ private fun HubOption(
             }
         }
     }
-}
-
-@Composable
-@OptIn(ExperimentalSharedTransitionApi::class)
-private fun RoomsSubScreen(
-    roomsState: RoomsState,
-    onRefresh: () -> Unit,
-    onBack: () -> Unit,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedContentScope: AnimatedVisibilityScope,
-) {
-    RoomsScreen(
-        roomsState = roomsState,
-        onRefresh = onRefresh,
-        onClose = onBack,
-        sharedTransitionScope = sharedTransitionScope,
-        animatedContentScope = animatedContentScope,
-    )
 }

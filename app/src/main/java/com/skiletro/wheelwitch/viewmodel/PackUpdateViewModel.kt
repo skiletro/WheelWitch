@@ -204,10 +204,6 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
             }
         }
         _currentIsoPath.value = path
-        val currentState = _state.value
-        if (currentState is UiState.Error && currentState.message.contains("ROM file", ignoreCase = true)) {
-            launchDolphin()
-        }
     }
 
     fun clearIsoPath() {
