@@ -409,7 +409,7 @@ fun SettingsScreen(
                     summaryColor = if (miiMakerError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                     trailing = {
                         if (isInstallingWad) {
-                            Text(stringResource(R.string.settings_installing), style = MaterialTheme.typography.bodySmall)
+                            Text(stringResource(R.string.settings_installing), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
                         } else if (hasWad) {
                             TextButton(onClick = { showWadDeleteConfirm = true }) {
                                 Text(stringResource(R.string.settings_delete), color = MaterialTheme.colorScheme.error)
