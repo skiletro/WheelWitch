@@ -550,14 +550,14 @@ private fun formatSize(bytes: Long): String = when {
 
 @Composable
 private fun AboutSection() {
-    val version = if (BuildConfig.DEBUG) "git-${BuildConfig.GIT_HASH}" else BuildConfig.VERSION_NAME
+    val version = if (BuildConfig.DEBUG) "v${BuildConfig.VERSION_NAME}-debug-${BuildConfig.GIT_HASH}" else "v${BuildConfig.VERSION_NAME}"
 
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Wheel Witch v$version",
+            text = "Wheel Witch $version",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
