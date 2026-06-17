@@ -58,5 +58,6 @@ dependencies {
     implementation(libs.androidx.documentfile)
     implementation(libs.material)
     implementation(libs.okhttp)
+    implementation(libs.jsoup)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

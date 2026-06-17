@@ -164,7 +164,7 @@ fun HomeScreen(
                         .background(MaterialTheme.colorScheme.background)
                         .padding(padding)
                 ) {
-                    VersionHistoryWebView(modifier = Modifier.fillMaxSize())
+                    VersionHistoryContent(modifier = Modifier.fillMaxSize())
                 }
             }
         } else {
