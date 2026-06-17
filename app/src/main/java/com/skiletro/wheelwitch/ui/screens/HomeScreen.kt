@@ -66,6 +66,7 @@ import com.skiletro.wheelwitch.ui.components.MiiFace
 import com.skiletro.wheelwitch.ui.components.buttonShape
 import com.skiletro.wheelwitch.ui.components.focusBorder
 import com.skiletro.wheelwitch.ui.components.sectionShape
+import com.dontsaybojio.rollingnumbers.RollingNumbers
 import kotlinx.coroutines.delay
 import android.view.WindowManager
 
@@ -497,24 +498,34 @@ private fun ActivePlayerCard(
                 fontFamily = CtmkfFontFamily
             )
             val vr = license.leaderboardVr ?: license.vr
-            val vrText = if (vr != null && vrMultiplier != null && vrMultiplier > 1.0f) {
-                val mult = if (vrMultiplier == vrMultiplier.toInt().toFloat()) {
-                    vrMultiplier.toInt().toString()
+            if (vr != null) {
+                val showActive = vrMultiplier != null && vrMultiplier > 1.0f
+                val multText = if (showActive) {
+                    if (vrMultiplier == vrMultiplier.toInt().toFloat()) {
+                        vrMultiplier.toInt().toString()
+                    } else {
+                        vrMultiplier.toString()
+                    }
+                } else null
+                val suffix = if (multText != null) {
+                    stringResource(R.string.home_vr_active_suffix, multText)
                 } else {
-                    vrMultiplier.toString()
+                    stringResource(R.string.home_vr_suffix)
                 }
-                stringResource(R.string.home_vr_active_format, vr, mult)
-            } else if (vr != null) {
-                stringResource(R.string.home_vr_format, vr)
-            } else {
-                ""
-            }
-            if (vrText.isNotEmpty()) {
-                Text(
-                    text = vrText,
-                    style = MaterialTheme.typography.labelSmall,
+                val numberStyle = MaterialTheme.typography.labelSmall.copy(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RollingNumbers(
+                        text = vr.toString(),
+                        textStyle = numberStyle
+                    )
+                    Text(
+                        text = suffix,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }

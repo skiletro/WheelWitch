@@ -22,8 +22,8 @@
     <string name="home_version_installed">v%s installed</string>
     <string name="home_update_format">v%s → v%s</string>
     <string name="player_default">Player</string>
-    <string name="home_vr_active_format">%1$d VR · %2$sx active</string>
-    <string name="home_vr_format">%d VR</string>
+    <string name="home_vr_active_suffix"> VR · %1$sx active</string>
+    <string name="home_vr_suffix"> VR</string>
     <string name="home_active_license">Active license</string>
     <string name="home_exit_title">Exit Wheel Witch?</string>
     <string name="home_exit_message">Are you sure you want to close the app?</string>
