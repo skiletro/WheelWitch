@@ -219,16 +219,6 @@ fun RoomListItem(
             .height(IntrinsicSize.Min)
             .then(modifier)
     ) {
-        Box(
-            modifier = Modifier
-                .width(4.dp)
-                .fillMaxHeight()
-                .background(
-                    if (isSelected) MaterialTheme.colorScheme.primary
-                    else Color.Transparent,
-                    shape = RoundedCornerShape(topEnd = 0.dp, bottomEnd = 0.dp, topStart = 12.dp, bottomStart = 12.dp)
-                )
-        )
         FocusableSurface(
             modifier = Modifier.weight(1f),
             onClick = onClick,
