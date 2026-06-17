@@ -256,5 +256,14 @@
     <string name="version_history_loading">Loading version history...</string>
     <string name="version_history_failed">Failed to load version history</string>
 
+    <!-- riivolution -->
+    <string name="settings_riivolution_options">Riivolution Options</string>
+    <string name="settings_my_stuff">My Stuff</string>
+    <string name="settings_my_stuff_summary">Controls which custom content Riivolution loads on launch</string>
+    <string name="settings_my_stuff_disabled">Disabled</string>
+    <string name="settings_my_stuff_music">Music Only</string>
+    <string name="settings_my_stuff_everything">Everything</string>
+
+
     <!-- formatting helpers -->
 </resources>

@@ -43,6 +43,9 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
     private val _currentIsoPath = MutableStateFlow<String?>(null)
     val currentIsoPath: StateFlow<String?> = _currentIsoPath.asStateFlow()
 
+    private val _myStuffMode = MutableStateFlow(DolphinLauncher.MyStuffMode.Everything)
+    val myStuffMode: StateFlow<DolphinLauncher.MyStuffMode> = _myStuffMode.asStateFlow()
+
     private var storageUri: Uri? = null
     private var storage: PackStorage? = null
     val storageRootPath: String? get() = storage?.rootPath
@@ -51,6 +54,7 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
         RewindPackManager.initCacheDir(application.cacheDir)
         MiiFaceCache.init(application)
         restoreStorageUri()
+        _myStuffMode.value = readMyStuffMode()
     }
 
     private fun restoreStorageUri() {
@@ -181,8 +185,9 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
 
         viewModelScope.launch {
             try {
+                val mode = readMyStuffMode()
                 val json = withContext(Dispatchers.IO) {
-                    DolphinLauncher.generateLaunchJson(rootPath, gameIsoPath)
+                    DolphinLauncher.generateLaunchJson(rootPath, gameIsoPath, myStuffMode = mode)
                 }
                 val rrJsonFile = File(rootPath, "RR.json")
                 withContext(Dispatchers.IO) {
@@ -200,8 +205,9 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
         DolphinLauncher.setGameIsoPath(app, path)
         val rootPath = storage?.rootPath
         if (rootPath != null) {
+            val mode = readMyStuffMode()
             viewModelScope.launch(Dispatchers.IO) {
-                DolphinLauncher.writeLaunchJson(rootPath, path)
+                DolphinLauncher.writeLaunchJson(rootPath, path, mode)
             }
         }
         _currentIsoPath.value = path
@@ -212,6 +218,29 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
         DolphinLauncher.setGameIsoPath(app, "")
         storage?.rootPath?.let { DolphinLauncher.deleteLaunchJson(it) }
         _currentIsoPath.value = null
+    }
+
+    fun setMyStuffMode(mode: DolphinLauncher.MyStuffMode) {
+        _myStuffMode.value = mode
+        prefs.edit().putString(PrefsKeys.RIIVOLUTION_MY_STUFF_MODE, mode.name).apply()
+        regenerateLaunchJson()
+    }
+
+    private fun readMyStuffMode(): DolphinLauncher.MyStuffMode {
+        val name = prefs.getString(PrefsKeys.RIIVOLUTION_MY_STUFF_MODE, null)
+        return if (name != null) {
+            try { DolphinLauncher.MyStuffMode.valueOf(name) }
+            catch (_: IllegalArgumentException) { DolphinLauncher.MyStuffMode.Everything }
+        } else DolphinLauncher.MyStuffMode.Everything
+    }
+
+    private fun regenerateLaunchJson() {
+        val app = getApplication<Application>()
+        val rootPath = storage?.rootPath ?: return
+        val gameIsoPath = DolphinLauncher.getGameIsoPath(app) ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            DolphinLauncher.writeLaunchJson(rootPath, gameIsoPath, readMyStuffMode())
+        }
     }
 
     fun clearError() {

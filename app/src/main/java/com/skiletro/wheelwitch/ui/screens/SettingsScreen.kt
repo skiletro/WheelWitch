@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.SaveAlt
 import androidx.compose.material.icons.automirrored.filled.Shortcut
 import androidx.compose.material.icons.filled.Checkroom
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -62,6 +63,7 @@ import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.ui.components.cacheSize
 import com.skiletro.wheelwitch.ui.components.formatBytes
 import com.skiletro.wheelwitch.ui.theme.ThemeMode
+import com.skiletro.wheelwitch.util.DolphinLauncher
 import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
 import com.skiletro.wheelwitch.viewmodel.PackUpdateViewModel
 import com.skiletro.wheelwitch.viewmodel.SaveDataViewModel
@@ -92,6 +94,7 @@ fun SettingsScreen(
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showWadDeleteConfirm by remember { mutableStateOf(false) }
     var showThemeDropdown by remember { mutableStateOf(false) }
+    var showMyStuffDropdown by remember { mutableStateOf(false) }
 
     if (showDeleteConfirm) {
         AlertDialog(
@@ -299,6 +302,61 @@ fun SettingsScreen(
                     title = stringResource(R.string.settings_pack_storage),
                     summary = packUpdate.storageRootPath ?: stringResource(R.string.settings_not_configured),
                     trailing = null
+                )
+            }
+
+            // Riivolution Options
+            item {
+                SettingsCategoryHeader(stringResource(R.string.settings_riivolution_options))
+            }
+            item {
+                val myStuffMode by packUpdate.myStuffMode.collectAsState()
+                SettingsItem(
+                    icon = Icons.Filled.Folder,
+                    title = stringResource(R.string.settings_my_stuff),
+                    summary = stringResource(R.string.settings_my_stuff_summary),
+                    trailing = {
+                        Box {
+                            TextButton(
+                                onClick = { showMyStuffDropdown = true },
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Text(
+                                    text = when (myStuffMode) {
+                                        DolphinLauncher.MyStuffMode.Disabled -> stringResource(R.string.settings_my_stuff_disabled)
+                                        DolphinLauncher.MyStuffMode.MusicOnly -> stringResource(R.string.settings_my_stuff_music)
+                                        DolphinLauncher.MyStuffMode.Everything -> stringResource(R.string.settings_my_stuff_everything)
+                                    }
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showMyStuffDropdown,
+                                onDismissRequest = { showMyStuffDropdown = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.settings_my_stuff_disabled)) },
+                                    onClick = {
+                                        packUpdate.setMyStuffMode(DolphinLauncher.MyStuffMode.Disabled)
+                                        showMyStuffDropdown = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.settings_my_stuff_music)) },
+                                    onClick = {
+                                        packUpdate.setMyStuffMode(DolphinLauncher.MyStuffMode.MusicOnly)
+                                        showMyStuffDropdown = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.settings_my_stuff_everything)) },
+                                    onClick = {
+                                        packUpdate.setMyStuffMode(DolphinLauncher.MyStuffMode.Everything)
+                                        showMyStuffDropdown = false
+                                    }
+                                )
+                            }
+                        }
+                    }
                 )
             }
 

@@ -130,6 +130,48 @@ class DolphinLauncherTest {
         }
     }
 
+    @Test
+    fun `generateLaunchJson omits My Stuff option when mode is Disabled`() {
+        val json = DolphinLauncher.generateLaunchJson("/s", "/g.iso", myStuffMode = DolphinLauncher.MyStuffMode.Disabled)
+        val options = JSONObject(json)
+            .getJSONObject("riivolution")
+            .getJSONArray("patches")
+            .getJSONObject(0)
+            .getJSONArray("options")
+
+        assertThat(options.length()).isEqualTo(2)
+        assertThat(options.getJSONObject(0).getString("option-name")).isEqualTo("Pack")
+        assertThat(options.getJSONObject(1).getString("option-name")).isEqualTo("Seperate Savegame")
+    }
+
+    @Test
+    fun `generateLaunchJson uses choice 2 for My Stuff when mode is Everything`() {
+        val json = DolphinLauncher.generateLaunchJson("/s", "/g.iso", myStuffMode = DolphinLauncher.MyStuffMode.Everything)
+        val options = JSONObject(json)
+            .getJSONObject("riivolution")
+            .getJSONArray("patches")
+            .getJSONObject(0)
+            .getJSONArray("options")
+
+        val myStuff = options.getJSONObject(1)
+        assertThat(myStuff.getInt("choice")).isEqualTo(2)
+        assertThat(myStuff.getString("option-name")).isEqualTo("My Stuff")
+    }
+
+    @Test
+    fun `generateLaunchJson uses choice 4 for My Stuff when mode is MusicOnly`() {
+        val json = DolphinLauncher.generateLaunchJson("/s", "/g.iso", myStuffMode = DolphinLauncher.MyStuffMode.MusicOnly)
+        val options = JSONObject(json)
+            .getJSONObject("riivolution")
+            .getJSONArray("patches")
+            .getJSONObject(0)
+            .getJSONArray("options")
+
+        val myStuff = options.getJSONObject(1)
+        assertThat(myStuff.getInt("choice")).isEqualTo(4)
+        assertThat(myStuff.getString("option-name")).isEqualTo("My Stuff")
+    }
+
     private fun createTempDir() = java.io.File.createTempFile("dolphin_test", "").also {
         it.delete()
         it.mkdirs()

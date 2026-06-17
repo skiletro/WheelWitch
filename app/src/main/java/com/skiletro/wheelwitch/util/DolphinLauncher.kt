@@ -17,6 +17,12 @@ object DolphinLauncher {
     private const val XML_FILE_NAME = "RetroRewind6.xml"
     private const val GAME_ISO_PREFS_KEY = "game_iso_path"
 
+    enum class MyStuffMode(val xmlChoice: Int) {
+        Disabled(0),
+        MusicOnly(4),
+        Everything(2)
+    }
+
     /** Returns true if the Dolphin package is installed on the device. */
     fun isDolphinInstalled(context: Context): Boolean {
         return try {
@@ -52,7 +58,8 @@ object DolphinLauncher {
     fun generateLaunchJson(
         storageRootPath: String,
         gameIsoPath: String,
-        displayName: String = "RR"
+        displayName: String = "RR",
+        myStuffMode: MyStuffMode = MyStuffMode.Everything
     ): String {
         val xmlPath = "$storageRootPath/$RIIVOLUTION_FOLDER/$XML_FILE_NAME"
 
@@ -68,11 +75,13 @@ object DolphinLauncher {
                                 put("option-name", "Pack")
                                 put("section-name", "Retro Rewind")
                             })
-                            put(JSONObject().apply {
-                                put("choice", 2)
-                                put("option-name", "My Stuff")
-                                put("section-name", "Retro Rewind")
-                            })
+                            if (myStuffMode != MyStuffMode.Disabled) {
+                                put(JSONObject().apply {
+                                    put("choice", myStuffMode.xmlChoice)
+                                    put("option-name", "My Stuff")
+                                    put("section-name", "Retro Rewind")
+                                })
+                            }
                             put(JSONObject().apply {
                                 put("choice", 2)
                                 put("option-name", "Seperate Savegame")
@@ -102,8 +111,8 @@ object DolphinLauncher {
     }
 
     /** Writes a complete RR.json to the storage root. */
-    fun writeLaunchJson(rootPath: String, gameIsoPath: String) {
-        File(rootPath, RR_JSON_NAME).writeText(generateLaunchJson(rootPath, gameIsoPath))
+    fun writeLaunchJson(rootPath: String, gameIsoPath: String, myStuffMode: MyStuffMode = MyStuffMode.Everything) {
+        File(rootPath, RR_JSON_NAME).writeText(generateLaunchJson(rootPath, gameIsoPath, myStuffMode = myStuffMode))
     }
 
     /** Deletes the RR.json from the storage root. */
