@@ -30,7 +30,8 @@ No test framework — test sources deleted.
 
 - **SAF folder picker** for pack storage location; direct `java.io.File` path resolution for I/O with `DocumentFile` fallback for metadata
 - **OkHttp 4.12.0** for HTTP (connection pooling, progress tracking)
-- **Dolphin launch**: uses `AutoStartFile` intent extra with kebab-case JSON fields; RR.json generated at storage root
+- **Dolphin launch**: uses `AutoStartFile` intent extra with kebab-case JSON fields; RR.json read/written via `DolphinLauncher` methods (`readIsoPathFromLaunchJson`/`writeLaunchJson`/`deleteLaunchJson`)
+- **File downloads**: consolidated in `FileDownloader.downloadToFile()` with optional progress callback and HTTP status validation (used by both `RewindPackManager` and `MiiWadInstaller`)
 - **Mii Maker (WAD install)**: downloads `https://filecache45.gamebanana.com/mods/mii_channel_symbols_-_hacs.zip` to app cache, extracts the `.wad` file, and launches Dolphin via `ACTION_VIEW` intent with FileProvider content URI
 - **Update server**: `https://update.rwfc.net/` (same as WheelWizard); version file manifest, deletion list, fallback to full reinstall if version < 3.2.6
 - **Pipelined extraction** removed (`LinkedBlockingQueue` pipe caused hang at 99%)
@@ -53,13 +54,15 @@ com.skiletro.wheelwitch
 │   └── RoomStatus.kt    — Online rooms API + ServerConnectivity
 ├── data/                — Storage and persistence
 │   ├── PackStorage.kt   — SAF + direct file I/O
-│   └── SaveManager.kt   — Save file management
+│   ├── SaveManager.kt   — Save file management
+│   └── RksysParser.kt   — RKPD save data parser
 ├── network/             — HTTP layer
-│   └── VersionFileParser.kt — Version + delete file fetching
+│   └── VersionFileParser.kt — Version + delete file fetching, leaderboard API, rooms API
 ├── domain/              — Business logic
 │   └── RewindPackManager.kt — Install/update orchestration
 ├── util/                — Utilities
-│   └── DolphinLauncher.kt — JSON generation, intent launch, ISO prefs
+│   ├── DolphinLauncher.kt — Launch JSON generation, intent launch, ISO prefs, RR.json I/O
+│   └── FileDownloader.kt  — Shared download-to-file with optional progress
 ├── ui/                  — Presentation layer
 │   ├── screens/
 │   │   └── HomeScreen.kt
@@ -118,7 +121,20 @@ com.skiletro.wheelwitch
 - **Gamepad focus borders** use `primary` theme color (follows dynamic or custom theme)
 - **Custom red theme `onPrimary`** explicitly set for proper text contrast
 - **Sparkle animation** trimmed to 3 visible positions (avoiding wizard hat overlap)
+- **`@Immutable` annotations** added to `UiState`, `SaveState`, `MiiMakerState`, `RoomsState`, `SaveInfoState`, `PackStatus`, `ServerConnectivity`
+- **RksysParser magic offsets** named constants (MII_NAME_OFFSET, VR_OFFSET, etc.)
+- **RR.json I/O moved** from ViewModel into `DolphinLauncher` methods
+- **Shared `FileDownloader` utility** extracted from duplicate private functions in `RewindPackManager` and `MiiWadInstaller`; MiiWadInstaller now gets proper HTTP status checking for free
+- **Leaderboard race condition fixed** — `refreshSaveFileInfo()` uses `async`/`awaitAll` for atomic state update instead of concurrent lost writes; inner fetches are children of `saveInfoJob` so cancellation is effective
 
 ## State
 
 All changes committed on `master`. No uncommitted work.
+
+## Large Items Evaluation
+
+### 1. Leaderboard race condition — LOW complexity (~30 min)
+Collect all `async` results with `awaitAll` before a single atomic state write. Inner fetches become children of `saveInfoJob` for proper cancellation. Readability impact: moderate (eliminates subtle concurrency trap, makes intent self-documenting).
+
+### 2. Shared download-to-file utility — LOW complexity (~30 min)
+Consolidate duplicate private `downloadToFile` functions from `RewindPackManager` and `MiiWadInstaller` into `FileDownloader`. Readability impact: high (MiiWadInstaller call site drops from 25 lines to 1; MiiWadInstaller gains HTTP error checking for free).

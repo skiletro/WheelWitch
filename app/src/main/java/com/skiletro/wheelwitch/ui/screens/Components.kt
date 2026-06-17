@@ -3,7 +3,9 @@ package com.skiletro.wheelwitch.ui.screens
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -23,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -32,6 +35,7 @@ fun PrimaryActionButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     badgeText: String? = null,
+    subText: String? = null,
 ) {
     Box(modifier = modifier) {
         var isFocused by remember { mutableStateOf(false) }
@@ -41,7 +45,7 @@ fun PrimaryActionButton(
             enabled = enabled,
             shape = buttonShape,
             modifier = Modifier
-                .height(56.dp)
+                .height(64.dp)
                 .onFocusChanged { isFocused = it.isFocused }
                 .focusBorder(isFocused),
             colors = ButtonDefaults.buttonColors(
@@ -49,11 +53,26 @@ fun PrimaryActionButton(
                 contentColor = MaterialTheme.colorScheme.onPrimary
             )
         ) {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center
+                )
+                if (subText != null) {
+                    Text(
+                        text = subText,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Normal,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
         }
 
         AnimatedVisibility(

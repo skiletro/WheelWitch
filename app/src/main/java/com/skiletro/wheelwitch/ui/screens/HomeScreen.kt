@@ -290,20 +290,35 @@ private fun HomeBottomBar(
             is UiState.Ready -> {
                 val status = state.status
                 var checkButtonFocused by remember { mutableStateOf(false) }
+                val latestVersion = when (status) {
+                    is PackStatus.UpToDate -> status.latestVersion
+                    is PackStatus.UpdateAvailable -> status.latestVersion
+                    else -> null
+                }
                 OutlinedButton(
                     onClick = onCheck,
                     enabled = !isBusy,
                     shape = buttonShape,
                     modifier = Modifier
-                        .height(56.dp)
+                        .height(64.dp)
                         .onFocusChanged { checkButtonFocused = it.isFocused }
                         .focusBorder(checkButtonFocused)
                 ) {
-                    Text(
-                        text = "Check for updates",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "Check for updates",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                        if (latestVersion != null) {
+                            Text(
+                                text = "Latest: v${latestVersion}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Normal,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 when (status) {
@@ -320,10 +335,16 @@ private fun HomeBottomBar(
                         )
                     }
                     else -> {
+                        val installedVersion = when (status) {
+                            is PackStatus.UpToDate -> status.currentVersion
+                            is PackStatus.Installed -> status.version
+                            else -> null
+                        }
                         if (hasIso) {
                             PrimaryActionButton(
                                 text = "Launch Retro Rewind",
                                 onClick = onLaunch,
+                                subText = installedVersion?.let { "v${it} installed" },
                                 badgeText = vrMultiplier?.let { m ->
                                     if (m > 1.0f) {
                                         if (m == m.toInt().toFloat()) "${m.toInt()}x VR" else "${m}x VR"
