@@ -9,9 +9,12 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
@@ -175,61 +178,71 @@ private fun MainScreen(
                 viewModel = packUpdate,
                 onFinish = { (context as? android.app.Activity)?.finish() }
             )
-        } else if (onboardingComplete) {
-            if (!showSettings) {
-                HomeScreen(
-                    packUpdate = packUpdate,
-                    saveData = saveData,
-                    miiMaker = miiMaker,
-                    onlineViewModel = onlineViewModel,
-                    onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
-                    onOpenSettings = { showSettings = true }
-                )
-            }
-
-            AnimatedVisibility(
-                visible = showSettings,
-                enter = slideInVertically() + fadeIn(),
-                exit = slideOutVertically() + fadeOut()
-            ) {
-                SettingsScreen(
-                    packUpdate = packUpdate,
-                    saveData = saveData,
-                    miiMaker = miiMaker,
-                    onBackupSave = { backupPicker.launch("rksys.dat") },
-                    onRestoreSave = { restorePicker.launch(arrayOf("application/octet-stream", "*/*")) },
-                    onDeleteSave = { saveData.deleteSave() },
-                    onClose = { showSettings = false },
-                    appTheme = appTheme,
-                    onChangeAppTheme = onChangeAppTheme,
-                    themeMode = themeMode,
-                    onChangeThemeMode = onChangeThemeMode,
-                    onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
-                    onSimulateQuickLaunch = { quickLaunchMode = true },
-                    onRelaunchOnboarding = {
-                        prefs.edit().putBoolean(PrefsKeys.ONBOARDING_COMPLETED_KEY, false).apply()
-                        onboardingComplete = false
-                        onboardingStorageSelected = false
-                        onboardingIsoSelected = false
-                        showSettings = false
-                    }
-                )
-            }
         } else {
-            OnboardingScreen(
-                storageSelected = onboardingStorageSelected,
-                isoSelected = onboardingIsoSelected,
-                storageConfigured = packUpdate.storageRootPath != null,
-                isoConfigured = DolphinLauncher.getGameIsoPath(context) != null,
-                onPickStorage = { storagePicker.launch(null) },
-                onSkipStorage = { onboardingStorageSelected = true },
-                onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
-                onSkipIso = { onboardingIsoSelected = true },
-                onComplete = {
-                    prefs.edit().putBoolean(PrefsKeys.ONBOARDING_COMPLETED_KEY, true).apply()
-                    onboardingComplete = true
+            AnimatedContent(
+                targetState = onboardingComplete,
+                transitionSpec = {
+                    fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+                },
+                label = "onboarding_transition"
+            ) { completed ->
+                if (completed) {
+                    if (!showSettings) {
+                        HomeScreen(
+                            packUpdate = packUpdate,
+                            saveData = saveData,
+                            miiMaker = miiMaker,
+                            onlineViewModel = onlineViewModel,
+                            onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
+                            onOpenSettings = { showSettings = true }
+                        )
+                    }
+
+                    AnimatedVisibility(
+                        visible = showSettings,
+                        enter = slideInVertically() + fadeIn(),
+                        exit = slideOutVertically() + fadeOut()
+                    ) {
+                        SettingsScreen(
+                            packUpdate = packUpdate,
+                            saveData = saveData,
+                            miiMaker = miiMaker,
+                            onBackupSave = { backupPicker.launch("rksys.dat") },
+                            onRestoreSave = { restorePicker.launch(arrayOf("application/octet-stream", "*/*")) },
+                            onDeleteSave = { saveData.deleteSave() },
+                            onClose = { showSettings = false },
+                            appTheme = appTheme,
+                            onChangeAppTheme = onChangeAppTheme,
+                            themeMode = themeMode,
+                            onChangeThemeMode = onChangeThemeMode,
+                            onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
+                            onSimulateQuickLaunch = { quickLaunchMode = true },
+                            onRelaunchOnboarding = {
+                                prefs.edit().putBoolean(PrefsKeys.ONBOARDING_COMPLETED_KEY, false).apply()
+                                onboardingComplete = false
+                                onboardingStorageSelected = false
+                                onboardingIsoSelected = false
+                                showSettings = false
+                            }
+                        )
+                    }
+                } else {
+                    OnboardingScreen(
+                        storageSelected = onboardingStorageSelected,
+                        isoSelected = onboardingIsoSelected,
+                        storageConfigured = packUpdate.storageRootPath != null,
+                        isoConfigured = DolphinLauncher.getGameIsoPath(context) != null,
+                        onPickStorage = { storagePicker.launch(null) },
+                        onSkipStorage = { onboardingStorageSelected = true },
+                        onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
+                        onSkipIso = { onboardingIsoSelected = true },
+                        onComplete = {
+                            prefs.edit().putBoolean(PrefsKeys.ONBOARDING_COMPLETED_KEY, true).apply()
+                            onboardingComplete = true
+                        }
+                    )
                 }
-            )
+            }
         }
     }
 }
