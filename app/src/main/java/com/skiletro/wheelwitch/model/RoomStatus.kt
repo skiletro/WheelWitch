@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import org.json.JSONArray
 import org.json.JSONObject
 
+/** Whether the RWFC game server is reachable. */
 @Immutable
 sealed interface ServerConnectivity {
     data object Online : ServerConnectivity
@@ -12,6 +13,7 @@ sealed interface ServerConnectivity {
     data object Unknown : ServerConnectivity
 }
 
+/** A room on the RWFC multiplayer server parsed from the rooms API. */
 data class Room(
     val id: String,
     val type: String,
@@ -25,11 +27,13 @@ data class Room(
     val isSuspended: Boolean
 )
 
+/** Mii appearance data from the rooms API. */
 data class MiiData(
     val data: String,
     val name: String
 )
 
+/** A player in a room parsed from the rooms API. */
 data class Player(
     val name: String,
     val friendCode: String,
@@ -39,6 +43,7 @@ data class Player(
     val mii: MiiData?
 )
 
+/** Parses the `rwfc.net/api/roomstatus` JSON response into a list of [Room]. */
 fun parseRooms(jsonString: String): List<Room> {
     val root = JSONObject(jsonString)
     val arr = root.getJSONArray("rooms")
@@ -85,5 +90,3 @@ private fun parsePlayers(arr: JSONArray): List<Player> {
     }
     return players
 }
-
-

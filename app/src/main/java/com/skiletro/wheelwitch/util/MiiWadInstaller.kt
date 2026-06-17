@@ -9,17 +9,20 @@ import java.io.File
 import java.io.FileInputStream
 import java.util.zip.ZipInputStream
 
+/** Downloads and installs the Mii Channel WAD file for use as a Mii Maker in Dolphin. */
 object MiiWadInstaller {
     private const val MII_MAKER_ZIP_URL = "https://filecache45.gamebanana.com/mods/mii_channel_symbols_-_hacs.zip"
     private const val WAD_FILE_NAME = "Mii Channel Symbols - HACS.wad"
     private const val EXTRACT_BUFFER = 262144
 
+    /** Returns the cached WAD file from `cache/mii_maker/`, or null if not yet downloaded. */
     fun getCachedWadFile(context: Context): File? {
         val dir = File(context.cacheDir, "mii_maker")
         val wad = File(dir, WAD_FILE_NAME)
         return if (wad.exists()) wad else null
     }
 
+    /** Downloads the WAD zip from GameBanana, extracts the `.wad` file, and returns it. Validates WAD magic header before returning. */
     fun downloadAndExtractWad(context: Context): File {
         val cacheDir = File(context.cacheDir, "mii_maker")
         cacheDir.mkdirs()
@@ -43,6 +46,7 @@ object MiiWadInstaller {
         }
     }
 
+    /** Launches Dolphin with the given WAD file via `ACTION_VIEW` + `FileProvider` content URI. Validates magic header first (0x00 0x00 0x00 0x20). */
     fun launchWadFile(context: Context, wadFile: File): Result<Unit> = runCatching {
         require(isValidWad(wadFile)) { "Cached WAD file is corrupted or incomplete" }
         val contentUri: Uri = FileProvider.getUriForFile(

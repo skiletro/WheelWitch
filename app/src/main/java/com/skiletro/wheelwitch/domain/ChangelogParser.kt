@@ -6,11 +6,13 @@ import okhttp3.Request
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
+/** Fetches and parses the Retro Rewind version history from the Tockdom wiki. */
 object ChangelogParser {
 
     private const val WIKI_URL = "https://wiki.tockdom.com/wiki/Retro_Rewind"
     private val httpClient get() = HttpClientProvider.client
 
+    /** Fetches the wiki page via OkHttp (browser UA to avoid 403) and parses all version history tables. */
     fun fetch(): Result<List<ChangelogEntry>> = runCatching {
         val request = Request.Builder()
             .url(WIKI_URL)
@@ -23,6 +25,7 @@ object ChangelogParser {
         parse(doc)
     }
 
+    /** Parses a Jsoup [Document] for all `table.wikitable` elements after the `#Version_History` heading. Handles both `.spoilers`-wrapped and bare tables. Results are reversed so latest version is first. */
     fun parse(doc: Document): List<ChangelogEntry> {
         val entries = mutableListOf<ChangelogEntry>()
         val historyHeading = doc.selectFirst("span#Version_History") ?: return entries

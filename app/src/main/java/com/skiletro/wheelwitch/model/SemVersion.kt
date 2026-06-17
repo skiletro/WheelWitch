@@ -1,5 +1,6 @@
 package com.skiletro.wheelwitch.model
 
+/** Three-part semantic version with optional pre-release label (e.g. "3.2.6-beta1"). */
 data class SemVersion(val major: Int, val minor: Int, val patch: Int, val preRelease: String? = null) :
     Comparable<SemVersion> {
 
@@ -20,6 +21,7 @@ data class SemVersion(val major: Int, val minor: Int, val patch: Int, val preRel
     }
 
     companion object {
+        /** Parses a version string ("v3.2.6", "3.2.6-beta1") into [SemVersion], or null on failure. */
         fun parse(text: String): SemVersion? {
             val cleaned = text.trimStart('v', 'V')
             val dashIdx = cleaned.indexOf('-')

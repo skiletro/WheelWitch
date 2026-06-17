@@ -7,6 +7,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 
+/** Launches Dolphin Emulator with Retro Rewind configuration and manages the RR.json launch descriptor. */
 object DolphinLauncher {
     const val DOLPHIN_PACKAGE = "org.dolphinemu.dolphinemu"
     const val DOLPHIN_MAIN_ACTIVITY = "$DOLPHIN_PACKAGE.ui.main.MainActivity"
@@ -16,6 +17,7 @@ object DolphinLauncher {
     private const val XML_FILE_NAME = "RetroRewind6.xml"
     private const val GAME_ISO_PREFS_KEY = "game_iso_path"
 
+    /** Returns true if the Dolphin package is installed on the device. */
     fun isDolphinInstalled(context: Context): Boolean {
         return try {
             context.packageManager.getPackageInfo(DOLPHIN_PACKAGE, 0)
@@ -25,12 +27,14 @@ object DolphinLauncher {
         }
     }
 
+    /** Opens the Dolphin download page in the browser. */
     fun openDolphinDownload(context: Context) {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://dolphin-emu.org/download/"))
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(intent)
     }
 
+    /** Persists the selected Mario Kart Wii ISO path to SharedPreferences. */
     fun setGameIsoPath(context: Context, path: String) {
         context.getSharedPreferences("wheelwitch", Context.MODE_PRIVATE)
             .edit()
@@ -38,11 +42,13 @@ object DolphinLauncher {
             .apply()
     }
 
+    /** Returns the saved ISO path, or null if none was set. */
     fun getGameIsoPath(context: Context): String? {
         return context.getSharedPreferences("wheelwitch", Context.MODE_PRIVATE)
             .getString(GAME_ISO_PREFS_KEY, null)
     }
 
+    /** Generates the Dolphin `RR.json` launch descriptor (kebab-case JSON fields: `base-file`, `display-name`, `riivolution`, etc.). */
     fun generateLaunchJson(
         storageRootPath: String,
         gameIsoPath: String,
@@ -83,6 +89,7 @@ object DolphinLauncher {
         }.toString(2)
     }
 
+    /** Reads the `base-file` field from an existing RR.json, or null if missing/parse fails. */
     fun readIsoPathFromLaunchJson(rootPath: String): String? {
         val file = File(rootPath, RR_JSON_NAME)
         return if (file.exists()) {
@@ -94,14 +101,17 @@ object DolphinLauncher {
         } else null
     }
 
+    /** Writes a complete RR.json to the storage root. */
     fun writeLaunchJson(rootPath: String, gameIsoPath: String) {
         File(rootPath, RR_JSON_NAME).writeText(generateLaunchJson(rootPath, gameIsoPath))
     }
 
+    /** Deletes the RR.json from the storage root. */
     fun deleteLaunchJson(rootPath: String) {
         File(rootPath, RR_JSON_NAME).delete()
     }
 
+    /** Launches Dolphin with the given RR.json path via the `AutoStartFile` intent extra. */
     fun launchDolphin(context: Context, jsonFilePath: String): Result<Unit> = runCatching {
         val intent = Intent().apply {
             setClassName(DOLPHIN_PACKAGE, DOLPHIN_MAIN_ACTIVITY)

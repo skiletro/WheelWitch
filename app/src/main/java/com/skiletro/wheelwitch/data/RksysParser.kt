@@ -5,6 +5,7 @@ import com.skiletro.wheelwitch.model.LicenseInfo
 import com.skiletro.wheelwitch.model.SaveFileInfo
 import java.security.MessageDigest
 
+/** Parses a Mario Kart Wii `rksys.dat` save file (big-endian binary format, RKPD magic) into [SaveFileInfo]. */
 object RksysParser {
     private val LICENSE_BASES = intArrayOf(0x08, 0x8CC8, 0x11988, 0x1A648)
 
@@ -20,6 +21,7 @@ object RksysParser {
     private const val MII_RFL_OFFSET = 0x5684
     private const val MII_RFL_DATA_LENGTH = 74
 
+    /** Parses a raw `rksys.dat` byte array into [SaveFileInfo] with up to 4 license slots. */
     fun parse(bytes: ByteArray): SaveFileInfo {
         val licenses = LICENSE_BASES.mapIndexed { index, base ->
             parseLicense(bytes, base, index)
@@ -66,6 +68,7 @@ object RksysParser {
         )
     }
 
+    /** Converts a Wii PID into a 12-digit friend code (XXXX-XXXX-XXXX) using the JCMR + MD5 checksum algorithm. */
     private fun pidToFriendCode(pid: Long): String {
         val buffer = ByteArray(8)
         buffer[0] = (pid and 0xFF).toByte()

@@ -7,6 +7,7 @@ import androidx.documentfile.provider.DocumentFile
 import java.io.File
 import java.util.zip.ZipFile
 
+/** Reads/writes pack files using direct `java.io.File` path resolution when possible, falling back to SAF [DocumentFile] for metadata operations. */
 class PackStorage(private val context: Context, private val rootUri: Uri) {
     private val resolver get() = context.contentResolver
     private val rootDoc: DocumentFile? by lazy { DocumentFile.fromTreeUri(context, rootUri) }
@@ -15,6 +16,7 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
     companion object {
         const val COPY_BUFFER_SIZE = 262144
 
+        /** Resolves a content URI to a real filesystem path (e.g. "/storage/emulated/0/RetroRewind6"). */
         fun resolveContentUriToPath(uri: Uri): String? {
             val docId = try {
                 DocumentsContract.getDocumentId(uri)
@@ -50,6 +52,7 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
         }
     }
 
+    /** Reads a text file relative to the storage root. Returns null if the file does not exist. */
     fun readFile(childPath: String): String? {
         val file = resolveDirect(childPath)
         if (file?.exists() == true) return file.readText()
@@ -57,6 +60,7 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
         return resolver.openInputStream(doc.uri)?.use { it.bufferedReader().readText() }
     }
 
+    /** Writes a text file relative to the storage root, creating parent directories as needed. */
     fun writeFile(childPath: String, content: String) {
         val file = resolveDirect(childPath)
         if (file != null) {
@@ -69,12 +73,14 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
         requireNotNull(resolver.openOutputStream(doc.uri)) { "Failed to open output stream for $childPath" }.use { it.write(content.toByteArray()) }
     }
 
+    /** Deletes a file relative to the storage root. Returns true if the file existed and was deleted. */
     fun deleteFile(childPath: String): Boolean {
         val file = resolveDirect(childPath)
         if (file?.exists() == true) return file.delete()
         return resolveDoc(childPath)?.delete() ?: false
     }
 
+    /** Extracts a zip archive into the storage root, reporting progress as 0..1. */
     fun extractZip(zipFile: File, onProgress: (Float) -> Unit): Result<Unit> = runCatching {
         ZipFile(zipFile).use { zf ->
             val entries = zf.entries()
@@ -121,12 +127,14 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
         }
     }
 
+    /** Returns true if a file exists at the given path relative to the storage root. */
     fun fileExists(childPath: String): Boolean {
         val file = resolveDirect(childPath)
         if (file?.exists() == true) return true
         return resolveDoc(childPath) != null
     }
 
+    /** Reads raw bytes from a file relative to the storage root. Returns null if the file does not exist. */
     fun readBytes(childPath: String): ByteArray? {
         val file = resolveDirect(childPath)
         if (file?.exists() == true) return file.readBytes()
@@ -134,6 +142,7 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
         return resolver.openInputStream(doc.uri)?.use { it.readBytes() }
     }
 
+    /** Writes raw bytes to a file relative to the storage root, creating parent directories as needed. */
     fun writeBytes(childPath: String, data: ByteArray) {
         val file = resolveDirect(childPath)
         if (file != null) {

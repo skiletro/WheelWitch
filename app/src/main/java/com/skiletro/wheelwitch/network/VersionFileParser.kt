@@ -11,6 +11,7 @@ import com.skiletro.wheelwitch.util.HttpClientProvider
 import okhttp3.Request
 import org.json.JSONObject
 
+/** Fetches update manifests, room status, leaderboard data, and VR multipliers from the RWFC network. */
 object VersionFileParser {
     private const val RR_BASE = "https://update.rwfc.net/"
     private const val VERSION_URL = "${RR_BASE}RetroRewind/RetroRewindVersion.txt"
@@ -21,6 +22,7 @@ object VersionFileParser {
 
     private val httpClient get() = HttpClientProvider.client
 
+    /** Fetches the full update manifest: latest version, all update steps, and file deletions. */
     fun fetchServerInfo(): Result<ServerInfo> = runCatching {
         val updates = fetchUpdates()
         if (updates.isEmpty()) error("No versions found on server")
@@ -59,17 +61,21 @@ object VersionFileParser {
             }
     }
 
+    /** Returns the URL for the full Retro Rewind zip download. */
     fun getFullZipUrl(): String = FULL_ZIP_URL
 
+    /** Fetches the list of active multiplayer rooms from the RWFC API. */
     fun fetchRooms(): Result<List<Room>> = runCatching {
         val json = fetchUrl(ROOM_STATUS_URL)
         parseRooms(json)
     }
 
+    /** Fetches the current VR multiplier from the update server (e.g. "2.0" for 2x weekends). */
     fun fetchVrMultiplier(): Result<Float> = runCatching {
         fetchUrl(MULTIPLIER_URL).trim().toFloat()
     }
 
+    /** Fetches leaderboard data (VR, Mii image) for a given friend code. */
     fun fetchPlayerLeaderboard(friendCode: String): Result<LeaderboardPlayerData> = runCatching {
         val url = "https://rwfc.net/api/leaderboard/player/$friendCode/"
         val json = fetchUrl(url)
@@ -80,6 +86,7 @@ object VersionFileParser {
         )
     }
 
+    /** Blocking HTTP GET. Throws on non-2xx or empty body. */
     private fun fetchUrl(urlString: String): String {
         val request = Request.Builder().url(urlString).build()
         httpClient.newCall(request).execute().use { response ->

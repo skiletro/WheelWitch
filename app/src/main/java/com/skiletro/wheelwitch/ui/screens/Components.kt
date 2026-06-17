@@ -45,7 +45,7 @@ fun PrimaryActionButton(
             enabled = enabled,
             shape = buttonShape,
             modifier = Modifier
-                .height(64.dp)
+                .height(56.dp)
                 .onFocusChanged { isFocused = it.isFocused }
                 .focusBorder(isFocused),
             colors = ButtonDefaults.buttonColors(

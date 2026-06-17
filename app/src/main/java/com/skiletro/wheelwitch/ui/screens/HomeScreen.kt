@@ -300,7 +300,7 @@ private fun HomeBottomBar(
                     enabled = !isBusy,
                     shape = buttonShape,
                     modifier = Modifier
-                        .height(64.dp)
+                        .height(56.dp)
                         .onFocusChanged { checkButtonFocused = it.isFocused }
                         .focusBorder(checkButtonFocused)
                 ) {

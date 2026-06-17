@@ -510,6 +510,7 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     companion object {
+        /** SharedPreferences key for the SAF storage tree URI. */
         private const val STORAGE_URI_KEY = "storage_tree_uri"
     }
 }

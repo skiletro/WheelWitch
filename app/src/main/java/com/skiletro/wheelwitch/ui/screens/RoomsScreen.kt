@@ -171,7 +171,6 @@ fun RoomsScreen(
                                         isSelected = room.id == selectedRoomId,
                                         onClick = {
                                             selectedRoomId = room.id
-                                            listFocusRequester.requestFocus()
                                         },
                                         modifier = Modifier.fillMaxWidth()
                                     )

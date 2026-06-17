@@ -3,9 +3,16 @@ package com.skiletro.wheelwitch.util
 import okhttp3.Request
 import java.io.File
 
+/** Shared HTTP download utility used by both [RewindPackManager] and [MiiWadInstaller]. */
 object FileDownloader {
     private const val DOWNLOAD_BUFFER = 262144
 
+    /**
+     * Downloads [url] to [targetFile]. Blocking — call from a background dispatcher.
+     * Throws on non-2xx HTTP status or missing body.
+     *
+     * @param onProgress Optional callback with progress as 0..1 (throttled to ≥1% changes, always emits 1f).
+     */
     fun downloadToFile(
         url: String,
         targetFile: File,

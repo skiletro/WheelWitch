@@ -14,12 +14,14 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import java.io.File
 
+/** Orchestrates Retro Rewind Pack installation, incremental updates, and status checks. */
 object RewindPackManager {
     internal const val VERSION_FILE = "RetroRewind6/version.txt"
     private const val MIN_FULL_REINSTALL_VERSION = "3.2.6"
 
     private var tempCacheDir: File? = null
 
+    /** Initialises the temp download cache and cleans files older than 24 hours. */
     fun initCacheDir(cache: File) {
         tempCacheDir = File(cache, "rewind_pack_downloads")
         tempCacheDir?.mkdirs()
@@ -29,6 +31,7 @@ object RewindPackManager {
         }
     }
 
+    /** Compares local version against the server to determine [PackStatus]. Returns [Installed] if the server is unreachable. */
     suspend fun checkStatus(
         storage: PackStorage
     ): PackStatus {
@@ -45,6 +48,7 @@ object RewindPackManager {
         }
     }
 
+    /** Downloads the full Retro Rewind zip, extracts it, and writes the local version file. */
     suspend fun freshInstall(
         storage: PackStorage,
         onProgress: (ProgressInfo) -> Unit
@@ -72,6 +76,7 @@ object RewindPackManager {
         targetVersion
     }
 
+    /** Downloads incremental update zips, applies file deletions, then extracts each zip in order. Falls back to [freshInstall] for versions below 3.2.6. */
     suspend fun incrementalUpdate(
         storage: PackStorage,
         serverInfo: ServerInfo,

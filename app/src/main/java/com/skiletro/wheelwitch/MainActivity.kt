@@ -33,6 +33,7 @@ import com.skiletro.wheelwitch.ui.theme.WheelWitchTheme
 import com.skiletro.wheelwitch.data.PackStorage
 import com.skiletro.wheelwitch.viewmodel.UpdateViewModel
 
+/** Single-activity entry point. Hosts [HomeScreen] with onboarding wizard, settings navigation, and save info/rooms overlays. */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
