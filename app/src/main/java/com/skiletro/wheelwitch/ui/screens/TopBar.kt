@@ -16,8 +16,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -105,14 +105,14 @@ fun TopBar(
         }
     IconButton(onClick = onOpenNetplay, enabled = roomsEnabled) {
         Icon(
-            imageVector = Icons.Default.Person,
+            painter = painterResource(com.skiletro.wheelwitch.R.drawable.ic_server),
             contentDescription = "Online Rooms",
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
     IconButton(onClick = onOpenSaveInfo) {
         Icon(
-            imageVector = Icons.Default.Info,
+            imageVector = Icons.Default.Person,
             contentDescription = "Save Data",
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -130,10 +130,10 @@ fun TopBar(
             )
         }
         TextButton(onClick = onOpenSettings) {
-            Text(
-                text = "\u2699",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = "Settings",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         Spacer(modifier = Modifier.width(8.dp))
