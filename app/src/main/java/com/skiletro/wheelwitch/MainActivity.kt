@@ -10,13 +10,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skiletro.wheelwitch.ui.screens.SplashScreen
 import com.skiletro.wheelwitch.ui.theme.WheelWitchTheme
@@ -36,7 +31,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun MainScreen(viewModel: UpdateViewModel = viewModel()) {
     val context = LocalContext.current
-    var isoRequestKey by remember { mutableStateOf(0) }
 
     val storagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
@@ -62,11 +56,30 @@ private fun MainScreen(viewModel: UpdateViewModel = viewModel()) {
         }
     }
 
+    val backupPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/octet-stream")
+    ) { uri: Uri? ->
+        if (uri != null) {
+            viewModel.backupSave(uri)
+        }
+    }
+
+    val restorePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            viewModel.restoreSave(uri)
+        }
+    }
+
     Scaffold(modifier = Modifier.fillMaxSize()) {
         SplashScreen(
             viewModel = viewModel,
             onPickStorage = { storagePicker.launch(null) },
-            onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) }
+            onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
+            onBackupSave = { backupPicker.launch("rksys.dat") },
+            onRestoreSave = { restorePicker.launch(arrayOf("application/octet-stream", "*/*")) },
+            onDeleteSave = { viewModel.deleteSave() }
         )
     }
 }

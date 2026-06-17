@@ -9,6 +9,7 @@ import com.skiletro.wheelwitch.service.PackStorage
 import com.skiletro.wheelwitch.service.PackStatus
 import com.skiletro.wheelwitch.service.ProgressInfo
 import com.skiletro.wheelwitch.service.RewindPackManager
+import com.skiletro.wheelwitch.service.SaveManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,10 +35,20 @@ sealed class UiState {
     data class Error(val message: String) : UiState()
 }
 
+data class SaveState(
+    val hasSave: Boolean = false,
+)
+
 class UpdateViewModel(application: Application) : AndroidViewModel(application) {
     private val prefs = application.getSharedPreferences("wheelwitch", Application.MODE_PRIVATE)
     private val _state = MutableStateFlow<UiState>(UiState.NoStorage)
     val state: StateFlow<UiState> = _state.asStateFlow()
+
+    private val _saveState = MutableStateFlow(SaveState())
+    val saveState: StateFlow<SaveState> = _saveState.asStateFlow()
+
+    private val _successMessage = MutableStateFlow<String?>(null)
+    val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
 
     private var storageUri: Uri? = null
     private var storage: PackStorage? = null
@@ -76,6 +87,7 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
                 RewindPackManager.checkStatus(currentStorage)
             }
             _state.value = UiState.Ready(status)
+            refreshSaveState()
         }
     }
 
@@ -113,13 +125,13 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
                         return@launch
                     }
                     is PackStatus.UpToDate -> {
-                        _state.value = UiState.ReadyToLaunch(
-                            (status as? PackStatus.UpToDate)?.let { "" } ?: ""
-                        )
+                        _state.value = UiState.ReadyToLaunch(getDisplayVersion())
+                        refreshSaveState()
                         return@launch
                     }
                 }
                 _state.value = UiState.ReadyToLaunch(getDisplayVersion())
+                refreshSaveState()
             } catch (e: Exception) {
                 _state.value = UiState.Error(e.message ?: "Unknown error")
             }
@@ -173,6 +185,65 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
         val currentState = _state.value
         if (currentState is UiState.Error) {
             checkStatus()
+        }
+    }
+
+    fun backupSave(destUri: Uri) {
+        viewModelScope.launch {
+            val currentStorage = storage ?: return@launch
+            val app = getApplication<Application>()
+            withContext(Dispatchers.IO) {
+                val data = currentStorage.readBytes(SaveManager.SAVE_RELATIVE)
+                    ?: throw Exception("Save file not found")
+                app.contentResolver.openOutputStream(destUri)?.use { it.write(data) }
+                    ?: throw Exception("Cannot write to selected location")
+            }
+            _successMessage.value = "Backup successful"
+            refreshSaveState()
+        }
+    }
+
+    fun restoreSave(sourceUri: Uri) {
+        viewModelScope.launch {
+            val currentStorage = storage ?: return@launch
+            val app = getApplication<Application>()
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val data = app.contentResolver.openInputStream(sourceUri)?.use { it.readBytes() }
+                        ?: throw Exception("Cannot read from selected file")
+                    currentStorage.writeBytes(SaveManager.SAVE_RELATIVE, data)
+                }
+            }
+            result.onSuccess {
+                _successMessage.value = "Restore successful"
+            }.onFailure {
+                _state.value = UiState.Error("Restore failed: ${it.message}")
+            }
+            refreshSaveState()
+        }
+    }
+
+    fun deleteSave() {
+        viewModelScope.launch {
+            val currentStorage = storage ?: return@launch
+            withContext(Dispatchers.IO) {
+                SaveManager.deleteSave(currentStorage)
+            }
+            refreshSaveState()
+        }
+    }
+
+    fun dismissSuccess() {
+        _successMessage.value = null
+    }
+
+    private fun refreshSaveState() {
+        viewModelScope.launch {
+            val currentStorage = storage ?: return@launch
+            val hasSave = withContext(Dispatchers.IO) {
+                SaveManager.hasSaveFile(currentStorage)
+            }
+            _saveState.value = SaveState(hasSave)
         }
     }
 

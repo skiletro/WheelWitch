@@ -147,6 +147,31 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
         onProgress(1f)
     }
 
+    fun fileExists(childPath: String): Boolean {
+        val file = resolveDirect(childPath)
+        if (file?.exists() == true) return true
+        return resolveDoc(childPath) != null
+    }
+
+    fun readBytes(childPath: String): ByteArray? {
+        val file = resolveDirect(childPath)
+        if (file?.exists() == true) return file.readBytes()
+        val doc = resolveDoc(childPath) ?: return null
+        return resolver.openInputStream(doc.uri)?.use { it.readBytes() }
+    }
+
+    fun writeBytes(childPath: String, data: ByteArray) {
+        val file = resolveDirect(childPath)
+        if (file != null) {
+            file.parentFile?.mkdirs()
+            file.writeBytes(data)
+            return
+        }
+        ensureDocDirs(childPath)
+        val doc = getOrCreateDoc(childPath)
+        resolver.openOutputStream(doc.uri)?.use { it.write(data) }
+    }
+
     fun getFileUri(childPath: String): Uri? {
         val file = resolveDirect(childPath)
         if (file?.exists() == true) return Uri.fromFile(file)
