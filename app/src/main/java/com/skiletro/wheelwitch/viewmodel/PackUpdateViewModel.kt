@@ -57,6 +57,7 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
         if (uriString != null) {
             storageUri = Uri.parse(uriString)
             storage = PackStorage(getApplication(), storageUri!!)
+            currentStorage = storage
             refreshIsoPath()
             checkStatus()
         } else {

@@ -441,7 +441,11 @@ private fun ActivePlayerCard(
             )
             val vr = license.leaderboard?.vr ?: license.vr
             val vrText = if (vr != null && vrMultiplier != null && vrMultiplier > 1.0f) {
-                val mult = if (vrMultiplier == vrMultiplier.toInt().toFloat()) "${vrMultiplier.toInt()}x" else "${vrMultiplier}x"
+                val mult = if (vrMultiplier == vrMultiplier.toInt().toFloat()) {
+                    vrMultiplier.toInt().toString()
+                } else {
+                    vrMultiplier.toString()
+                }
                 stringResource(R.string.home_vr_active_format, vr, mult)
             } else if (vr != null) {
                 stringResource(R.string.home_vr_format, vr)

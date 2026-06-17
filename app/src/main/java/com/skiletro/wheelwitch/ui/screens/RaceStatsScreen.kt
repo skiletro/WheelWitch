@@ -22,6 +22,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Surface
@@ -496,7 +497,7 @@ private fun WinRateList(items: List<WinRateStat>) {
 
 @Composable
 private fun DayOfWeekChart(days: List<com.skiletro.wheelwitch.model.DayStat>, modifier: Modifier = Modifier) {
-    val maxCount = days.maxOfOrNull { it.raceCount } ?: 1
+    val maxCount = (days.maxOfOrNull { it.raceCount } ?: 0).coerceAtLeast(1)
     StatsCard(modifier = modifier) {
         days.forEach { day ->
             Row(
@@ -506,26 +507,21 @@ private fun DayOfWeekChart(days: List<com.skiletro.wheelwitch.model.DayStat>, mo
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = day.dayName.take(2),
+                    text = day.dayName.take(3),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.width(20.dp)
+                    modifier = Modifier.width(28.dp)
                 )
-                val barFraction = day.raceCount.toFloat() / maxCount
-                Surface(
-                    shape = RoundedCornerShape(2.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                val barFraction = (day.raceCount.toFloat() / maxCount).coerceIn(0f, 1f)
+                LinearProgressIndicator(
+                    progress = { barFraction },
                     modifier = Modifier
                         .weight(1f)
                         .height(8.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(fraction = barFraction)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(MaterialTheme.colorScheme.primary)
-                    )
-                }
+                        .clip(RoundedCornerShape(2.dp)),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                )
             }
         }
     }
@@ -533,7 +529,7 @@ private fun DayOfWeekChart(days: List<com.skiletro.wheelwitch.model.DayStat>, mo
 
 @Composable
 private fun PeakHoursChart(hours: List<com.skiletro.wheelwitch.model.HourStat>, modifier: Modifier = Modifier) {
-    val maxCount = hours.maxOfOrNull { it.raceCount } ?: 1
+    val maxCount = (hours.maxOfOrNull { it.raceCount } ?: 0).coerceAtLeast(1)
     StatsCard(modifier = modifier) {
         hours.filter { it.hour % 3 == 0 }.forEach { hour ->
             val label = when (hour.hour) {
@@ -552,23 +548,18 @@ private fun PeakHoursChart(hours: List<com.skiletro.wheelwitch.model.HourStat>, 
                     text = label,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.width(20.dp)
+                    modifier = Modifier.width(28.dp)
                 )
-                val barFraction = hour.raceCount.toFloat() / maxCount
-                Surface(
-                    shape = RoundedCornerShape(2.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                val barFraction = (hour.raceCount.toFloat() / maxCount).coerceIn(0f, 1f)
+                LinearProgressIndicator(
+                    progress = { barFraction },
                     modifier = Modifier
                         .weight(1f)
                         .height(8.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(fraction = barFraction)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(MaterialTheme.colorScheme.primary)
-                    )
-                }
+                        .clip(RoundedCornerShape(2.dp)),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                )
             }
         }
     }

@@ -62,7 +62,8 @@ fun ScreenHeader(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back"
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         } else {
@@ -73,6 +74,7 @@ fun ScreenHeader(
             text = title,
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f)
         )
 
@@ -87,7 +89,8 @@ fun ScreenHeader(
             ) {
                 Icon(
                     imageVector = Icons.Filled.Refresh,
-                    contentDescription = "Refresh"
+                    contentDescription = "Refresh",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
