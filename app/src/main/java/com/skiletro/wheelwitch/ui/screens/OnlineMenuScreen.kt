@@ -9,6 +9,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,9 +39,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -224,6 +229,7 @@ private fun HubOption(
     onClick: (() -> Unit)? = null,
     enabled: Boolean = true
 ) {
+    var focused by remember { mutableStateOf(false) }
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = if (enabled) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -231,8 +237,10 @@ private fun HubOption(
             .fillMaxWidth()
             .then(
                 if (enabled && onClick != null) Modifier.clickable(onClick = onClick)
-                else Modifier
+                else Modifier.focusable()
             )
+            .onFocusChanged { focused = it.isFocused }
+            .focusBorder(focused, shape = RoundedCornerShape(16.dp))
     ) {
         Row(
             modifier = Modifier.padding(16.dp),

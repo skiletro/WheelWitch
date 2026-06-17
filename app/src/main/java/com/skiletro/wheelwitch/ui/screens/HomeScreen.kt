@@ -28,6 +28,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.activity.compose.BackHandler
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -74,6 +77,31 @@ fun HomeScreen(
 
     var showOnlineMenu by remember { mutableStateOf(false) }
     var showSaveInfo by remember { mutableStateOf(false) }
+    var showExitDialog by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = !(showOnlineMenu || showSaveInfo)) {
+        showExitDialog = true
+    }
+
+    val activity = (LocalContext.current as? android.app.Activity)
+
+    if (showExitDialog) {
+        AlertDialog(
+            onDismissRequest = { showExitDialog = false },
+            title = { Text("Exit Wheel Witch?") },
+            text = { Text("Are you sure you want to close the app?") },
+            confirmButton = {
+                TextButton(onClick = { activity?.finish() }) {
+                    Text("Exit")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     LaunchedEffect(successMessage) {
         if (successMessage != null) {
