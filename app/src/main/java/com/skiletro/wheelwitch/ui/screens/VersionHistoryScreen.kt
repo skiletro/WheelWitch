@@ -36,7 +36,7 @@ fun VersionHistoryContent(
 
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         when (val s = state) {
-            is VersionHistoryState.Loading -> LoadingContent()
+            is VersionHistoryState.Idle, is VersionHistoryState.Loading -> LoadingContent()
             is VersionHistoryState.Error -> ErrorContent(s.message)
             is VersionHistoryState.Success -> ChangelogList(s.entries)
         }

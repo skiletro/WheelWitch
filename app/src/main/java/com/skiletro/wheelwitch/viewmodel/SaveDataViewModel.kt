@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,9 +35,16 @@ sealed class SaveInfoState {
 /**
  * Owns the save file state: presence, backup/restore, per-slot info,
  * and the license currently active in the selected slot.
+ *
+ * Registers itself as the [SaveDataDelegate] in [PackUpdateViewModel]
+ * during [init] so it receives pack status change notifications. The
+ * registration is overwritten if a new [SaveDataViewModel] is created
+ * (e.g. on process death + restoration), which is fine because only the
+ * latest instance is relevant.
  */
 class SaveDataViewModel(application: Application) : AndroidViewModel(application), SaveDataDelegate {
     private val prefs = application.getSharedPreferences(PrefsKeys.PREFS_NAME, Application.MODE_PRIVATE)
+    private val app = application
 
     private val _hasSave = MutableStateFlow(false)
     val hasSave: StateFlow<Boolean> = _hasSave.asStateFlow()
@@ -65,6 +73,7 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
         refreshActiveLicense()
     }
 
+    /** Re-checks whether a save file exists under the current storage root. */
     fun refreshSaveState() {
         viewModelScope.launch {
             try {
@@ -78,33 +87,34 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    /** Backs up the save file to the user-picked [destUri]. */
     fun backupSave(destUri: Uri) {
         viewModelScope.launch {
             val storage = PackUpdateViewModel.currentStorage ?: return@launch
-            val app = getApplication<Application>()
             withContext(Dispatchers.IO) {
                 val data = storage.readBytes(SaveManager.SAVE_RELATIVE)
-                    ?: throw Exception("Save file not found")
+                    ?: throw Exception(app.getString(R.string.vm_save_not_found))
                 app.contentResolver.openOutputStream(destUri)?.use { it.write(data) }
-                    ?: throw Exception("Cannot write to selected location")
+                    ?: throw Exception(app.getString(R.string.vm_save_write_failed))
             }
             refreshSaveState()
         }
     }
 
+    /** Restores the save file from the user-picked [sourceUri]. */
     fun restoreSave(sourceUri: Uri) {
         viewModelScope.launch {
             val storage = PackUpdateViewModel.currentStorage ?: return@launch
-            val app = getApplication<Application>()
             withContext(Dispatchers.IO) {
                 val data = app.contentResolver.openInputStream(sourceUri)?.use { it.readBytes() }
-                    ?: throw Exception("Cannot read from selected file")
+                    ?: throw Exception(app.getString(R.string.vm_save_read_failed))
                 storage.writeBytes(SaveManager.SAVE_RELATIVE, data)
             }
             refreshSaveState()
         }
     }
 
+    /** Deletes the save file under the current storage root. */
     fun deleteSave() {
         viewModelScope.launch {
             val storage = PackUpdateViewModel.currentStorage ?: return@launch
@@ -115,12 +125,22 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    /**
+     * Persists [index] as the selected slot and refreshes [activeLicenseInfo]
+     * for the new slot.
+     */
     fun selectSlot(index: Int) {
         prefs.edit().putInt(PrefsKeys.SELECTED_SLOT_KEY, index).apply()
         _selectedSlotIndex.value = index
         refreshActiveLicense()
     }
 
+    /**
+     * Loads the active license for the selected slot. Emits the base
+     * license first, then re-emits with leaderboard data once the
+     * network fetch resolves (so the UI shows something immediately
+     * and enriches it when the leaderboard arrives).
+     */
     fun refreshActiveLicense() {
         viewModelScope.launch {
             val storage = PackUpdateViewModel.currentStorage ?: return@launch
@@ -147,7 +167,7 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
                             leaderboardVr = leaderboardVr,
                             leaderboardMiiImageBase64 = leaderboardMii
                         )
-                        cacheLeaderboardVr(license.slotIndex, leaderboardVr)
+                        cacheAndPersistLeaderboardVr(license.slotIndex, leaderboardVr)
                     }
                 }
             } else {
@@ -156,60 +176,86 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    /**
+     * Loads the full save file info for all 4 license slots, fetching
+     * leaderboard data for each existing license in parallel. Falls
+     * back to the first existing slot if the persisted selection is no
+     * longer valid.
+     */
     fun refreshSaveFileInfo() {
         saveInfoJob?.cancel()
         saveInfoJob = viewModelScope.launch {
             _saveInfoState.value = SaveInfoState.Loading
             try {
-                val storage = PackUpdateViewModel.currentStorage ?: throw Exception("Storage not configured")
+                val storage = PackUpdateViewModel.currentStorage
+                    ?: throw Exception(app.getString(R.string.vm_storage_not_configured))
                 val bytes = withContext(Dispatchers.IO) {
                     storage.readBytes(SaveManager.SAVE_RELATIVE)
                 }
                 if (bytes == null) {
-                    _saveInfoState.value = SaveInfoState.Error("No save file found")
-                } else {
-                    val saveInfo = RksysParser.parse(bytes)
-                    _saveInfoState.value = SaveInfoState.Success(saveInfo)
-
-                    val selectedIndex = _selectedSlotIndex.value
-                    val isValid = saveInfo.licenses.getOrNull(selectedIndex)?.exists == true
-                    if (!isValid) {
-                        val fallback = saveInfo.licenses.indexOfFirst { it.exists }.let { if (it >= 0) it else 0 }
-                        selectSlot(fallback)
-                    }
-
-                    val leaderboardDeferred = saveInfo.licenses.mapNotNull { license ->
-                        if (license.exists && license.friendCode != null) {
-                            async(Dispatchers.IO) {
-                                license.slotIndex to VersionFileParser.fetchPlayerLeaderboard(license.friendCode)
-                            }
-                        } else null
-                    }
-                    val leaderboardResults = leaderboardDeferred.awaitAll()
-
-                    val current = _saveInfoState.value
-                    if (current is SaveInfoState.Success) {
-                        val updatedLicenses = current.info.licenses.map { lic ->
-                            val result = leaderboardResults.find { it.first == lic.slotIndex }?.second
-                            if (result?.isSuccess == true) {
-                                val (leaderboardVr, leaderboardMii) = result.getOrThrow()
-                                cacheLeaderboardVr(lic.slotIndex, leaderboardVr)
-                                lic.copy(
-                                    leaderboardVr = leaderboardVr,
-                                    leaderboardMiiImageBase64 = leaderboardMii
-                                )
-                            } else lic
-                        }
-                        _saveInfoState.value = SaveInfoState.Success(current.info.copy(licenses = updatedLicenses))
-                    }
+                    _saveInfoState.value = SaveInfoState.Error(app.getString(R.string.vm_save_no_save_file))
+                    return@launch
                 }
+
+                val saveInfo = RksysParser.parse(bytes)
+                _saveInfoState.value = SaveInfoState.Success(saveInfo)
+
+                resolveFallbackSlot(saveInfo)
+                mergeLeaderboards(saveInfo)
             } catch (e: Exception) {
-                _saveInfoState.value = SaveInfoState.Error(e.message ?: getApplication<Application>().getString(R.string.vm_save_info_failed))
+                _saveInfoState.value = SaveInfoState.Error(e.message ?: app.getString(R.string.vm_save_info_failed))
             }
         }
     }
 
-    private fun cacheLeaderboardVr(slotIndex: Int, vr: Int) {
+    /**
+     * If the persisted slot selection is no longer valid (no license or
+     * missing), switch to the first existing slot (or slot 0 as a last
+     * resort).
+     */
+    private suspend fun resolveFallbackSlot(saveInfo: SaveFileInfo) {
+        val selectedIndex = _selectedSlotIndex.value
+        val isValid = saveInfo.licenses.getOrNull(selectedIndex)?.exists == true
+        if (!isValid) {
+            val idx = saveInfo.licenses.indexOfFirst { it.exists }
+            val fallback = if (idx >= 0) idx else 0
+            selectSlot(fallback)
+        }
+    }
+
+    /**
+     * Fetches leaderboard data for every existing license in parallel
+     * and re-emits [SaveInfoState.Success] with the merged VR/Mii data.
+     */
+    private suspend fun mergeLeaderboards(saveInfo: SaveFileInfo) {
+        val leaderboardResults = coroutineScope {
+            val leaderboardDeferred = saveInfo.licenses.mapNotNull { license ->
+                if (license.exists && license.friendCode != null) {
+                    async(Dispatchers.IO) {
+                        license.slotIndex to VersionFileParser.fetchPlayerLeaderboard(license.friendCode)
+                    }
+                } else null
+            }
+            leaderboardDeferred.awaitAll()
+        }
+
+        val current = _saveInfoState.value as? SaveInfoState.Success ?: return
+        val updatedLicenses = current.info.licenses.map { lic ->
+            val result = leaderboardResults.find { it.first == lic.slotIndex }?.second
+            if (result?.isSuccess == true) {
+                val (leaderboardVr, leaderboardMii) = result.getOrThrow()
+                cacheAndPersistLeaderboardVr(lic.slotIndex, leaderboardVr)
+                lic.copy(
+                    leaderboardVr = leaderboardVr,
+                    leaderboardMiiImageBase64 = leaderboardMii
+                )
+            } else lic
+        }
+        _saveInfoState.value = SaveInfoState.Success(current.info.copy(licenses = updatedLicenses))
+    }
+
+    /** Updates the in-memory VR cache and persists it to SharedPreferences. */
+    private fun cacheAndPersistLeaderboardVr(slotIndex: Int, vr: Int) {
         val current = _cachedLeaderboardVrs.value
         if (current[slotIndex] == vr) return
         val updated = current + (slotIndex to vr)

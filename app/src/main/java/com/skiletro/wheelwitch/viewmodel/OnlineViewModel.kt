@@ -10,6 +10,7 @@ import com.skiletro.wheelwitch.model.Room
 import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.model.ServerHealth
 import com.skiletro.wheelwitch.model.TimeTrialTrack
+import com.skiletro.wheelwitch.model.parseRaceStats
 import com.skiletro.wheelwitch.network.VersionFileParser
 import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.util.PrefsKeys
@@ -22,11 +23,21 @@ import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import java.util.concurrent.TimeUnit
 
+/**
+ * Top-level page in the Online Menu. [Hub] is the landing screen that
+ * links to the others; the rest trigger a fetch when navigated to.
+ */
 enum class OnlineMenuPage {
     Hub, Rooms, Leaderboard, Health, RaceStats, TimeTrial
 }
 
+/**
+ * Shared shape for the four sub-screen state machines in this VM.
+ * Each sub-screen starts at [Idle], transitions to [Loading] on fetch,
+ * and ends at [Success] or [Error].
+ */
 @Immutable
 sealed class RoomsState {
     data object Idle : RoomsState()
@@ -67,6 +78,14 @@ sealed class RaceStatsState {
     data class Error(val message: String) : RaceStatsState()
 }
 
+/** Wrapper for a cached [RaceStats] payload and the wall-clock time it was cached at. */
+private data class RaceStatsCache(val stats: RaceStats, val cachedAt: Long)
+
+/**
+ * Owns rooms, leaderboard, server health, race stats, and time-trial
+ * tracks state. Each sub-screen has its own state machine; pagination
+ * for the leaderboard is race-free via a conflated channel.
+ */
 class OnlineViewModel(application: Application) : AndroidViewModel(application) {
     private val prefs = application.getSharedPreferences(PrefsKeys.RACE_STATS_PREFS, Application.MODE_PRIVATE)
 
@@ -91,6 +110,11 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
     private val _vrMultiplier = MutableStateFlow<Float?>(null)
     val vrMultiplier: StateFlow<Float?> = _vrMultiplier.asStateFlow()
 
+    /**
+     * Conflated channel so rapid "load more" taps coalesce into one
+     * in-flight request. The consumer in [launchLeaderboardConsumer]
+     * reads the current state to decide the next page.
+     */
     private val leaderboardRequests = Channel<Unit>(Channel.CONFLATED)
 
     val playerCount: Int?
@@ -101,13 +125,21 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
         launchLeaderboardConsumer()
     }
 
+    /**
+     * Consume pagination requests. The channel is conflated, so at most
+     * one request is in flight at a time and rapid taps coalesce.
+     *
+     * On page 1 we transition to [LeaderboardState.Loading] so the UI
+     * shows a spinner; on later pages we keep the existing [Success]
+     * visible while the next page loads (infinite-scroll UX).
+     */
     private fun launchLeaderboardConsumer() {
         viewModelScope.launch {
             leaderboardRequests.consumeAsFlow().collect { _ ->
-                val currentState = _leaderboardState.value
-                if (currentState is LeaderboardState.Success && !currentState.hasMore) return@collect
-                val nextPage = when (currentState) {
-                    is LeaderboardState.Success -> currentState.page + 1
+                val stateBeforeFetch = _leaderboardState.value
+                if (stateBeforeFetch is LeaderboardState.Success && !stateBeforeFetch.hasMore) return@collect
+                val nextPage = when (stateBeforeFetch) {
+                    is LeaderboardState.Success -> stateBeforeFetch.page + 1
                     else -> 1
                 }
                 if (nextPage == 1) {
@@ -116,17 +148,16 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
                 val result = withContext(Dispatchers.IO) {
                     VersionFileParser.fetchLeaderboard(page = nextPage)
                 }
-                val snapshot = currentState
                 result.onSuccess { response ->
-                    val existing = (snapshot as? LeaderboardState.Success)?.entries ?: emptyList()
+                    val existing = (stateBeforeFetch as? LeaderboardState.Success)?.entries ?: emptyList()
                     _leaderboardState.value = LeaderboardState.Success(
                         entries = existing + response.entries,
                         hasMore = response.hasMore,
                         page = nextPage
                     )
                 }.onFailure { e ->
-                    _leaderboardState.value = if (snapshot is LeaderboardState.Success) {
-                        snapshot
+                    _leaderboardState.value = if (stateBeforeFetch is LeaderboardState.Success) {
+                        stateBeforeFetch
                     } else {
                         LeaderboardState.Error(e.message ?: getApplication<Application>().getString(R.string.vm_leaderboard_failed))
                     }
@@ -147,6 +178,8 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
                         serverConnectivity = ServerConnectivity.Online
                     )
                 } else {
+                    // Use Success (not Error) with empty rooms + Offline connectivity so
+                    // the UI can show a friendly offline state instead of an error.
                     _roomsState.value = RoomsState.Success(
                         rooms = emptyList(),
                         playerCount = null,
@@ -166,7 +199,7 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
             OnlineMenuPage.Health -> fetchHealth()
             OnlineMenuPage.RaceStats -> loadRaceStats()
             OnlineMenuPage.TimeTrial -> fetchTracks()
-            else -> {}
+            OnlineMenuPage.Hub -> { }
         }
     }
 
@@ -174,8 +207,8 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
         _currentPage.value = OnlineMenuPage.Hub
     }
 
+    /** Fetches the current room list. Does not navigate; use [navigateTo] for that. */
     fun fetchRooms() {
-        _currentPage.value = OnlineMenuPage.Rooms
         viewModelScope.launch {
             _roomsState.value = RoomsState.Loading
             val result = withContext(Dispatchers.IO) {
@@ -195,10 +228,12 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    /** Enqueues a leaderboard fetch (page 1) or a "load more" (next page). */
     fun fetchLeaderboard() {
         leaderboardRequests.trySend(Unit)
     }
 
+    /** Fetches the full server health report, falling back to a liveness check. */
     fun fetchHealth() {
         viewModelScope.launch {
             _healthState.value = HealthState.Loading
@@ -212,14 +247,16 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
                     VersionFileParser.fetchHealthLive().getOrDefault(false)
                 }
                 if (liveOk) {
-                    val simpleHealth = ServerHealth(
-                        status = "ok",
+                    // Live endpoint reachable but detailed health failed; synthesize a
+                    // minimal "ok" health so the UI can show the server is up.
+                    val liveOnlyHealth = ServerHealth(
+                        status = STATUS_OK,
                         database = null,
                         postgresql = null,
                         retroWfcApi = null,
                         memory = null
                     )
-                    _healthState.value = HealthState.Success(simpleHealth)
+                    _healthState.value = HealthState.Success(liveOnlyHealth)
                 } else {
                     _healthState.value = HealthState.Error(e.message ?: getApplication<Application>().getString(R.string.vm_health_failed))
                 }
@@ -227,15 +264,21 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    /**
+     * Emits cached race stats immediately (if present), then fetches
+     * fresh data when the cache is older than [MAX_CACHE_AGE_MS].
+     * Cache-then-network pattern.
+     */
     private fun loadRaceStats() {
         val cached = loadRaceStatsCache()
         if (cached != null) {
-            _raceStatsState.value = RaceStatsState.Success(cached.first, cached.second)
-            if (System.currentTimeMillis() - cached.second < MAX_CACHE_AGE_MS) return
+            _raceStatsState.value = RaceStatsState.Success(cached.stats, cached.cachedAt)
+            if (System.currentTimeMillis() - cached.cachedAt < MAX_CACHE_AGE_MS) return
         }
         fetchRaceStats()
     }
 
+    /** Fetches global race stats and caches the raw JSON. Falls back to cache on failure. */
     fun fetchRaceStats() {
         viewModelScope.launch {
             _raceStatsState.value = RaceStatsState.Loading
@@ -249,7 +292,7 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
             }.onFailure { e ->
                 val fallback = loadRaceStatsCache()
                 if (fallback != null) {
-                    _raceStatsState.value = RaceStatsState.Success(fallback.first, fallback.second)
+                    _raceStatsState.value = RaceStatsState.Success(fallback.stats, fallback.cachedAt)
                 } else {
                     _raceStatsState.value = RaceStatsState.Error(e.message ?: getApplication<Application>().getString(R.string.vm_race_stats_failed))
                 }
@@ -259,25 +302,26 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun saveRaceStatsCache(rawJson: String, timestamp: Long) {
         val wrapper = JSONObject().apply {
-            put("json", rawJson)
-            put("_cachedAt", timestamp)
+            put(CACHE_KEY_JSON, rawJson)
+            put(CACHE_KEY_CACHED_AT, timestamp)
         }
         prefs.edit().putString(PrefsKeys.RACE_STATS_KEY, wrapper.toString()).apply()
     }
 
-    private fun loadRaceStatsCache(): Pair<RaceStats, Long>? {
+    private fun loadRaceStatsCache(): RaceStatsCache? {
         val raw = prefs.getString(PrefsKeys.RACE_STATS_KEY, null) ?: return null
         return try {
             val wrapper = JSONObject(raw)
-            val json = wrapper.getString("json")
-            val stats = com.skiletro.wheelwitch.model.parseRaceStats(json)
-            val timestamp = wrapper.optLong("_cachedAt", 0L)
-            Pair(stats, timestamp)
+            val json = wrapper.getString(CACHE_KEY_JSON)
+            val stats = parseRaceStats(json)
+            val timestamp = wrapper.optLong(CACHE_KEY_CACHED_AT, 0L)
+            RaceStatsCache(stats, timestamp)
         } catch (_: Exception) {
             null
         }
     }
 
+    /** Fetches the time-trial track list; silently overwrites on success and no-ops on failure. */
     fun fetchTracks() {
         viewModelScope.launch {
             val result = withContext(Dispatchers.IO) {
@@ -290,6 +334,9 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     companion object {
-        private const val MAX_CACHE_AGE_MS = 24 * 60 * 60 * 1000L
+        private const val STATUS_OK = "ok"
+        private const val CACHE_KEY_JSON = "raceStats"
+        private const val CACHE_KEY_CACHED_AT = "cachedAt"
+        private val MAX_CACHE_AGE_MS = TimeUnit.DAYS.toMillis(1)
     }
 }

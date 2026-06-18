@@ -69,7 +69,7 @@ fun ChangelogDetailScreen(
 
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             when (val s = state) {
-                is VersionHistoryState.Loading -> {
+                is VersionHistoryState.Idle, is VersionHistoryState.Loading -> {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(48.dp),

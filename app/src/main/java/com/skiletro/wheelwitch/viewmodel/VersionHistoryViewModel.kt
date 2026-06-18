@@ -16,6 +16,7 @@ import kotlinx.coroutines.withContext
 
 @Immutable
 sealed class VersionHistoryState {
+    data object Idle : VersionHistoryState()
     data object Loading : VersionHistoryState()
     data class Success(val entries: List<ChangelogEntry>) : VersionHistoryState()
     data class Error(val message: String) : VersionHistoryState()
@@ -24,13 +25,19 @@ sealed class VersionHistoryState {
 /** Owns the changelog / version history state shown on the Version History screen. */
 class VersionHistoryViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application
-    private val _state = MutableStateFlow<VersionHistoryState>(VersionHistoryState.Loading)
+    private val _state = MutableStateFlow<VersionHistoryState>(VersionHistoryState.Idle)
     val state: StateFlow<VersionHistoryState> = _state.asStateFlow()
 
     init {
         load()
     }
 
+    /**
+     * Reloads the changelog from cache-or-network. Safe to call
+     * repeatedly; resets to [VersionHistoryState.Loading] and refetches.
+     * Construction calls this once, so simply instantiating the VM
+     * triggers a network call (cached when possible).
+     */
     fun load() {
         _state.value = VersionHistoryState.Loading
         viewModelScope.launch {

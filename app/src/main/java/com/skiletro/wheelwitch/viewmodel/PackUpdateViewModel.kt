@@ -1,9 +1,6 @@
 package com.skiletro.wheelwitch.viewmodel
 
 import android.app.Application
-import android.content.Context
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -29,6 +26,8 @@ import java.io.File
  *
  * [currentStorage] is exposed via the companion object's [currentStorage]
  * getter so that [SaveDataViewModel] can read it without needing DI.
+ * Companion-object state is used because AndroidViewModel instantiation
+ * is framework-controlled, so constructor injection is not available.
  */
 class PackUpdateViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application
@@ -46,7 +45,6 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
     private val _myStuffMode = MutableStateFlow(DolphinLauncher.MyStuffMode.Everything)
     val myStuffMode: StateFlow<DolphinLauncher.MyStuffMode> = _myStuffMode.asStateFlow()
 
-    private var storageUri: Uri? = null
     private var storage: PackStorage? = null
     val storageRootPath: String? get() = storage?.rootPath
 
@@ -59,15 +57,14 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
 
     private fun restoreStorageUri() {
         val uriString = prefs.getString(PrefsKeys.STORAGE_URI_KEY, null)
-        if (uriString != null) {
-            storageUri = Uri.parse(uriString)
-            storage = PackStorage(getApplication(), storageUri!!)
-            currentStorage = storage
-            refreshIsoPath()
-            checkStatus()
-        } else {
+        if (uriString == null) {
             _state.value = UiState.NoStorage
+            return
         }
+        storage = PackStorage(app, Uri.parse(uriString))
+        currentStorage = storage
+        refreshIsoPath()
+        checkStatus()
     }
 
     private fun refreshIsoPath() {
@@ -75,24 +72,27 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
         _currentIsoPath.value = DolphinLauncher.readIsoPathFromLaunchJson(rootPath)
     }
 
+    /** Persists [uri] as the pack storage root and re-checks the pack status. */
     fun setStorageUri(uri: Uri) {
         prefs.edit().putString(PrefsKeys.STORAGE_URI_KEY, uri.toString()).apply()
-        storageUri = uri
-        storage = PackStorage(getApplication(), uri)
+        storage = PackStorage(app, uri)
         currentStorage = storage
         checkStatus()
     }
 
+    /** Re-checks the local version against the server and updates [state]. */
     fun checkStatus() {
         viewModelScope.launch {
             _state.value = UiState.Checking
-            val currentStorage = storage ?: run {
+            val activeStorage = storage ?: run {
                 _state.value = UiState.NoStorage
                 return@launch
             }
             val status = withContext(Dispatchers.IO) {
-                RewindPackManager.checkStatus(currentStorage)
+                RewindPackManager.checkStatus(activeStorage)
             }
+            // Both UpdateAvailable and UpToDate carry the server's latest version;
+            // Kotlin cannot smart-cast across combined `is` branches, so they stay separate.
             val serverVersion = when (status) {
                 is PackStatus.UpdateAvailable -> status.latestVersion.toString()
                 is PackStatus.UpToDate -> status.latestVersion.toString()
@@ -106,48 +106,33 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    /**
+     * Installs or updates the pack according to [status]. Handles four
+     * cases: fresh install, incremental update, "server unreachable"
+     * fallback, and "already up to date" no-op. Emits progress via
+     * [state] and clears the save backup on success.
+     */
     fun downloadOrUpdate(status: PackStatus) {
         viewModelScope.launch {
-            val currentStorage = storage ?: run {
+            val activeStorage = storage ?: run {
                 _state.value = UiState.Error(app.getString(R.string.vm_storage_not_configured))
                 return@launch
             }
             try {
                 withContext(Dispatchers.IO) {
-                    SaveManager.backupSaveToCache(app, currentStorage)
+                    SaveManager.backupSaveToCache(app, activeStorage)
                 }
 
                 val installedVersion = when (status) {
-                    is PackStatus.NotInstalled -> {
-                        withContext(Dispatchers.IO) {
-                            RewindPackManager.freshInstall(currentStorage) { progress ->
-                                handleProgress(progress)
-                            }
-                        }.getOrThrow()
-                    }
-                    is PackStatus.UpdateAvailable -> {
-                        withContext(Dispatchers.IO) {
-                            RewindPackManager.incrementalUpdate(
-                                currentStorage,
-                                status.serverInfo,
-                                status.currentVersion
-                            ) { progress ->
-                                handleProgress(progress)
-                            }
-                        }.getOrThrow()
-                    }
+                    is PackStatus.NotInstalled -> performFreshInstall(activeStorage)
+                    is PackStatus.UpdateAvailable -> performIncrementalUpdate(activeStorage, status)
                     is PackStatus.Installed -> {
-                        _state.value = UiState.Error(
-                            app.getString(R.string.home_cannot_reach_server)
-                        )
+                        // Installed (without server info) means the server was unreachable.
+                        _state.value = UiState.Error(app.getString(R.string.home_cannot_reach_server))
                         return@launch
                     }
                     is PackStatus.UpToDate -> {
-                        withContext(Dispatchers.IO) {
-                            SaveManager.deleteSaveBackup(app)
-                        }
-                        _state.value = UiState.Ready(PackStatus.UpToDate(status.currentVersion, status.latestVersion))
-                        saveDataDelegate?.onPackStatusChanged()
+                        handleAlreadyUpToDate(status)
                         return@launch
                     }
                 }
@@ -157,14 +142,45 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
                 _state.value = UiState.Ready(PackStatus.UpToDate(installedVersion, installedVersion))
                 saveDataDelegate?.onPackStatusChanged()
             } catch (e: Exception) {
-                _state.value = UiState.Error(e.message ?: "Unknown error")
+                _state.value = UiState.Error(e.message ?: app.getString(R.string.vm_unknown_error))
             }
         }
     }
 
+    private suspend fun performFreshInstall(storage: PackStorage): com.skiletro.wheelwitch.model.SemVersion {
+        return withContext(Dispatchers.IO) {
+            RewindPackManager.freshInstall(storage) { progress ->
+                handleProgress(progress)
+            }
+        }.getOrThrow()
+    }
+
+    private suspend fun performIncrementalUpdate(
+        storage: PackStorage,
+        status: PackStatus.UpdateAvailable,
+    ): com.skiletro.wheelwitch.model.SemVersion {
+        return withContext(Dispatchers.IO) {
+            RewindPackManager.incrementalUpdate(
+                storage,
+                status.serverInfo,
+                status.currentVersion,
+            ) { progress ->
+                handleProgress(progress)
+            }
+        }.getOrThrow()
+    }
+
+    private suspend fun handleAlreadyUpToDate(status: PackStatus.UpToDate) {
+        withContext(Dispatchers.IO) {
+            SaveManager.deleteSaveBackup(app)
+        }
+        _state.value = UiState.Ready(PackStatus.UpToDate(status.currentVersion, status.latestVersion))
+        saveDataDelegate?.onPackStatusChanged()
+    }
+
+    /** Launches Dolphin with the configured ISO and RR.json; reports errors via [state]. */
     fun launchDolphin() {
-        val app = getApplication<Application>()
-        val currentStorage = storage ?: run {
+        val activeStorage = storage ?: run {
             _state.value = UiState.Error(app.getString(R.string.vm_storage_not_configured))
             return
         }
@@ -177,7 +193,7 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
             _state.value = UiState.Error(app.getString(R.string.home_rom_not_found))
             return
         }
-        val rootPath = currentStorage.rootPath
+        val rootPath = activeStorage.rootPath
         if (rootPath == null) {
             _state.value = UiState.Error(app.getString(R.string.home_no_iso_cant_launch))
             return
@@ -189,7 +205,7 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
                 val json = withContext(Dispatchers.IO) {
                     DolphinLauncher.generateLaunchJson(rootPath, gameIsoPath, myStuffMode = mode)
                 }
-                val rrJsonFile = File(rootPath, "RR.json")
+                val rrJsonFile = File(rootPath, DolphinLauncher.RR_JSON_NAME)
                 withContext(Dispatchers.IO) {
                     rrJsonFile.writeText(json)
                 }
@@ -200,8 +216,8 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    /** Persists [path] as the ISO path and regenerates RR.json if storage is configured. */
     fun setGameIsoPath(path: String) {
-        val app = getApplication<Application>()
         DolphinLauncher.setGameIsoPath(app, path)
         val rootPath = storage?.rootPath
         if (rootPath != null) {
@@ -213,13 +229,14 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
         _currentIsoPath.value = path
     }
 
+    /** Clears the persisted ISO path and deletes the existing RR.json. */
     fun clearIsoPath() {
-        val app = getApplication<Application>()
         DolphinLauncher.setGameIsoPath(app, "")
         storage?.rootPath?.let { DolphinLauncher.deleteLaunchJson(it) }
         _currentIsoPath.value = null
     }
 
+    /** Persists [mode] and regenerates RR.json with the new My Stuff choice. */
     fun setMyStuffMode(mode: DolphinLauncher.MyStuffMode) {
         _myStuffMode.value = mode
         prefs.edit().putString(PrefsKeys.RIIVOLUTION_MY_STUFF_MODE_KEY, mode.name).apply()
@@ -227,15 +244,15 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     private fun readMyStuffMode(): DolphinLauncher.MyStuffMode {
-        val name = prefs.getString(PrefsKeys.RIIVOLUTION_MY_STUFF_MODE_KEY, null)
-        return if (name != null) {
-            try { DolphinLauncher.MyStuffMode.valueOf(name) }
-            catch (_: IllegalArgumentException) { DolphinLauncher.MyStuffMode.Everything }
-        } else DolphinLauncher.MyStuffMode.Everything
+        val name = prefs.getString(PrefsKeys.RIIVOLUTION_MY_STUFF_MODE_KEY, null) ?: return DolphinLauncher.MyStuffMode.Everything
+        return try {
+            DolphinLauncher.MyStuffMode.valueOf(name)
+        } catch (_: IllegalArgumentException) {
+            DolphinLauncher.MyStuffMode.Everything
+        }
     }
 
     private fun regenerateLaunchJson() {
-        val app = getApplication<Application>()
         val rootPath = storage?.rootPath ?: return
         val gameIsoPath = DolphinLauncher.getGameIsoPath(app) ?: return
         viewModelScope.launch(Dispatchers.IO) {
@@ -243,6 +260,7 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    /** Clears an error state and re-checks status. No-op for non-error states. */
     fun clearError() {
         val currentState = _state.value
         if (currentState is UiState.Error) {
@@ -250,10 +268,12 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    /** Clears the one-shot success message. */
     fun dismissSuccess() {
         _successMessage.value = null
     }
 
+    /** Sets a one-shot success message to be shown and then dismissed. */
     fun setSuccessMessage(message: String) {
         _successMessage.value = message
     }
@@ -294,11 +314,4 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
  */
 interface SaveDataDelegate {
     fun onPackStatusChanged()
-}
-
-fun Context.isNetworkAvailable(): Boolean {
-    val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
-    val network = cm.activeNetwork ?: return false
-    val capabilities = cm.getNetworkCapabilities(network) ?: return false
-    return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
 }

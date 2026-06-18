@@ -256,6 +256,11 @@
     <string name="vm_health_failed">Failed to fetch server health</string>
     <string name="vm_race_stats_failed">Failed to fetch race stats</string>
     <string name="vm_save_info_failed">Failed to read save data</string>
+    <string name="vm_save_not_found">Save file not found</string>
+    <string name="vm_save_write_failed">Cannot write to selected location</string>
+    <string name="vm_save_read_failed">Cannot read from selected file</string>
+    <string name="vm_save_no_save_file">No save file found</string>
+    <string name="vm_unknown_error">Unknown error</string>
 
     <!-- version history -->
     <string name="version_history_title">Version History</string>
