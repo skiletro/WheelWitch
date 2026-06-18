@@ -91,6 +91,7 @@ fun SettingsScreen(
     val isInstallingWad by miiMaker.isInstallingWad.collectAsState()
     val miiMakerError by miiMaker.miiMakerError.collectAsState()
     val isoPath by packUpdate.currentIsoPath.collectAsState()
+    val gameInfo by packUpdate.gameInfo.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showWadDeleteConfirm by remember { mutableStateOf(false) }
@@ -332,10 +333,15 @@ fun SettingsScreen(
             }
             item {
                 val fileName = isoPath?.substringAfterLast('/')?.ifBlank { null }
+                val fileSummary = if (fileName != null) {
+                    val gi = gameInfo
+                    if (gi != null) "$fileName\n${gi.format.name.uppercase()} \u00b7 ${gi.gameId}"
+                    else fileName
+                } else null
                 SettingsItem(
                     icon = Icons.Filled.Gamepad,
                     title = stringResource(R.string.settings_mario_kart_wii),
-                    summary = fileName ?: stringResource(R.string.settings_rom_not_selected),
+                    summary = fileSummary ?: stringResource(R.string.settings_rom_not_selected),
                     trailing = {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             TextButton(

@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.skiletro.wheelwitch.R
+import com.skiletro.wheelwitch.data.GameTypeParser
 import com.skiletro.wheelwitch.data.PackStorage
 import com.skiletro.wheelwitch.data.SaveManager
 import com.skiletro.wheelwitch.domain.RewindPackManager
@@ -44,6 +45,9 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
     private val _currentIsoPath = MutableStateFlow<String?>(null)
     val currentIsoPath: StateFlow<String?> = _currentIsoPath.asStateFlow()
 
+    private val _gameInfo = MutableStateFlow<GameTypeParser.GameInfo?>(null)
+    val gameInfo: StateFlow<GameTypeParser.GameInfo?> = _gameInfo.asStateFlow()
+
     private val _myStuffMode = MutableStateFlow(DolphinLauncher.MyStuffMode.Everything)
     val myStuffMode: StateFlow<DolphinLauncher.MyStuffMode> = _myStuffMode.asStateFlow()
 
@@ -71,6 +75,7 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
         storage = PackStorage(path)
         currentStorage = storage
         refreshIsoPath()
+        refreshGameInfo()
         checkStatus()
     }
 
@@ -240,6 +245,7 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
             }
         }
         _currentIsoPath.value = path
+        refreshGameInfo()
     }
 
     /** Clears the persisted ISO path and deletes the existing RR.json. */
@@ -247,6 +253,32 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
         DolphinLauncher.setGameIsoPath(app, "")
         storage?.rootPath?.let { DolphinLauncher.deleteLaunchJson(it) }
         _currentIsoPath.value = null
+        _gameInfo.value = null
+    }
+
+    private fun refreshGameInfo() {
+        val path = _currentIsoPath.value ?: run {
+            _gameInfo.value = null
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val file = File(path)
+                if (!file.exists()) {
+                    _gameInfo.value = null
+                    return@launch
+                }
+                val header = file.inputStream().use { input ->
+                    val buf = ByteArray(4096)
+                    val bytesRead = input.read(buf)
+                    if (bytesRead <= 0) ByteArray(0) else buf.copyOf(bytesRead)
+                }
+                val info = GameTypeParser.parseGameInfo(file.name, header)
+                _gameInfo.value = info.takeIf { it.format != GameTypeParser.GameFormat.Invalid }
+            } catch (_: Exception) {
+                _gameInfo.value = null
+            }
+        }
     }
 
     /** Persists [mode] and regenerates RR.json with the new My Stuff choice. */
