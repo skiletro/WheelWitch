@@ -54,7 +54,7 @@ fun parseLeaderboardResponse(jsonString: String): LeaderboardResponse {
         page = root.optInt("currentPage", root.optInt("page", 1))
         val totalPages = root.optInt("totalPages", root.optInt("total_pages", 1))
         hasMore = page < totalPages ||
-            root.optBoolean("hasMore", root.optBoolean("has_more", root.has("next")))
+                root.optBoolean("hasMore", root.optBoolean("has_more", root.has("next")))
     }
 
     val entries = (0 until data.length()).map { i ->

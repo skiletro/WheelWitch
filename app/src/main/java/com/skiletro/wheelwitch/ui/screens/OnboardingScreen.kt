@@ -53,11 +53,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
+import com.skiletro.wheelwitch.model.MiiWadOnboarding
 import com.skiletro.wheelwitch.ui.components.buttonShape
 import com.skiletro.wheelwitch.ui.components.sectionShape
 import com.skiletro.wheelwitch.util.DolphinLauncher
 import com.skiletro.wheelwitch.util.MiiWadInstaller
-import com.skiletro.wheelwitch.model.MiiWadOnboarding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -132,10 +132,10 @@ fun OnboardingScreen(
                         animationSpec = tween(350),
                         initialOffsetX = { fullWidth -> fullWidth }
                     ) + fadeIn(animationSpec = tween(250))) togetherWith
-                        (slideOutHorizontally(
-                            animationSpec = tween(350),
-                            targetOffsetX = { fullWidth -> -fullWidth }
-                        ) + fadeOut(animationSpec = tween(200)))
+                            (slideOutHorizontally(
+                                animationSpec = tween(350),
+                                targetOffsetX = { fullWidth -> -fullWidth }
+                            ) + fadeOut(animationSpec = tween(200)))
                 },
                 label = "step"
             ) { currentStep ->
@@ -150,22 +150,26 @@ fun OnboardingScreen(
                             onGrant = onRequestStoragePermission,
                             onNext = { step = 2 }
                         )
+
                         2 -> DolphinCheckStep(
                             installed = dolphinInstalled,
                             onRetry = { dolphinRetry++ },
                             onNext = { step = 3 },
                             onDownload = { DolphinLauncher.openDolphinDownload(context) }
                         )
+
                         3 -> StorageStep(
                             onPickStorage = onPickStorage,
                             onContinue = { step = 4 },
                             alreadyConfigured = storageConfigured
                         )
+
                         4 -> IsoStep(
                             onPickIso = onPickIso,
                             onContinue = onSkipIso,
                             alreadyConfigured = isoConfigured
                         )
+
                         5 -> MiiStep(
                             state = miiWadState,
                             onInstall = {
@@ -186,6 +190,7 @@ fun OnboardingScreen(
                             onSkip = { step = 6 },
                             onNext = { step = 6 }
                         )
+
                         6 -> CompleteStep(onDone = onComplete)
                     }
                 }
@@ -379,6 +384,7 @@ private fun DolphinCheckStep(
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
             true -> {
                 Text(
                     text = stringResource(R.string.status_installed_format, "Dolphin"),
@@ -391,6 +397,7 @@ private fun DolphinCheckStep(
                     onClick = onNext
                 )
             }
+
             false -> {
                 Text(
                     text = stringResource(R.string.status_not_installed_format, "Dolphin"),
@@ -417,11 +424,15 @@ private fun DolphinCheckStep(
 }
 
 @Composable
-private fun StorageStep(onPickStorage: () -> Unit, onContinue: () -> Unit, alreadyConfigured: Boolean) {
+private fun StorageStep(
+    onPickStorage: () -> Unit,
+    onContinue: () -> Unit,
+    alreadyConfigured: Boolean
+) {
     StepCard(
         title = stringResource(R.string.onboarding_storage_title),
         body = if (alreadyConfigured) stringResource(R.string.onboarding_storage_configured)
-               else stringResource(R.string.onboarding_storage_body)
+        else stringResource(R.string.onboarding_storage_body)
     ) {
         if (alreadyConfigured) {
             StepPrimaryButton(
@@ -442,7 +453,7 @@ private fun IsoStep(onPickIso: () -> Unit, onContinue: () -> Unit, alreadyConfig
     StepCard(
         title = stringResource(R.string.onboarding_iso_title),
         body = if (alreadyConfigured) stringResource(R.string.onboarding_iso_configured)
-               else stringResource(R.string.onboarding_iso_body)
+        else stringResource(R.string.onboarding_iso_body)
     ) {
         if (alreadyConfigured) {
             StepPrimaryButton(
@@ -489,6 +500,7 @@ private fun MiiStep(
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
             is MiiWadOnboarding.Installed -> {
                 Text(
                     text = stringResource(R.string.status_installed_format, "Mii Channel"),
@@ -501,6 +513,7 @@ private fun MiiStep(
                     onClick = onNext
                 )
             }
+
             is MiiWadOnboarding.Installing -> {
                 val infiniteTransition = rememberInfiniteTransition(label = "wad_rotate")
                 val rotation by infiniteTransition.animateFloat(
@@ -532,6 +545,7 @@ private fun MiiStep(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
             is MiiWadOnboarding.Error -> {
                 Text(
                     text = state.message,
@@ -546,6 +560,7 @@ private fun MiiStep(
                     onPrimary = onInstall,
                 )
             }
+
             is MiiWadOnboarding.NotInstalled -> {
                 Text(
                     text = stringResource(R.string.status_not_installed),
@@ -601,7 +616,7 @@ private fun StepDots(current: Int, total: Int, modifier: Modifier = Modifier) {
             )
             val color by androidx.compose.animation.animateColorAsState(
                 targetValue = if (isCompleted) MaterialTheme.colorScheme.primary
-                              else MaterialTheme.colorScheme.surfaceVariant,
+                else MaterialTheme.colorScheme.surfaceVariant,
                 animationSpec = androidx.compose.animation.core.tween(300),
                 label = "step_dot_color_$i"
             )

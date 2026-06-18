@@ -32,6 +32,7 @@ val SwampGreen80 = Color(0xFFA5D6A7)
 val SwampGreenGrey80 = Color(0xFF81C784)
 val SwampLightGreen80 = Color(0xFFB2FFB2)
 val OnSwampGreen80 = Color(0xFF003300)
+
 // Swamp palette (light)
 val SwampGreen40 = Color(0xFF2E7D32)
 val SwampGreenGrey40 = Color(0xFF388E3C)
@@ -41,9 +42,11 @@ val OnSwampGreen40 = Color.White
 // Wizard palette (dark) — based on the WheelWizard project palette
 val WizardTeal80 = Color(0xFF00A488)
 val WizardTealGrey80 = Color(0xFF4DB6AC)
+
 // Wizard's tertiary is a neutral grey rather than a light accent.
 val WizardNeutral80 = Color(0xFF8B91A5)
 val OnWizardTeal80 = Color(0xFF00332A)
+
 // Wizard palette (light)
 val WizardTeal40 = Color(0xFF00897B)
 val WizardTealGrey40 = Color(0xFF26A69A)
@@ -55,6 +58,7 @@ val CatppuccinMauve80 = Color(0xFFCBA6F7)
 val CatppuccinLavender80 = Color(0xFFB4BEFE)
 val CatppuccinSky80 = Color(0xFF89DCEB)
 val OnCatppuccinMauve80 = Color(0xFF2D1450)
+
 // Catppuccin palette (light) — Latte
 val CatppuccinMauve40 = Color(0xFF8839EF)
 val CatppuccinLavender40 = Color(0xFF7287FD)

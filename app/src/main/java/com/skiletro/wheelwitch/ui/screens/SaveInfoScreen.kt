@@ -1,5 +1,6 @@
 package com.skiletro.wheelwitch.ui.screens
 
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -15,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.CircularProgressIndicator
@@ -33,10 +33,8 @@ import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.LicenseInfo
 import com.skiletro.wheelwitch.ui.components.FocusableSurface
 import com.skiletro.wheelwitch.ui.components.MiiFace
-import com.skiletro.wheelwitch.ui.components.ScreenHeader
 import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
-
-
+import com.skiletro.wheelwitch.ui.components.ScreenHeader
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
 import com.skiletro.wheelwitch.viewmodel.SaveInfoState
 
@@ -78,6 +76,7 @@ fun SaveInfoScreen(
                         CircularProgressIndicator()
                     }
                 }
+
                 is SaveInfoState.Error -> {
                     Column(
                         modifier = Modifier.fillMaxSize(),
@@ -98,6 +97,7 @@ fun SaveInfoScreen(
                         )
                     }
                 }
+
                 is SaveInfoState.Idle -> {}
                 is SaveInfoState.Success -> {
                     val saveFileInfo = saveInfoState.info
@@ -193,14 +193,19 @@ private fun LicenseCard(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            val displayVr = license.leaderboardVr ?: cachedLeaderboardVr ?: license.vr
+                            val displayVr =
+                                license.leaderboardVr ?: cachedLeaderboardVr ?: license.vr
                             StatLabel(stringResource(R.string.leaderboard_vr_label), displayVr)
                         }
                         Spacer(modifier = Modifier.height(2.dp))
                         val raceWins = license.raceWins ?: 0
                         val raceLosses = license.raceLosses ?: 0
                         Text(
-                            text = stringResource(R.string.save_info_race_format, raceWins, raceLosses),
+                            text = stringResource(
+                                R.string.save_info_race_format,
+                                raceWins,
+                                raceLosses
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

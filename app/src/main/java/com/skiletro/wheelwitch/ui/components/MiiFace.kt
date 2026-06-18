@@ -21,11 +21,11 @@ import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.util.HttpClientProvider
 import com.skiletro.wheelwitch.util.MII_IMAGE_BASE_URL
 import com.skiletro.wheelwitch.util.MiiFaceCache
-import java.net.URLEncoder
-import java.util.Base64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Request
+import java.net.URLEncoder
+import java.util.Base64
 
 /** Pixel width requested from the Mii image service; matches typical display size. */
 private const val MII_FACE_FETCH_WIDTH = 96
@@ -57,7 +57,9 @@ fun MiiFace(
             try {
                 val bytes = Base64.getDecoder().decode(b64)
                 BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-            } catch (_: Exception) { null }
+            } catch (_: Exception) {
+                null
+            }
         }
     }
 

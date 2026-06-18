@@ -23,18 +23,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.Restore
+import androidx.compose.material.icons.automirrored.filled.Shortcut
 import androidx.compose.material.icons.filled.Cached
+import androidx.compose.material.icons.filled.Checkroom
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Gamepad
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.SaveAlt
-import androidx.compose.material.icons.automirrored.filled.Shortcut
-import androidx.compose.material.icons.filled.Checkroom
-import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -43,7 +43,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -105,10 +104,16 @@ fun SettingsScreen(
             title = { Text(stringResource(R.string.settings_delete_save_dialog_title)) },
             text = { Text(stringResource(R.string.settings_delete_save_dialog_body)) },
             confirmButton = {
-                Button(onClick = { onDeleteSave(); showDeleteConfirm = false }) { Text(stringResource(R.string.settings_delete)) }
+                Button(onClick = { onDeleteSave(); showDeleteConfirm = false }) {
+                    Text(
+                        stringResource(R.string.settings_delete)
+                    )
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.action_cancel)) }
+                TextButton(onClick = {
+                    showDeleteConfirm = false
+                }) { Text(stringResource(R.string.action_cancel)) }
             }
         )
     }
@@ -119,10 +124,16 @@ fun SettingsScreen(
             title = { Text(stringResource(R.string.settings_delete_wad_dialog_title)) },
             text = { Text(stringResource(R.string.settings_delete_wad_dialog_body)) },
             confirmButton = {
-                Button(onClick = { miiMaker.deleteWad(); showWadDeleteConfirm = false }) { Text(stringResource(R.string.settings_delete)) }
+                Button(onClick = { miiMaker.deleteWad(); showWadDeleteConfirm = false }) {
+                    Text(
+                        stringResource(R.string.settings_delete)
+                    )
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showWadDeleteConfirm = false }) { Text(stringResource(R.string.action_cancel)) }
+                TextButton(onClick = {
+                    showWadDeleteConfirm = false
+                }) { Text(stringResource(R.string.action_cancel)) }
             }
         )
     }
@@ -168,7 +179,9 @@ fun SettingsScreen(
                 SettingsItem(
                     icon = Icons.Filled.SaveAlt,
                     title = stringResource(R.string.settings_backup),
-                    summary = if (hasSave) stringResource(R.string.settings_save_found) else stringResource(R.string.status_save_not_found),
+                    summary = if (hasSave) stringResource(R.string.settings_save_found) else stringResource(
+                        R.string.status_save_not_found
+                    ),
                     trailing = {
                         Button(
                             onClick = onBackupSave,
@@ -179,7 +192,12 @@ fun SettingsScreen(
                                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                             )
-                        ) { Text(stringResource(R.string.settings_backup), fontWeight = FontWeight.Medium) }
+                        ) {
+                            Text(
+                                stringResource(R.string.settings_backup),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 )
                 SettingsItem(
@@ -195,7 +213,12 @@ fun SettingsScreen(
                                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                             )
-                        ) { Text(stringResource(R.string.settings_restore), fontWeight = FontWeight.Medium) }
+                        ) {
+                            Text(
+                                stringResource(R.string.settings_restore),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 )
                 if (hasSave) {
@@ -206,7 +229,10 @@ fun SettingsScreen(
                         summary = stringResource(R.string.settings_delete_save_sub),
                         trailing = {
                             TextButton(onClick = { showDeleteConfirm = true }) {
-                                Text(stringResource(R.string.settings_delete), color = MaterialTheme.colorScheme.error)
+                                Text(
+                                    stringResource(R.string.settings_delete),
+                                    color = MaterialTheme.colorScheme.error
+                                )
                             }
                         }
                     )
@@ -328,7 +354,8 @@ fun SettingsScreen(
                 SettingsItem(
                     icon = Icons.Filled.Dns,
                     title = stringResource(R.string.settings_pack_storage),
-                    summary = packUpdate.storageRootPath ?: stringResource(R.string.error_storage_not_configured),
+                    summary = packUpdate.storageRootPath
+                        ?: stringResource(R.string.error_storage_not_configured),
                     trailing = null
                 )
             }
@@ -393,7 +420,8 @@ fun SettingsScreen(
                 SettingsCategoryHeader(stringResource(R.string.settings_mii_maker_section))
             }
             item {
-                val wadStatus = if (hasWad) stringResource(R.string.status_installed) else stringResource(R.string.status_not_installed)
+                val wadStatus =
+                    if (hasWad) stringResource(R.string.status_installed) else stringResource(R.string.status_not_installed)
                 SettingsItem(
                     icon = Icons.Filled.Checkroom,
                     title = stringResource(R.string.settings_mii_channel_wad),
@@ -401,10 +429,17 @@ fun SettingsScreen(
                     summaryColor = if (miiMakerError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                     trailing = {
                         if (isInstallingWad) {
-                            Text(stringResource(R.string.settings_installing), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
+                            Text(
+                                stringResource(R.string.settings_installing),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         } else if (hasWad) {
                             TextButton(onClick = { showWadDeleteConfirm = true }) {
-                                Text(stringResource(R.string.settings_delete), color = MaterialTheme.colorScheme.error)
+                                Text(
+                                    stringResource(R.string.settings_delete),
+                                    color = MaterialTheme.colorScheme.error
+                                )
                             }
                         } else {
                             Button(
@@ -472,20 +507,28 @@ fun SettingsScreen(
                                 shape = RoundedCornerShape(14.dp)
                             ) { Text(stringResource(R.string.settings_simulate)) }
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                val shortcutManager = remember { context.getSystemService(Context.SHORTCUT_SERVICE) as? ShortcutManager }
+                                val shortcutManager =
+                                    remember { context.getSystemService(Context.SHORTCUT_SERVICE) as? ShortcutManager }
                                 if (shortcutManager?.isRequestPinShortcutSupported == true) {
                                     TextButton(
                                         onClick = {
-                                            val intent = Intent("com.skiletro.wheelwitch.action.QUICK_LAUNCH").apply {
-                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                                                `package` = context.packageName
-                                            }
-                                            val shortcut = ShortcutInfo.Builder(context, "quick_launch")
-                                                .setShortLabel(context.getString(R.string.settings_shortcut_short))
-                                                .setLongLabel(context.getString(R.string.settings_shortcut_long))
-                                                .setIcon(Icon.createWithResource(context, R.mipmap.ic_launcher))
-                                                .setIntent(intent)
-                                                .build()
+                                            val intent =
+                                                Intent("com.skiletro.wheelwitch.action.QUICK_LAUNCH").apply {
+                                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                                                    `package` = context.packageName
+                                                }
+                                            val shortcut =
+                                                ShortcutInfo.Builder(context, "quick_launch")
+                                                    .setShortLabel(context.getString(R.string.settings_shortcut_short))
+                                                    .setLongLabel(context.getString(R.string.settings_shortcut_long))
+                                                    .setIcon(
+                                                        Icon.createWithResource(
+                                                            context,
+                                                            R.mipmap.ic_launcher
+                                                        )
+                                                    )
+                                                    .setIntent(intent)
+                                                    .build()
                                             shortcutManager.requestPinShortcut(shortcut, null)
                                         },
                                         shape = RoundedCornerShape(14.dp)
@@ -516,13 +559,24 @@ fun SettingsScreen(
             }
             item {
                 val version = if (com.skiletro.wheelwitch.BuildConfig.DEBUG)
-                    stringResource(R.string.settings_version_debug, com.skiletro.wheelwitch.BuildConfig.VERSION_NAME, com.skiletro.wheelwitch.BuildConfig.GIT_HASH)
+                    stringResource(
+                        R.string.settings_version_debug,
+                        com.skiletro.wheelwitch.BuildConfig.VERSION_NAME,
+                        com.skiletro.wheelwitch.BuildConfig.GIT_HASH
+                    )
                 else
-                    stringResource(R.string.settings_version_release, com.skiletro.wheelwitch.BuildConfig.VERSION_NAME)
+                    stringResource(
+                        R.string.settings_version_release,
+                        com.skiletro.wheelwitch.BuildConfig.VERSION_NAME
+                    )
                 SettingsItem(
                     icon = Icons.Filled.Info,
                     title = stringResource(R.string.settings_wheel_witch),
-                    summary = stringResource(R.string.settings_about_summary, version, stringResource(R.string.settings_app_subtitle)),
+                    summary = stringResource(
+                        R.string.settings_about_summary,
+                        version,
+                        stringResource(R.string.settings_app_subtitle)
+                    ),
                     trailing = null
                 )
             }

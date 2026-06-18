@@ -44,7 +44,11 @@ fun RoomDetail(room: Room) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = stringResource(R.string.rooms_player_count_format, room.players.size, if (room.players.size == 1) "" else "s"),
+                        text = stringResource(
+                            R.string.rooms_player_count_format,
+                            room.players.size,
+                            if (room.players.size == 1) "" else "s"
+                        ),
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onSurface
@@ -80,7 +84,13 @@ fun RoomDetail(room: Room) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = stringResource(R.string.rooms_meta_vr_format, room.averageVR, if (room.isPublic) stringResource(R.string.rooms_visibility_public) else stringResource(R.string.rooms_visibility_private)),
+                    text = stringResource(
+                        R.string.rooms_meta_vr_format,
+                        room.averageVR,
+                        if (room.isPublic) stringResource(R.string.rooms_visibility_public) else stringResource(
+                            R.string.rooms_visibility_private
+                        )
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -138,7 +148,10 @@ fun MiiPlayerCard(player: Player) {
                         if (player.mii?.name != null && player.mii.name != player.name) {
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = stringResource(R.string.rooms_quoted_name_format, player.mii.name),
+                                text = stringResource(
+                                    R.string.rooms_quoted_name_format,
+                                    player.mii.name
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontFamily = CtmkfFontFamily
@@ -154,7 +167,12 @@ fun MiiPlayerCard(player: Player) {
                     }
                 }
                 Text(
-                    text = stringResource(R.string.rooms_player_meta_format, player.friendCode, player.vr, player.br),
+                    text = stringResource(
+                        R.string.rooms_player_meta_format,
+                        player.friendCode,
+                        player.vr,
+                        player.br
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

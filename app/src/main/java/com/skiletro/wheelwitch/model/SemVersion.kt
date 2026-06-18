@@ -1,7 +1,12 @@
 package com.skiletro.wheelwitch.model
 
 /** Three-part semantic version with optional pre-release label (e.g. "3.2.6-beta1"). */
-data class SemVersion(val major: Int, val minor: Int, val patch: Int, val preRelease: String? = null) :
+data class SemVersion(
+    val major: Int,
+    val minor: Int,
+    val patch: Int,
+    val preRelease: String? = null
+) :
     Comparable<SemVersion> {
 
     override fun compareTo(other: SemVersion): Int {

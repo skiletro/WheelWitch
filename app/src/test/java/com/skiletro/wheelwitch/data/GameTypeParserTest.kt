@@ -17,7 +17,8 @@ class GameTypeParserTest {
 
         fun createRvzBuffer(gameId: String): ByteArray {
             val buf = ByteArray(0x60)
-            buf[0] = 0x52.toByte();             buf[1] = 0x56.toByte(); buf[2] = 0x5A.toByte(); buf[3] = 0x01.toByte()
+            buf[0] = 0x52.toByte(); buf[1] = 0x56.toByte(); buf[2] = 0x5A.toByte(); buf[3] =
+                0x01.toByte()
             gameId.encodeToByteArray().copyInto(buf, 0x58)
             return buf
         }
@@ -35,7 +36,8 @@ class GameTypeParserTest {
             val totalSize = dataOffset + 6
 
             val buf = ByteArray(totalSize)
-            buf[0] = 0x57.toByte(); buf[1] = 0x42.toByte(); buf[2] = 0x46.toByte(); buf[3] = 0x53.toByte()
+            buf[0] = 0x57.toByte(); buf[1] = 0x42.toByte(); buf[2] = 0x46.toByte(); buf[3] =
+                0x53.toByte()
             buf[8] = hdSectorShift.toByte()
             buf[9] = wbfsSectorShift.toByte()
             buf[wlbaOffset] = (wlbaEntry shr 8).toByte()
@@ -91,7 +93,8 @@ class GameTypeParserTest {
     @Test
     fun `parse RVZ with bad magic returns Invalid`() {
         val buf = createRvzBuffer("RMCP01")
-        buf[0] = 0x58.toByte(); buf[1] = 0x58.toByte(); buf[2] = 0x58.toByte(); buf[3] = 0x58.toByte()
+        buf[0] = 0x58.toByte(); buf[1] = 0x58.toByte(); buf[2] = 0x58.toByte(); buf[3] =
+            0x58.toByte()
         val info = GameTypeParser.parseGameInfo("game.rvz", buf)
         assertThat(info.format).isEqualTo(GameFormat.Invalid)
         assertThat(info.gameId).isNull()
@@ -123,7 +126,8 @@ class GameTypeParserTest {
     @Test
     fun `parse WBFS with bad magic returns Invalid`() {
         val buf = createWbfsBuffer("RMCP01")
-        buf[0] = 0x00.toByte(); buf[1] = 0x00.toByte(); buf[2] = 0x00.toByte(); buf[3] = 0x00.toByte()
+        buf[0] = 0x00.toByte(); buf[1] = 0x00.toByte(); buf[2] = 0x00.toByte(); buf[3] =
+            0x00.toByte()
         val info = GameTypeParser.parseGameInfo("game.wbfs", buf)
         assertThat(info.format).isEqualTo(GameFormat.Invalid)
         assertThat(info.gameId).isNull()
@@ -147,7 +151,8 @@ class GameTypeParserTest {
     @Test
     fun `parse WBFS when WLBA offset out of bounds returns Invalid`() {
         val buf = ByteArray(12)
-        buf[0] = 0x57.toByte(); buf[1] = 0x42.toByte(); buf[2] = 0x46.toByte(); buf[3] = 0x53.toByte()
+        buf[0] = 0x57.toByte(); buf[1] = 0x42.toByte(); buf[2] = 0x46.toByte(); buf[3] =
+            0x53.toByte()
         buf[8] = 14; buf[9] = 2
         val info = GameTypeParser.parseGameInfo("game.wbfs", buf)
         assertThat(info.format).isEqualTo(GameFormat.Invalid)
@@ -157,7 +162,8 @@ class GameTypeParserTest {
     @Test
     fun `parse WBFS when data offset out of bounds returns Invalid`() {
         val buf = ByteArray(770)
-        buf[0] = 0x57.toByte(); buf[1] = 0x42.toByte(); buf[2] = 0x46.toByte(); buf[3] = 0x53.toByte()
+        buf[0] = 0x57.toByte(); buf[1] = 0x42.toByte(); buf[2] = 0x46.toByte(); buf[3] =
+            0x53.toByte()
         buf[8] = 9; buf[9] = 2
         buf[768] = (1000 shr 8).toByte(); buf[769] = 1000.toByte()
         val info = GameTypeParser.parseGameInfo("game.wbfs", buf)
@@ -177,7 +183,8 @@ class GameTypeParserTest {
     @Test
     fun `parse WAD with bad magic returns Invalid`() {
         val buf = createWadBuffer()
-        buf[0] = 0x00.toByte(); buf[1] = 0x00.toByte(); buf[2] = 0x00.toByte(); buf[3] = 0x21.toByte()
+        buf[0] = 0x00.toByte(); buf[1] = 0x00.toByte(); buf[2] = 0x00.toByte(); buf[3] =
+            0x21.toByte()
         val info = GameTypeParser.parseGameInfo("file.wad", buf)
         assertThat(info.format).isEqualTo(GameFormat.Invalid)
         assertThat(info.gameId).isNull()
@@ -209,6 +216,11 @@ class GameTypeParserTest {
 
     @Test
     fun `checkValidity returns false for bad WAD`() {
-        assertThat(GameTypeParser.checkValidity("file.wad", byteArrayOf(0x00, 0x00, 0x00, 0x21))).isFalse()
+        assertThat(
+            GameTypeParser.checkValidity(
+                "file.wad",
+                byteArrayOf(0x00, 0x00, 0x00, 0x21)
+            )
+        ).isFalse()
     }
 }

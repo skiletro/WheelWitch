@@ -18,9 +18,9 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -34,6 +34,8 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.skiletro.wheelwitch.data.GameTypeParser
+import com.skiletro.wheelwitch.data.PackStorage
 import com.skiletro.wheelwitch.ui.screens.HomeScreen
 import com.skiletro.wheelwitch.ui.screens.OnboardingScreen
 import com.skiletro.wheelwitch.ui.screens.QuickLaunchScreen
@@ -41,8 +43,6 @@ import com.skiletro.wheelwitch.ui.screens.SettingsScreen
 import com.skiletro.wheelwitch.ui.theme.AppTheme
 import com.skiletro.wheelwitch.ui.theme.ThemeMode
 import com.skiletro.wheelwitch.ui.theme.WheelWitchTheme
-import com.skiletro.wheelwitch.data.GameTypeParser
-import com.skiletro.wheelwitch.data.PackStorage
 import com.skiletro.wheelwitch.util.DolphinLauncher
 import com.skiletro.wheelwitch.util.PrefsKeys
 import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
@@ -62,16 +62,24 @@ class MainActivity : ComponentActivity() {
         pendingQuickLaunch = intent?.action == ACTION_QUICK_LAUNCH
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val controller = WindowCompat.getInsetsController(window, window.decorView)
-        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        controller.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         controller.hide(WindowInsetsCompat.Type.systemBars())
         setContent {
-            val prefs = remember { this@MainActivity.getSharedPreferences(PrefsKeys.SETTINGS_PREFS, Context.MODE_PRIVATE) }
+            val prefs = remember {
+                this@MainActivity.getSharedPreferences(
+                    PrefsKeys.SETTINGS_PREFS,
+                    Context.MODE_PRIVATE
+                )
+            }
             var appTheme by remember {
-                val saved = prefs.getString(PrefsKeys.APP_THEME_KEY, AppTheme.Hex.name) ?: AppTheme.Hex.name
+                val saved =
+                    prefs.getString(PrefsKeys.APP_THEME_KEY, AppTheme.Hex.name) ?: AppTheme.Hex.name
                 mutableStateOf(runCatching { AppTheme.valueOf(saved) }.getOrDefault(AppTheme.Hex))
             }
             var themeMode by remember {
-                val saved = prefs.getString(PrefsKeys.THEME_MODE_KEY, ThemeMode.System.name) ?: ThemeMode.System.name
+                val saved = prefs.getString(PrefsKeys.THEME_MODE_KEY, ThemeMode.System.name)
+                    ?: ThemeMode.System.name
                 mutableStateOf(runCatching { ThemeMode.valueOf(saved) }.getOrDefault(ThemeMode.System))
             }
 
@@ -122,9 +130,17 @@ private fun MainScreen(
     onChangeThemeMode: (ThemeMode) -> Unit = {}
 ) {
     val context = LocalContext.current
-    val prefs = remember { context.getSharedPreferences(PrefsKeys.SETTINGS_PREFS, Context.MODE_PRIVATE) }
+    val prefs =
+        remember { context.getSharedPreferences(PrefsKeys.SETTINGS_PREFS, Context.MODE_PRIVATE) }
     var quickLaunchMode by remember { mutableStateOf(quickLaunchFromIntent) }
-    var onboardingComplete by remember { mutableStateOf(prefs.getBoolean(PrefsKeys.ONBOARDING_COMPLETED_KEY, false)) }
+    var onboardingComplete by remember {
+        mutableStateOf(
+            prefs.getBoolean(
+                PrefsKeys.ONBOARDING_COMPLETED_KEY,
+                false
+            )
+        )
+    }
     var onboardingStorageSelected by remember { mutableStateOf(false) }
     var onboardingIsoSelected by remember { mutableStateOf(false) }
     var permissionGranted by remember { mutableStateOf(Environment.isExternalStorageManager()) }
@@ -224,7 +240,11 @@ private fun MainScreen(
             AnimatedContent(
                 targetState = onboardingComplete,
                 transitionSpec = {
-                    fadeIn(tween(ONBOARDING_TRANSITION_MS)) togetherWith fadeOut(tween(ONBOARDING_TRANSITION_MS))
+                    fadeIn(tween(ONBOARDING_TRANSITION_MS)) togetherWith fadeOut(
+                        tween(
+                            ONBOARDING_TRANSITION_MS
+                        )
+                    )
                 },
                 label = "onboarding_transition"
             ) { completed ->
@@ -264,7 +284,8 @@ private fun MainScreen(
                             onPickIso = { isoPicker.launch(ISO_MIME_TYPES) },
                             onSimulateQuickLaunch = { quickLaunchMode = true },
                             onRelaunchOnboarding = {
-                                prefs.edit().putBoolean(PrefsKeys.ONBOARDING_COMPLETED_KEY, false).apply()
+                                prefs.edit().putBoolean(PrefsKeys.ONBOARDING_COMPLETED_KEY, false)
+                                    .apply()
                                 onboardingComplete = false
                                 onboardingStorageSelected = false
                                 onboardingIsoSelected = false
@@ -286,7 +307,8 @@ private fun MainScreen(
                             storagePermissionLauncher.launch(intent)
                         },
                         onComplete = {
-                            prefs.edit().putBoolean(PrefsKeys.ONBOARDING_COMPLETED_KEY, true).apply()
+                            prefs.edit().putBoolean(PrefsKeys.ONBOARDING_COMPLETED_KEY, true)
+                                .apply()
                             onboardingComplete = true
                         }
                     )

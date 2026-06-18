@@ -17,10 +17,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -29,13 +27,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -44,13 +40,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.ui.components.FocusableSurface
@@ -75,7 +68,11 @@ fun OnlineMenuScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         SharedTransitionLayout {
             AnimatedContent(
                 targetState = currentPage,
@@ -91,6 +88,7 @@ fun OnlineMenuScreen(
                         sharedTransitionScope = this@SharedTransitionLayout,
                         animatedContentScope = this,
                     )
+
                     OnlineMenuPage.Rooms -> {
                         val roomsState by viewModel.roomsState.collectAsState()
                         RoomsScreen(
@@ -101,21 +99,25 @@ fun OnlineMenuScreen(
                             animatedContentScope = this,
                         )
                     }
+
                     OnlineMenuPage.Leaderboard -> LeaderboardScreen(
                         viewModel,
                         sharedTransitionScope = this@SharedTransitionLayout,
                         animatedContentScope = this,
                     )
+
                     OnlineMenuPage.Health -> HealthScreen(
                         viewModel,
                         sharedTransitionScope = this@SharedTransitionLayout,
                         animatedContentScope = this,
                     )
+
                     OnlineMenuPage.RaceStats -> RaceStatsScreen(
                         viewModel,
                         sharedTransitionScope = this@SharedTransitionLayout,
                         animatedContentScope = this,
                     )
+
                     OnlineMenuPage.TimeTrial -> TimeTrialScreen(
                         viewModel,
                         sharedTransitionScope = this@SharedTransitionLayout,
@@ -209,14 +211,17 @@ private fun HealthIndicator(
             dotColor = statusColors().ok
             label = stringResource(R.string.health_indicator_online)
         }
+
         com.skiletro.wheelwitch.model.ServerConnectivity.Offline -> {
             dotColor = MaterialTheme.colorScheme.error
             label = stringResource(R.string.health_indicator_offline)
         }
+
         com.skiletro.wheelwitch.model.ServerConnectivity.NoInternet -> {
             dotColor = MaterialTheme.colorScheme.onSurfaceVariant
             label = stringResource(R.string.status_no_internet)
         }
+
         else -> {
             dotColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
             label = stringResource(R.string.status_checking)
@@ -261,7 +266,7 @@ private fun HubOption(
 ) {
     val shape = RoundedCornerShape(16.dp)
     val baseColor = if (enabled) MaterialTheme.colorScheme.surfaceVariant
-                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
     FocusableSurface(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick,
@@ -282,7 +287,9 @@ private fun HubOption(
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
+                        tint = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                            alpha = 0.38f
+                        ),
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -293,7 +300,9 @@ private fun HubOption(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                    color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(
+                        alpha = 0.38f
+                    ),
                     modifier = com.skiletro.wheelwitch.ui.components.SharedTitleModifier(
                         key = titleSharedKey ?: "",
                         sharedTransitionScope = sharedTransitionScope,
@@ -303,7 +312,9 @@ private fun HubOption(
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                    color = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                        alpha = 0.38f
+                    )
                 )
             }
             if (!enabled) {

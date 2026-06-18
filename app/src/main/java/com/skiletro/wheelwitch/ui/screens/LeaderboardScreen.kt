@@ -1,5 +1,6 @@
 package com.skiletro.wheelwitch.ui.screens
 
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,7 +33,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -42,10 +42,8 @@ import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.LeaderboardEntry
 import com.skiletro.wheelwitch.ui.components.FocusableSurface
 import com.skiletro.wheelwitch.ui.components.MiiFace
-import com.skiletro.wheelwitch.ui.components.ScreenHeader
 import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
-
-
+import com.skiletro.wheelwitch.ui.components.ScreenHeader
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
 import com.skiletro.wheelwitch.viewmodel.LeaderboardState
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
@@ -90,6 +88,7 @@ fun LeaderboardScreen(
                         CircularProgressIndicator()
                     }
                 }
+
                 is LeaderboardState.Error -> {
                     val error = (leaderboardState as LeaderboardState.Error).message
                     Column(
@@ -111,6 +110,7 @@ fun LeaderboardScreen(
                         )
                     }
                 }
+
                 is LeaderboardState.Success -> {
                     val state = leaderboardState as LeaderboardState.Success
                     if (state.entries.isEmpty()) {
@@ -151,7 +151,7 @@ private fun LeaderboardList(
         derivedStateOf {
             val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()
             lastVisibleItem != null && hasMore &&
-                lastVisibleItem.index >= listState.layoutInfo.totalItemsCount - 3
+                    lastVisibleItem.index >= listState.layoutInfo.totalItemsCount - 3
         }
     }
 

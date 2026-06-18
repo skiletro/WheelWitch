@@ -1,10 +1,11 @@
 package com.skiletro.wheelwitch.data
 
-import java.util.Base64
+import com.skiletro.wheelwitch.data.RksysParser.LICENSE_BASES
 import com.skiletro.wheelwitch.model.LicenseInfo
 import com.skiletro.wheelwitch.model.SaveFileInfo
 import com.skiletro.wheelwitch.util.ByteReader
 import java.security.MessageDigest
+import java.util.Base64
 
 /** Parses a Mario Kart Wii `rksys.dat` save file (big-endian binary format, RKPD magic) into [SaveFileInfo]. */
 object RksysParser {
@@ -16,14 +17,17 @@ object RksysParser {
 
     /** All offsets below are relative to the start of a license slot ([LICENSE_BASES] entry). */
     private const val MII_NAME_OFFSET = 0x14
+
     /** 20 bytes = 10 UTF-16BE code units (2 bytes each). */
     private const val MII_NAME_LENGTH = 20
     private const val PID_OFFSET = 0x5C
     private const val RACE_WINS_OFFSET = 0x88
     private const val RACE_LOSSES_OFFSET = 0x8C
     private const val VR_OFFSET = 0xB0
+
     /** Offset of the RFL (Mii binary) payload. RFL is the raw 74-byte Mii data the Wii uses to render the face. */
     private const val MII_RFL_OFFSET = 0x5684
+
     /** Fixed length of the RFL Mii data payload. */
     private const val MII_RFL_DATA_LENGTH = 74
 
@@ -56,7 +60,10 @@ object RksysParser {
         val raceLosses = ByteReader.readInt32BE(bytes, base + RACE_LOSSES_OFFSET)
 
         val miiDataBase64 = if (base + MII_RFL_OFFSET + MII_RFL_DATA_LENGTH <= bytes.size) {
-            val rflData = bytes.copyOfRange(base + MII_RFL_OFFSET, base + MII_RFL_OFFSET + MII_RFL_DATA_LENGTH)
+            val rflData = bytes.copyOfRange(
+                base + MII_RFL_OFFSET,
+                base + MII_RFL_OFFSET + MII_RFL_DATA_LENGTH
+            )
             Base64.getEncoder().encodeToString(rflData)
         } else null
 

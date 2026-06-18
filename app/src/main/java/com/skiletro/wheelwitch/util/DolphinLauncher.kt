@@ -24,6 +24,7 @@ object DolphinLauncher {
     private const val SECTION_NAME = "Retro Rewind"
     private const val OPTION_NAME_PACK = "Pack"
     private const val OPTION_NAME_MY_STUFF = "My Stuff"
+
     // sic: matches the Riivolution XML option name verbatim (including the typo).
     private const val OPTION_NAME_SEPARATE_SAVEGAME = "Seperate Savegame"
 
@@ -96,7 +97,11 @@ object DolphinLauncher {
     }
 
     /** Builds one patch entry: root, xml path, and the options array. */
-    private fun buildPatch(storageRootPath: String, xmlPath: String, myStuffMode: MyStuffMode): JSONObject =
+    private fun buildPatch(
+        storageRootPath: String,
+        xmlPath: String,
+        myStuffMode: MyStuffMode
+    ): JSONObject =
         JSONObject().apply {
             put("options", buildPatchOptions(myStuffMode))
             put("root", storageRootPath)
@@ -131,8 +136,18 @@ object DolphinLauncher {
     }
 
     /** Writes a complete RR.json to the storage root. */
-    fun writeLaunchJson(rootPath: String, gameIsoPath: String, myStuffMode: MyStuffMode = MyStuffMode.Everything) {
-        File(rootPath, RR_JSON_NAME).writeText(generateLaunchJson(rootPath, gameIsoPath, myStuffMode = myStuffMode))
+    fun writeLaunchJson(
+        rootPath: String,
+        gameIsoPath: String,
+        myStuffMode: MyStuffMode = MyStuffMode.Everything
+    ) {
+        File(rootPath, RR_JSON_NAME).writeText(
+            generateLaunchJson(
+                rootPath,
+                gameIsoPath,
+                myStuffMode = myStuffMode
+            )
+        )
     }
 
     /** Deletes the RR.json from the storage root. */

@@ -4,8 +4,10 @@ package com.skiletro.wheelwitch.util
 object PrefsKeys {
     /** Main app state: storage URI, selected slot, last server version, theme, onboarding, Riivolution mode. */
     const val PREFS_NAME = "wheelwitch"
+
     /** Settings screen state: theme picker choices that survive process death. */
     const val SETTINGS_PREFS = "settings"
+
     /** Race-stats JSON cache: stores the last successful `/api/racestats/global` response. */
     const val RACE_STATS_PREFS = "race_stats_cache"
     const val RACE_STATS_KEY = "race_stats_json"

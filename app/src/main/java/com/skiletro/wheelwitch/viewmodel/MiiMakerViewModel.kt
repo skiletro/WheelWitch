@@ -63,7 +63,8 @@ class MiiMakerViewModel(application: Application) : AndroidViewModel(application
                     MiiWadInstaller.launchWadFile(app, cached).getOrThrow()
                 }
             } catch (e: Exception) {
-                _miiMakerError.value = e.message ?: app.getString(R.string.vm_failed_format, "launch Mii Maker")
+                _miiMakerError.value =
+                    e.message ?: app.getString(R.string.vm_failed_format, "launch Mii Maker")
             }
         }
     }
@@ -89,7 +90,10 @@ class MiiMakerViewModel(application: Application) : AndroidViewModel(application
                     }
                     refreshHasWad()
                 } catch (e: Exception) {
-                    _miiMakerError.value = e.message ?: app.getString(R.string.vm_failed_format, "install Mii Maker WAD")
+                    _miiMakerError.value = e.message ?: app.getString(
+                        R.string.vm_failed_format,
+                        "install Mii Maker WAD"
+                    )
                 } finally {
                     _isInstallingWad.value = false
                 }

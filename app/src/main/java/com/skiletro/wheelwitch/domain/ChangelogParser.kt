@@ -2,15 +2,16 @@ package com.skiletro.wheelwitch.domain
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.skiletro.wheelwitch.domain.ChangelogParser.PREFS_NAME
 import com.skiletro.wheelwitch.model.ChangelogEntry
 import com.skiletro.wheelwitch.util.HttpClientProvider
 import com.skiletro.wheelwitch.util.PrefsKeys
 import okhttp3.Request
+import org.json.JSONArray
+import org.json.JSONObject
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
-import org.json.JSONArray
-import org.json.JSONObject
 
 /**
  * Fetches and parses the Retro Rewind version history from the Tockdom

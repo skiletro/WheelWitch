@@ -2,6 +2,8 @@ package com.skiletro.wheelwitch.data
 
 import android.net.Uri
 import android.provider.DocumentsContract
+import com.skiletro.wheelwitch.data.PackStorage.Companion.resolveContentUriToPath
+import com.skiletro.wheelwitch.data.PackStorage.Companion.resolveTreeUriToPath
 import java.io.File
 import java.net.URLDecoder
 import java.util.zip.ZipFile
@@ -63,8 +65,10 @@ class PackStorage(val rootPath: String) {
             return when {
                 storageType.equals("primary", ignoreCase = true) ->
                     "$PRIMARY_STORAGE_PREFIX$relativePath"
+
                 storageType.equals("raw", ignoreCase = true) ->
                     "$RAW_STORAGE_PREFIX$relativePath"
+
                 else ->
                     "$VOLUME_STORAGE_PREFIX$storageType/$relativePath"
             }

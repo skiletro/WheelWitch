@@ -75,6 +75,12 @@ class ByteReaderTest {
 
     @Test
     fun `checkMagic returns false for short buffer`() {
-        assertThat(ByteReader.checkMagic(byteArrayOf(0x57, 0x42), 0, byteArrayOf(0x57, 0x42, 0x46))).isFalse()
+        assertThat(
+            ByteReader.checkMagic(
+                byteArrayOf(0x57, 0x42),
+                0,
+                byteArrayOf(0x57, 0x42, 0x46)
+            )
+        ).isFalse()
     }
 }

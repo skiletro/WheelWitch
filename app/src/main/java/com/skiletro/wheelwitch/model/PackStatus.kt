@@ -19,5 +19,6 @@ sealed class PackStatus {
     ) : PackStatus()
 
     /** Pack matches the latest server version. */
-    data class UpToDate(val currentVersion: SemVersion, val latestVersion: SemVersion) : PackStatus()
+    data class UpToDate(val currentVersion: SemVersion, val latestVersion: SemVersion) :
+        PackStatus()
 }

@@ -29,10 +29,12 @@ private val SPARKLE_INDICES = listOf(0, 3, 4)
 
 /** Extra canvas space beyond [hatSize] so sparkles at the orbit edge are not clipped. */
 private val SparklePaddingDp = 30.dp
+
 /** Sparkle orbit radius as a fraction of hatSize. */
 private const val SparkleOrbitFactor = 0.58f
 private val SparkleSizeDp = 3.dp
 private val SparkleStrokeDp = 2.dp
+
 // Three-phase alpha curve: fade in from 0 to 1 over [0, SparkleFadeInEnd],
 // hold at 1 over [SparkleFadeInEnd, SparkleFadeOutStart], fade out to 0
 // over [SparkleFadeOutStart, 1].
@@ -88,8 +90,18 @@ fun SparkleHat(
                     val x = centerX + radius * cos(angle)
                     val y = centerY + radius * sin(angle)
 
-                    drawLine(tint.copy(alpha = alpha), Offset(x - sparkleSize, y), Offset(x + sparkleSize, y), strokeW)
-                    drawLine(tint.copy(alpha = alpha), Offset(x, y - sparkleSize), Offset(x, y + sparkleSize), strokeW)
+                    drawLine(
+                        tint.copy(alpha = alpha),
+                        Offset(x - sparkleSize, y),
+                        Offset(x + sparkleSize, y),
+                        strokeW
+                    )
+                    drawLine(
+                        tint.copy(alpha = alpha),
+                        Offset(x, y - sparkleSize),
+                        Offset(x, y + sparkleSize),
+                        strokeW
+                    )
                 }
             },
         contentAlignment = Alignment.Center

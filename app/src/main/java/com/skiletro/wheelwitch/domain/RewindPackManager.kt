@@ -1,6 +1,8 @@
 package com.skiletro.wheelwitch.domain
 
 import com.skiletro.wheelwitch.data.PackStorage
+import com.skiletro.wheelwitch.domain.RewindPackManager.freshInstall
+import com.skiletro.wheelwitch.domain.RewindPackManager.initCacheDir
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.ProgressInfo
 import com.skiletro.wheelwitch.model.SemVersion
@@ -186,9 +188,23 @@ object RewindPackManager {
         for ((i, pair) in results.withIndex()) {
             val (step, zipFile) = pair
             val displayIndex = i + 1
-            onProgress(ProgressInfo.ApplyingUpdate(displayIndex, results.size, step.description, 0f))
+            onProgress(
+                ProgressInfo.ApplyingUpdate(
+                    displayIndex,
+                    results.size,
+                    step.description,
+                    0f
+                )
+            )
             storage.extractZip(zipFile) { progress ->
-                onProgress(ProgressInfo.ApplyingUpdate(displayIndex, results.size, step.description, progress))
+                onProgress(
+                    ProgressInfo.ApplyingUpdate(
+                        displayIndex,
+                        results.size,
+                        step.description,
+                        progress
+                    )
+                )
             }.getOrThrow()
             writeLocalVersion(storage, step.version)
             zipFile.delete()

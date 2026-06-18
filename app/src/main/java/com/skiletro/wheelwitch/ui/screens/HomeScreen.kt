@@ -1,9 +1,11 @@
 package com.skiletro.wheelwitch.ui.screens
 
+
+import android.view.WindowManager
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -12,7 +14,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,9 +27,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.unit.dp
-import com.skiletro.wheelwitch.model.LicenseInfo
-import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -35,8 +35,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.activity.compose.BackHandler
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,27 +51,25 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.dontsaybojio.rollingnumbers.RollingNumbers
 import com.skiletro.wheelwitch.R
+import com.skiletro.wheelwitch.model.LicenseInfo
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.ServerConnectivity
+import com.skiletro.wheelwitch.ui.components.MiiFace
+import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
+import com.skiletro.wheelwitch.ui.components.TopBar
+import com.skiletro.wheelwitch.ui.components.buttonShape
+import com.skiletro.wheelwitch.ui.components.focusBorder
+import com.skiletro.wheelwitch.ui.components.sectionShape
+import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
+import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 import com.skiletro.wheelwitch.viewmodel.PackUpdateViewModel
 import com.skiletro.wheelwitch.viewmodel.RoomsState
 import com.skiletro.wheelwitch.viewmodel.SaveDataViewModel
 import com.skiletro.wheelwitch.viewmodel.UiState
-import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
-import com.skiletro.wheelwitch.ui.components.MiiFace
-import com.skiletro.wheelwitch.ui.components.buttonShape
-import com.skiletro.wheelwitch.ui.components.focusBorder
-import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
-import com.skiletro.wheelwitch.ui.components.TopBar
-import com.skiletro.wheelwitch.ui.components.sectionShape
-import androidx.compose.foundation.focusable
-
-
-import com.dontsaybojio.rollingnumbers.RollingNumbers
-import android.view.WindowManager
-import android.widget.Toast
 
 @Composable
 fun HomeScreen(
@@ -97,7 +93,8 @@ fun HomeScreen(
     val hasIso = currentIsoPath != null
 
     val playerCount = (roomsState as? RoomsState.Success)?.playerCount
-    val serverConnectivity = (roomsState as? RoomsState.Success)?.serverConnectivity ?: ServerConnectivity.Unknown
+    val serverConnectivity =
+        (roomsState as? RoomsState.Success)?.serverConnectivity ?: ServerConnectivity.Unknown
 
     var showOnlineMenu by remember { mutableStateOf(false) }
     var showSaveInfo by remember { mutableStateOf(false) }
@@ -128,7 +125,8 @@ fun HomeScreen(
         )
     }
 
-    val isBusy = state is UiState.Downloading || state is UiState.Extracting || state is UiState.ApplyingUpdate
+    val isBusy =
+        state is UiState.Downloading || state is UiState.Extracting || state is UiState.ApplyingUpdate
 
     val context = LocalContext.current
 
@@ -168,66 +166,66 @@ fun HomeScreen(
         if (!(showOnlineMenu || showSaveInfo || showChangelog)) {
             Scaffold(
                 topBar = {
-                Surface(
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 0.dp
-                ) {
-                    TopBar(
-                        onOpenSettings = onOpenSettings,
-                        onLaunchMiiMaker = { miiMaker.launchMiiMaker() },
-                        miiMakerEnabled = hasWad,
-                        onOpenOnlineMenu = {
-                            showOnlineMenu = true
-                        },
-                        onlineMenuEnabled = serverConnectivity is ServerConnectivity.Online,
-                        onOpenSaveInfo = {
-                            saveData.refreshSaveFileInfo()
-                            showSaveInfo = true
-                        }
-                    )
-                }
-            },
-            bottomBar = {
-                Surface(
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 0.dp
-                ) {
-                    Column(modifier = Modifier.padding(vertical = 12.dp)) {
-                        HomeBottomBar(
-                            state = state,
-                            activeLicense = activeLicenseInfo,
-                            cachedLeaderboardVrs = cachedLeaderboardVrs,
-                            vrMultiplier = vrMultiplier,
-                            playerCount = playerCount,
-                            serverConnectivity = serverConnectivity,
-                            isBusy = isBusy,
-                            hasIso = hasIso,
-                            onLaunch = { packUpdate.launchDolphin() },
-                            onCheck = { packUpdate.checkStatus() },
-                            onRetry = { packUpdate.clearError() },
-                            onInstallOrUpdate = onInstallOrUpdate,
-                            onPickIso = onPickIso
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 0.dp
+                    ) {
+                        TopBar(
+                            onOpenSettings = onOpenSettings,
+                            onLaunchMiiMaker = { miiMaker.launchMiiMaker() },
+                            miiMakerEnabled = hasWad,
+                            onOpenOnlineMenu = {
+                                showOnlineMenu = true
+                            },
+                            onlineMenuEnabled = serverConnectivity is ServerConnectivity.Online,
+                            onOpenSaveInfo = {
+                                saveData.refreshSaveFileInfo()
+                                showSaveInfo = true
+                            }
                         )
                     }
+                },
+                bottomBar = {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 0.dp
+                    ) {
+                        Column(modifier = Modifier.padding(vertical = 12.dp)) {
+                            HomeBottomBar(
+                                state = state,
+                                activeLicense = activeLicenseInfo,
+                                cachedLeaderboardVrs = cachedLeaderboardVrs,
+                                vrMultiplier = vrMultiplier,
+                                playerCount = playerCount,
+                                serverConnectivity = serverConnectivity,
+                                isBusy = isBusy,
+                                hasIso = hasIso,
+                                onLaunch = { packUpdate.launchDolphin() },
+                                onCheck = { packUpdate.checkStatus() },
+                                onRetry = { packUpdate.clearError() },
+                                onInstallOrUpdate = onInstallOrUpdate,
+                                onPickIso = onPickIso
+                            )
+                        }
+                    }
+                }
+            ) { padding ->
+                var changelogFocused by remember { mutableStateOf(false) }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                        .padding(padding)
+                        .clickable { showChangelog = true }
+                        .focusable()
+                        .onFocusChanged { changelogFocused = it.isFocused }
+                        .focusBorder(changelogFocused, sectionShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    VersionHistoryContent(modifier = Modifier.fillMaxSize())
                 }
             }
-        ) { padding ->
-            var changelogFocused by remember { mutableStateOf(false) }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(padding)
-                    .clickable { showChangelog = true }
-                    .focusable()
-                    .onFocusChanged { changelogFocused = it.isFocused }
-                    .focusBorder(changelogFocused, sectionShape),
-                contentAlignment = Alignment.Center
-            ) {
-                VersionHistoryContent(modifier = Modifier.fillMaxSize())
-            }
-        }
         }
 
         BackHandler(enabled = showChangelog) {
@@ -309,7 +307,10 @@ private fun HomeBottomBar(
             contentKey = { it::class },
             transitionSpec = {
                 (fadeIn(animationSpec = androidx.compose.animation.core.tween(250)) +
-                    scaleIn(initialScale = 0.92f, animationSpec = androidx.compose.animation.core.tween(250)))
+                        scaleIn(
+                            initialScale = 0.92f,
+                            animationSpec = androidx.compose.animation.core.tween(250)
+                        ))
                     .togetherWith(fadeOut(animationSpec = androidx.compose.animation.core.tween(150)))
             },
             label = "primary_action"
@@ -318,12 +319,26 @@ private fun HomeBottomBar(
                 is UiState.Downloading -> {
                     ProgressButton(currentState.progress, currentState.message)
                 }
+
                 is UiState.Extracting -> {
-                    ProgressButton(currentState.progress, stringResource(R.string.status_extracting))
+                    ProgressButton(
+                        currentState.progress,
+                        stringResource(R.string.status_extracting)
+                    )
                 }
+
                 is UiState.ApplyingUpdate -> {
-                    ProgressButton(currentState.progress, stringResource(R.string.home_update_step_format, currentState.index, currentState.total, currentState.description))
+                    ProgressButton(
+                        currentState.progress,
+                        stringResource(
+                            R.string.home_update_step_format,
+                            currentState.index,
+                            currentState.total,
+                            currentState.description
+                        )
+                    )
                 }
+
                 is UiState.Checking -> {
                     FilledTonalButton(
                         onClick = {},
@@ -338,6 +353,7 @@ private fun HomeBottomBar(
                         )
                     }
                 }
+
                 is UiState.Error -> {
                     FilledTonalButton(
                         onClick = onRetry,
@@ -351,13 +367,27 @@ private fun HomeBottomBar(
                         )
                     }
                 }
+
                 is UiState.Ready -> {
                     val status = currentState.status
 
                     val checkSubtitle = when (status) {
-                        is PackStatus.UpToDate -> stringResource(R.string.home_up_to_date, status.currentVersion)
-                        is PackStatus.UpdateAvailable -> stringResource(R.string.home_update_format, status.currentVersion, status.latestVersion)
-                        is PackStatus.Installed -> stringResource(R.string.home_version_installed, status.version)
+                        is PackStatus.UpToDate -> stringResource(
+                            R.string.home_up_to_date,
+                            status.currentVersion
+                        )
+
+                        is PackStatus.UpdateAvailable -> stringResource(
+                            R.string.home_update_format,
+                            status.currentVersion,
+                            status.latestVersion
+                        )
+
+                        is PackStatus.Installed -> stringResource(
+                            R.string.home_version_installed,
+                            status.version
+                        )
+
                         else -> null
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -397,19 +427,30 @@ private fun HomeBottomBar(
                                     onClick = onInstallOrUpdate ?: {}
                                 )
                             }
+
                             is PackStatus.UpdateAvailable -> {
                                 PrimaryActionButton(
-                                    text = stringResource(R.string.home_update_to, status.latestVersion),
+                                    text = stringResource(
+                                        R.string.home_update_to,
+                                        status.latestVersion
+                                    ),
                                     onClick = onInstallOrUpdate ?: {}
                                 )
                             }
+
                             else -> {
                                 val bullet = "\u2022 "
                                 val launchSubText = when (serverConnectivity) {
                                     ServerConnectivity.Online -> {
                                         val count = playerCount
-                                        if (count != null) "$bullet${stringResource(R.string.home_racers_online, count)}" else null
+                                        if (count != null) "$bullet${
+                                            stringResource(
+                                                R.string.home_racers_online,
+                                                count
+                                            )
+                                        }" else null
                                     }
+
                                     ServerConnectivity.Offline -> "$bullet${stringResource(R.string.home_offline)}"
                                     ServerConnectivity.NoInternet -> "$bullet${stringResource(R.string.status_no_internet)}"
                                     ServerConnectivity.Unknown -> null
@@ -430,6 +471,7 @@ private fun HomeBottomBar(
                         }
                     }
                 }
+
                 is UiState.NoStorage -> {
                     Text(
                         text = stringResource(R.string.error_storage_not_configured),

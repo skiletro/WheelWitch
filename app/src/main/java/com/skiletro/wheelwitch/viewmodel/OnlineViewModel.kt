@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.LeaderboardEntry
 import com.skiletro.wheelwitch.model.RaceStats
 import com.skiletro.wheelwitch.model.Room
@@ -12,8 +13,8 @@ import com.skiletro.wheelwitch.model.ServerHealth
 import com.skiletro.wheelwitch.model.TimeTrialTrack
 import com.skiletro.wheelwitch.model.parseRaceStats
 import com.skiletro.wheelwitch.network.VersionFileParser
-import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.util.PrefsKeys
+import com.skiletro.wheelwitch.viewmodel.OnlineViewModel.Companion.MAX_CACHE_AGE_MS
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,6 +48,7 @@ sealed class RoomsState {
         val playerCount: Int?,
         val serverConnectivity: ServerConnectivity
     ) : RoomsState()
+
     data class Error(val message: String) : RoomsState()
 }
 
@@ -59,6 +61,7 @@ sealed class LeaderboardState {
         val hasMore: Boolean,
         val page: Int
     ) : LeaderboardState()
+
     data class Error(val message: String) : LeaderboardState()
 }
 
@@ -87,7 +90,8 @@ private data class RaceStatsCache(val stats: RaceStats, val cachedAt: Long)
  * for the leaderboard is race-free via a conflated channel.
  */
 class OnlineViewModel(application: Application) : AndroidViewModel(application) {
-    private val prefs = application.getSharedPreferences(PrefsKeys.RACE_STATS_PREFS, Application.MODE_PRIVATE)
+    private val prefs =
+        application.getSharedPreferences(PrefsKeys.RACE_STATS_PREFS, Application.MODE_PRIVATE)
 
     private val _currentPage = MutableStateFlow(OnlineMenuPage.Hub)
     val currentPage: StateFlow<OnlineMenuPage> = _currentPage.asStateFlow()
@@ -149,7 +153,8 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
                     VersionFileParser.fetchLeaderboard(page = nextPage)
                 }
                 result.onSuccess { response ->
-                    val existing = (stateBeforeFetch as? LeaderboardState.Success)?.entries ?: emptyList()
+                    val existing =
+                        (stateBeforeFetch as? LeaderboardState.Success)?.entries ?: emptyList()
                     _leaderboardState.value = LeaderboardState.Success(
                         entries = existing + response.entries,
                         hasMore = response.hasMore,
@@ -159,7 +164,12 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
                     _leaderboardState.value = if (stateBeforeFetch is LeaderboardState.Success) {
                         stateBeforeFetch
                     } else {
-                        LeaderboardState.Error(e.message ?: getApplication<Application>().getString(R.string.vm_failed_format, "load leaderboard"))
+                        LeaderboardState.Error(
+                            e.message ?: getApplication<Application>().getString(
+                                R.string.vm_failed_format,
+                                "load leaderboard"
+                            )
+                        )
                     }
                 }
             }
@@ -199,7 +209,7 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
             OnlineMenuPage.Health -> fetchHealth()
             OnlineMenuPage.RaceStats -> loadRaceStats()
             OnlineMenuPage.TimeTrial -> fetchTracks()
-            OnlineMenuPage.Hub -> { }
+            OnlineMenuPage.Hub -> {}
         }
     }
 
@@ -216,14 +226,20 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
             }
             result.onSuccess { rooms ->
                 val old = _roomsState.value
-                val connectivity = if (old is RoomsState.Success) old.serverConnectivity else ServerConnectivity.Online
+                val connectivity =
+                    if (old is RoomsState.Success) old.serverConnectivity else ServerConnectivity.Online
                 _roomsState.value = RoomsState.Success(
                     rooms = rooms,
                     playerCount = rooms.sumOf { it.players.size },
                     serverConnectivity = connectivity
                 )
             }.onFailure { e ->
-                _roomsState.value = RoomsState.Error(e.message ?: getApplication<Application>().getString(R.string.vm_failed_format, "load rooms"))
+                _roomsState.value = RoomsState.Error(
+                    e.message ?: getApplication<Application>().getString(
+                        R.string.vm_failed_format,
+                        "load rooms"
+                    )
+                )
             }
         }
     }
@@ -258,7 +274,12 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
                     )
                     _healthState.value = HealthState.Success(liveOnlyHealth)
                 } else {
-                    _healthState.value = HealthState.Error(e.message ?: getApplication<Application>().getString(R.string.vm_failed_format, "fetch server health"))
+                    _healthState.value = HealthState.Error(
+                        e.message ?: getApplication<Application>().getString(
+                            R.string.vm_failed_format,
+                            "fetch server health"
+                        )
+                    )
                 }
             }
         }
@@ -292,9 +313,15 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
             }.onFailure { e ->
                 val fallback = loadRaceStatsCache()
                 if (fallback != null) {
-                    _raceStatsState.value = RaceStatsState.Success(fallback.stats, fallback.cachedAt)
+                    _raceStatsState.value =
+                        RaceStatsState.Success(fallback.stats, fallback.cachedAt)
                 } else {
-                    _raceStatsState.value = RaceStatsState.Error(e.message ?: getApplication<Application>().getString(R.string.vm_failed_format, "fetch race stats"))
+                    _raceStatsState.value = RaceStatsState.Error(
+                        e.message ?: getApplication<Application>().getString(
+                            R.string.vm_failed_format,
+                            "fetch race stats"
+                        )
+                    )
                 }
             }
         }

@@ -130,7 +130,7 @@ fun TopBar(
                 imageVector = Icons.Filled.Checkroom,
                 contentDescription = stringResource(R.string.cd_mii_maker),
                 tint = if (miiMakerEnabled) MaterialTheme.colorScheme.onSurfaceVariant
-                       else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledIconAlpha),
+                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledIconAlpha),
                 modifier = Modifier.size(24.dp)
             )
         }

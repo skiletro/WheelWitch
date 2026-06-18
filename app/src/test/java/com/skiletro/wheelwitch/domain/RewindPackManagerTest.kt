@@ -40,14 +40,15 @@ class RewindPackManagerTest {
     // --- checkStatus ---
 
     @Test
-    fun `checkStatus returns NotInstalled when no local version and server reachable`() = runBlocking {
-        every { storage.readFile(RewindPackManager.VERSION_FILE) } returns null
-        every { VersionFileParser.fetchServerInfo() } returns Result.success(serverInfo())
+    fun `checkStatus returns NotInstalled when no local version and server reachable`() =
+        runBlocking {
+            every { storage.readFile(RewindPackManager.VERSION_FILE) } returns null
+            every { VersionFileParser.fetchServerInfo() } returns Result.success(serverInfo())
 
-        val status = RewindPackManager.checkStatus(storage)
+            val status = RewindPackManager.checkStatus(storage)
 
-        assertThat(status).isEqualTo(PackStatus.NotInstalled)
-    }
+            assertThat(status).isEqualTo(PackStatus.NotInstalled)
+        }
 
     @Test
     fun `checkStatus returns UpdateAvailable when local is behind server`() = runBlocking {
@@ -75,24 +76,26 @@ class RewindPackManagerTest {
     }
 
     @Test
-    fun `checkStatus returns Installed when server unreachable and local version exists`() = runBlocking {
-        every { storage.readFile(RewindPackManager.VERSION_FILE) } returns "3.2.5"
-        every { VersionFileParser.fetchServerInfo() } returns Result.failure(Exception("Network error"))
+    fun `checkStatus returns Installed when server unreachable and local version exists`() =
+        runBlocking {
+            every { storage.readFile(RewindPackManager.VERSION_FILE) } returns "3.2.5"
+            every { VersionFileParser.fetchServerInfo() } returns Result.failure(Exception("Network error"))
 
-        val status = RewindPackManager.checkStatus(storage)
+            val status = RewindPackManager.checkStatus(storage)
 
-        assertThat(status).isEqualTo(PackStatus.Installed(SemVersion(3, 2, 5)))
-    }
+            assertThat(status).isEqualTo(PackStatus.Installed(SemVersion(3, 2, 5)))
+        }
 
     @Test
-    fun `checkStatus returns NotInstalled when server unreachable and no local version`() = runBlocking {
-        every { storage.readFile(RewindPackManager.VERSION_FILE) } returns null
-        every { VersionFileParser.fetchServerInfo() } returns Result.failure(Exception("Network error"))
+    fun `checkStatus returns NotInstalled when server unreachable and no local version`() =
+        runBlocking {
+            every { storage.readFile(RewindPackManager.VERSION_FILE) } returns null
+            every { VersionFileParser.fetchServerInfo() } returns Result.failure(Exception("Network error"))
 
-        val status = RewindPackManager.checkStatus(storage)
+            val status = RewindPackManager.checkStatus(storage)
 
-        assertThat(status).isEqualTo(PackStatus.NotInstalled)
-    }
+            assertThat(status).isEqualTo(PackStatus.NotInstalled)
+        }
 
     @Test
     fun `checkStatus returns NotInstalled when local version file is empty`() = runBlocking {

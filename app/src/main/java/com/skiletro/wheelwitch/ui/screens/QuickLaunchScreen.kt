@@ -101,40 +101,53 @@ fun QuickLaunchScreen(
             ) {
                 when (val s = state) {
                     is UiState.NoStorage -> {
-                        StatusMessage(stringResource(R.string.quick_launch_storage_error), isError = true)
+                        StatusMessage(
+                            stringResource(R.string.quick_launch_storage_error),
+                            isError = true
+                        )
                         Spacer(modifier = Modifier.height(24.dp))
                         ExitButton(onClick = onFinish)
                     }
+
                     is UiState.Error -> {
                         StatusMessage(s.message, isError = true)
                         Spacer(modifier = Modifier.height(24.dp))
                         ExitButton(onClick = onFinish)
                     }
+
                     is UiState.Checking -> {
                         StatusMessage(stringResource(R.string.quick_launch_checking))
                     }
+
                     is UiState.Downloading -> {
                         StatusMessage(s.message)
                         Spacer(modifier = Modifier.height(24.dp))
                         ProgressBar(s.progress)
                     }
+
                     is UiState.Extracting -> {
                         StatusMessage(stringResource(R.string.status_extracting))
                         Spacer(modifier = Modifier.height(24.dp))
                         ProgressBar(s.progress)
                     }
+
                     is UiState.ApplyingUpdate -> {
                         StatusMessage(s.description)
                         Spacer(modifier = Modifier.height(24.dp))
                         ProgressBar(s.progress)
                     }
+
                     is UiState.Ready -> {
                         when (s.status) {
                             is PackStatus.Installed -> {
-                                StatusMessage(stringResource(R.string.error_cannot_reach_server), isError = true)
+                                StatusMessage(
+                                    stringResource(R.string.error_cannot_reach_server),
+                                    isError = true
+                                )
                                 Spacer(modifier = Modifier.height(24.dp))
                                 ExitButton(onClick = onFinish)
                             }
+
                             else -> StatusMessage(stringResource(R.string.quick_launch_preparing))
                         }
                     }
@@ -263,8 +276,14 @@ private fun CountdownPhase(onLaunch: () -> Unit) {
         }
         AnimatedVisibility(
             visible = isGo,
-            enter = scaleIn(initialScale = 1.4f, animationSpec = tween(300)) + fadeIn(animationSpec = tween(200)),
-            exit = scaleOut(targetScale = 0.8f, animationSpec = tween(200)) + fadeOut(animationSpec = tween(150)),
+            enter = scaleIn(
+                initialScale = 1.4f,
+                animationSpec = tween(300)
+            ) + fadeIn(animationSpec = tween(200)),
+            exit = scaleOut(
+                targetScale = 0.8f,
+                animationSpec = tween(200)
+            ) + fadeOut(animationSpec = tween(150)),
         ) {
             Text(
                 text = stringResource(R.string.quick_launch_launching),

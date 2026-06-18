@@ -93,11 +93,12 @@ object VersionFileParser {
     }
 
     /** Fetches a single page from the paginated VR leaderboard. */
-    fun fetchLeaderboard(page: Int = 1, limit: Int = 50): Result<LeaderboardResponse> = runCatching {
-        val url = "$LEADERBOARD_URL?page=$page&limit=$limit"
-        val json = fetchUrl(url)
-        parseLeaderboardResponse(json)
-    }
+    fun fetchLeaderboard(page: Int = 1, limit: Int = 50): Result<LeaderboardResponse> =
+        runCatching {
+            val url = "$LEADERBOARD_URL?page=$page&limit=$limit"
+            val json = fetchUrl(url)
+            parseLeaderboardResponse(json)
+        }
 
     /** Fetches the full server health report. Returns a basic ServerHealth if the detailed endpoint fails. */
     fun fetchHealth(): Result<ServerHealth> = runCatching {

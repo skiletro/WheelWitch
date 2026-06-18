@@ -46,7 +46,11 @@ class VersionHistoryViewModel(application: Application) : AndroidViewModel(appli
             }
             _state.value = result.fold(
                 onSuccess = { VersionHistoryState.Success(it) },
-                onFailure = { VersionHistoryState.Error(it.message ?: app.getString(R.string.version_history_failed)) }
+                onFailure = {
+                    VersionHistoryState.Error(
+                        it.message ?: app.getString(R.string.version_history_failed)
+                    )
+                }
             )
         }
     }

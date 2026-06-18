@@ -1,5 +1,7 @@
 package com.skiletro.wheelwitch.util
 
+import com.skiletro.wheelwitch.util.HttpClientProvider.client
+import com.skiletro.wheelwitch.util.HttpClientProvider.largeDownloadClient
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 

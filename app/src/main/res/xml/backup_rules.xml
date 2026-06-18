@@ -1,7 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
-    <include domain="sharedpref" path="settings.xml"/>
-    <include domain="sharedpref" path="wheelwitch.xml"/>
-    <include domain="sharedpref" path="changelog_cache.xml"/>
-    <include domain="sharedpref" path="race_stats_cache.xml"/>
+    <include
+        domain="sharedpref"
+        path="settings.xml" />
+    <include
+        domain="sharedpref"
+        path="wheelwitch.xml" />
+    <include
+        domain="sharedpref"
+        path="changelog_cache.xml" />
+    <include
+        domain="sharedpref"
+        path="race_stats_cache.xml" />
 </full-backup-content>

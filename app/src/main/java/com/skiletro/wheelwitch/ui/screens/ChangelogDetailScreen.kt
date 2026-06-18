@@ -83,6 +83,7 @@ fun ChangelogDetailScreen(
                         )
                     }
                 }
+
                 is VersionHistoryState.Error -> {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
@@ -100,6 +101,7 @@ fun ChangelogDetailScreen(
                         )
                     }
                 }
+
                 is VersionHistoryState.Success -> ChangelogDetailList(s.entries)
             }
         }

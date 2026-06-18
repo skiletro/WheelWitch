@@ -1,16 +1,17 @@
 package com.skiletro.wheelwitch.ui.screens
 
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -42,10 +43,8 @@ import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.NamedStat
 import com.skiletro.wheelwitch.model.RaceStats
 import com.skiletro.wheelwitch.model.WinRateStat
-import com.skiletro.wheelwitch.ui.components.ScreenHeader
 import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
-
-
+import com.skiletro.wheelwitch.ui.components.ScreenHeader
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 import com.skiletro.wheelwitch.viewmodel.RaceStatsState
@@ -103,6 +102,7 @@ fun RaceStatsScreen(
                         CircularProgressIndicator()
                     }
                 }
+
                 is RaceStatsState.Error -> {
                     val error = (raceStatsState as RaceStatsState.Error).message
                     Column(
@@ -124,6 +124,7 @@ fun RaceStatsScreen(
                         )
                     }
                 }
+
                 is RaceStatsState.Success -> {
                     StatContent((raceStatsState as RaceStatsState.Success).stats)
                 }
@@ -149,11 +150,23 @@ private fun StatContent(stats: RaceStats) {
                     .animateItem()
                     .focusable()
             ) {
-                MiniStatCard(label = stringResource(R.string.race_stats_races), value = formatNumber(stats.totalRaces), modifier = Modifier.weight(1f))
-                MiniStatCard(label = stringResource(R.string.race_stats_players), value = formatNumber(stats.totalPlayers), modifier = Modifier.weight(1f))
+                MiniStatCard(
+                    label = stringResource(R.string.race_stats_races),
+                    value = formatNumber(stats.totalRaces),
+                    modifier = Modifier.weight(1f)
+                )
+                MiniStatCard(
+                    label = stringResource(R.string.race_stats_players),
+                    value = formatNumber(stats.totalPlayers),
+                    modifier = Modifier.weight(1f)
+                )
                 stats.trackedSince?.let {
                     // take(10) extracts the YYYY-MM-DD date prefix from the ISO-8601 timestamp.
-                    MiniStatCard(label = stringResource(R.string.race_stats_since), value = it.take(10), modifier = Modifier.weight(1f))
+                    MiniStatCard(
+                        label = stringResource(R.string.race_stats_since),
+                        value = it.take(10),
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
         }
@@ -161,7 +174,11 @@ private fun StatContent(stats: RaceStats) {
         // Most Active Players
         if (stats.mostActivePlayers.isNotEmpty()) {
             item {
-                Column(modifier = Modifier.animateItem().focusable()) {
+                Column(
+                    modifier = Modifier
+                        .animateItem()
+                        .focusable()
+                ) {
                     SectionHeader(stringResource(R.string.race_stats_active_players))
                     StatsCard {
                         stats.mostActivePlayers.take(5).forEachIndexed { index, player ->
@@ -205,7 +222,11 @@ private fun StatContent(stats: RaceStats) {
         // Top Characters / Vehicles / Combos — tabbed
         if (stats.topCharacters.isNotEmpty() || stats.topVehicles.isNotEmpty() || stats.topCombos.isNotEmpty()) {
             item {
-                Column(modifier = Modifier.animateItem().focusable()) {
+                Column(
+                    modifier = Modifier
+                        .animateItem()
+                        .focusable()
+                ) {
                     SectionHeader(stringResource(R.string.race_stats_most_used))
                     var usageTab by remember { mutableIntStateOf(0) }
                     val usageLabels = listOf(
@@ -245,7 +266,11 @@ private fun StatContent(stats: RaceStats) {
         // Win Rates — tabbed
         if (stats.topCharactersByWinRate.isNotEmpty() || stats.topVehiclesByWinRate.isNotEmpty() || stats.topCombosByWinRate.isNotEmpty()) {
             item {
-                Column(modifier = Modifier.animateItem().focusable()) {
+                Column(
+                    modifier = Modifier
+                        .animateItem()
+                        .focusable()
+                ) {
                     SectionHeader(stringResource(R.string.race_stats_win_rates))
                     var winTab by remember { mutableIntStateOf(0) }
                     val winLabels = listOf(
@@ -253,7 +278,11 @@ private fun StatContent(stats: RaceStats) {
                         stringResource(R.string.race_stats_vehicles),
                         stringResource(R.string.race_stats_combos)
                     )
-                    val winData = listOf(stats.topCharactersByWinRate, stats.topVehiclesByWinRate, stats.topCombosByWinRate)
+                    val winData = listOf(
+                        stats.topCharactersByWinRate,
+                        stats.topVehiclesByWinRate,
+                        stats.topCombosByWinRate
+                    )
 
                     SecondaryTabRow(
                         selectedTabIndex = winTab,
@@ -285,7 +314,11 @@ private fun StatContent(stats: RaceStats) {
         // Most Popular Tracks
         if (stats.allPlayedTracks.isNotEmpty()) {
             item {
-                Column(modifier = Modifier.animateItem().focusable()) {
+                Column(
+                    modifier = Modifier
+                        .animateItem()
+                        .focusable()
+                ) {
                     SectionHeader(stringResource(R.string.race_stats_popular_tracks))
                     StatsCard {
                         stats.allPlayedTracks.take(10).forEachIndexed { index, track ->
@@ -326,7 +359,11 @@ private fun StatContent(stats: RaceStats) {
         // Activity charts — side by side
         if (stats.racesByDayOfWeek.isNotEmpty() || stats.racesByHour.isNotEmpty()) {
             item {
-                Column(modifier = Modifier.animateItem().focusable()) {
+                Column(
+                    modifier = Modifier
+                        .animateItem()
+                        .focusable()
+                ) {
                     SectionHeader(stringResource(R.string.race_stats_activity))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (stats.racesByDayOfWeek.isNotEmpty()) {
@@ -498,7 +535,11 @@ private fun WinRateList(items: List<WinRateStat>) {
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = stringResource(R.string.race_stats_win_count_format, formatNumber(item.winCount), formatNumber(item.raceCount)),
+                        text = stringResource(
+                            R.string.race_stats_win_count_format,
+                            formatNumber(item.winCount),
+                            formatNumber(item.raceCount)
+                        ),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -509,7 +550,10 @@ private fun WinRateList(items: List<WinRateStat>) {
 }
 
 @Composable
-private fun DayOfWeekChart(days: List<com.skiletro.wheelwitch.model.DayStat>, modifier: Modifier = Modifier) {
+private fun DayOfWeekChart(
+    days: List<com.skiletro.wheelwitch.model.DayStat>,
+    modifier: Modifier = Modifier
+) {
     val maxCount = (days.maxOfOrNull { it.raceCount } ?: 0).coerceAtLeast(1)
     StatsCard(modifier = modifier) {
         days.forEach { day ->
@@ -541,7 +585,10 @@ private fun DayOfWeekChart(days: List<com.skiletro.wheelwitch.model.DayStat>, mo
 }
 
 @Composable
-private fun PeakHoursChart(hours: List<com.skiletro.wheelwitch.model.HourStat>, modifier: Modifier = Modifier) {
+private fun PeakHoursChart(
+    hours: List<com.skiletro.wheelwitch.model.HourStat>,
+    modifier: Modifier = Modifier
+) {
     val maxCount = (hours.maxOfOrNull { it.raceCount } ?: 0).coerceAtLeast(1)
     StatsCard(modifier = modifier) {
         hours.filter { it.hour % 3 == 0 }.forEach { hour ->

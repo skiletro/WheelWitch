@@ -1,5 +1,6 @@
 package com.skiletro.wheelwitch.ui.screens
 
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -40,11 +41,9 @@ import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.Room
 import com.skiletro.wheelwitch.ui.components.FocusableSurface
+import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
 import com.skiletro.wheelwitch.ui.components.ScreenHeader
 import com.skiletro.wheelwitch.ui.components.statusColors
-import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
-
-
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
 import com.skiletro.wheelwitch.viewmodel.RoomsState
 
@@ -97,6 +96,7 @@ fun RoomsScreen(
                         CircularProgressIndicator()
                     }
                 }
+
                 is RoomsState.Error -> {
                     Column(
                         modifier = Modifier.fillMaxSize(),
@@ -117,6 +117,7 @@ fun RoomsScreen(
                         )
                     }
                 }
+
                 is RoomsState.Success -> {
                     if (rooms.isEmpty()) {
                         Box(
@@ -189,6 +190,7 @@ fun RoomsScreen(
                         }
                     }
                 }
+
                 is RoomsState.Idle -> {}
             }
         }
@@ -226,7 +228,8 @@ fun RoomListItem(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = room.players.firstOrNull()?.name ?: stringResource(R.string.status_empty),
+                        text = room.players.firstOrNull()?.name
+                            ?: stringResource(R.string.status_empty),
                         fontWeight = FontWeight.SemiBold,
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1,
@@ -234,7 +237,11 @@ fun RoomListItem(
                         fontFamily = CtmkfFontFamily
                     )
                     Text(
-                        text = stringResource(R.string.rooms_player_count_format, room.players.size, if (room.players.size == 1) "" else "s"),
+                        text = stringResource(
+                            R.string.rooms_player_count_format,
+                            room.players.size,
+                            if (room.players.size == 1) "" else "s"
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

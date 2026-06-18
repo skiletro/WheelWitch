@@ -120,8 +120,10 @@ object FileDownloader {
 
     /** Non-retriable: deterministic client error (HTTP 4xx). */
     private class Http4xxException(message: String) : IOException(message)
+
     /** Retriable: transient server error (HTTP 5xx). */
     private class Http5xxException(message: String) : IOException(message)
+
     /** Non-retriable: response body missing or empty. */
     private class EmptyBodyException(message: String) : IOException(message)
 }

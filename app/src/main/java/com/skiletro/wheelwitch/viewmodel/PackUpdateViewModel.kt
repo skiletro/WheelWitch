@@ -13,6 +13,7 @@ import com.skiletro.wheelwitch.model.ProgressInfo
 import com.skiletro.wheelwitch.util.DolphinLauncher
 import com.skiletro.wheelwitch.util.MiiFaceCache
 import com.skiletro.wheelwitch.util.PrefsKeys
+import com.skiletro.wheelwitch.viewmodel.PackUpdateViewModel.Companion.currentStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,7 +32,8 @@ import java.io.File
  */
 class PackUpdateViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application
-    private val prefs = application.getSharedPreferences(PrefsKeys.PREFS_NAME, Application.MODE_PRIVATE)
+    private val prefs =
+        application.getSharedPreferences(PrefsKeys.PREFS_NAME, Application.MODE_PRIVATE)
 
     private val _state = MutableStateFlow<UiState>(UiState.NoStorage)
     val state: StateFlow<UiState> = _state.asStateFlow()
@@ -138,9 +140,11 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
                     is PackStatus.UpdateAvailable -> performIncrementalUpdate(activeStorage, status)
                     is PackStatus.Installed -> {
                         // Installed (without server info) means the server was unreachable.
-                        _state.value = UiState.Error(app.getString(R.string.error_cannot_reach_server))
+                        _state.value =
+                            UiState.Error(app.getString(R.string.error_cannot_reach_server))
                         return@launch
                     }
+
                     is PackStatus.UpToDate -> {
                         handleAlreadyUpToDate(status)
                         return@launch
@@ -149,7 +153,8 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
                 withContext(Dispatchers.IO) {
                     SaveManager.deleteSaveBackup(app)
                 }
-                _state.value = UiState.Ready(PackStatus.UpToDate(installedVersion, installedVersion))
+                _state.value =
+                    UiState.Ready(PackStatus.UpToDate(installedVersion, installedVersion))
                 saveDataDelegate?.onPackStatusChanged()
             } catch (e: Exception) {
                 _state.value = UiState.Error(e.message ?: app.getString(R.string.vm_unknown_error))
@@ -184,7 +189,8 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
         withContext(Dispatchers.IO) {
             SaveManager.deleteSaveBackup(app)
         }
-        _state.value = UiState.Ready(PackStatus.UpToDate(status.currentVersion, status.latestVersion))
+        _state.value =
+            UiState.Ready(PackStatus.UpToDate(status.currentVersion, status.latestVersion))
         saveDataDelegate?.onPackStatusChanged()
     }
 
@@ -217,7 +223,8 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
                 }
                 DolphinLauncher.launchDolphin(app, rrJsonFile.absolutePath).getOrThrow()
             } catch (e: Exception) {
-                _state.value = UiState.Error(e.message ?: app.getString(R.string.home_launch_failed))
+                _state.value =
+                    UiState.Error(e.message ?: app.getString(R.string.home_launch_failed))
             }
         }
     }
@@ -250,7 +257,8 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     private fun readMyStuffMode(): DolphinLauncher.MyStuffMode {
-        val name = prefs.getString(PrefsKeys.RIIVOLUTION_MY_STUFF_MODE_KEY, null) ?: return DolphinLauncher.MyStuffMode.Everything
+        val name = prefs.getString(PrefsKeys.RIIVOLUTION_MY_STUFF_MODE_KEY, null)
+            ?: return DolphinLauncher.MyStuffMode.Everything
         return try {
             DolphinLauncher.MyStuffMode.valueOf(name)
         } catch (_: IllegalArgumentException) {

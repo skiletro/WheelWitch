@@ -3,6 +3,9 @@ package com.skiletro.wheelwitch.util
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import com.skiletro.wheelwitch.util.MiiFaceCache.MAX_CACHE_BYTES
+import com.skiletro.wheelwitch.util.MiiFaceCache.evictIfNeeded
+import com.skiletro.wheelwitch.util.MiiFaceCache.init
 import java.io.File
 import java.security.MessageDigest
 import java.util.Base64
@@ -65,7 +68,8 @@ object MiiFaceCache {
         val file = fileFor(rflDataBase64)
         if (file.exists()) return
         // PNG is lossless; the quality argument is ignored by the encoder.
-        file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, PNG_COMPRESS_QUALITY, it) }
+        file.outputStream()
+            .use { bitmap.compress(Bitmap.CompressFormat.PNG, PNG_COMPRESS_QUALITY, it) }
         if (putCounter.incrementAndGet() % EVICT_EVERY_N_PUTS == 0) {
             evictIfNeeded()
         }

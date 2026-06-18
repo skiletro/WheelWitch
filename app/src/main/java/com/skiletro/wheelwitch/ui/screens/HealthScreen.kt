@@ -1,5 +1,6 @@
 package com.skiletro.wheelwitch.ui.screens
 
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,10 +11,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
@@ -25,8 +24,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -35,13 +32,11 @@ import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.HealthCheckItem
 import com.skiletro.wheelwitch.model.MemoryInfo
 import com.skiletro.wheelwitch.model.ServerHealth
+import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
 import com.skiletro.wheelwitch.ui.components.ScreenHeader
 import com.skiletro.wheelwitch.ui.components.container
 import com.skiletro.wheelwitch.ui.components.indicator
 import com.skiletro.wheelwitch.ui.components.statusColors
-import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
-
-
 import com.skiletro.wheelwitch.viewmodel.HealthState
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 
@@ -85,6 +80,7 @@ fun HealthScreen(
                         CircularProgressIndicator()
                     }
                 }
+
                 is HealthState.Error -> {
                     val error = (healthState as HealthState.Error).message
                     Column(
@@ -106,6 +102,7 @@ fun HealthScreen(
                         )
                     }
                 }
+
                 is HealthState.Success -> {
                     HealthContent((healthState as HealthState.Success).health)
                 }
@@ -130,7 +127,12 @@ private fun HealthContent(health: ServerHealth) {
 
         health.database?.let { HealthCheckRow(stringResource(R.string.health_database), it) }
         health.postgresql?.let { HealthCheckRow(stringResource(R.string.health_postgresql), it) }
-        health.retroWfcApi?.let { HealthCheckRow(stringResource(R.string.health_retro_wfc_api), it) }
+        health.retroWfcApi?.let {
+            HealthCheckRow(
+                stringResource(R.string.health_retro_wfc_api),
+                it
+            )
+        }
         health.memory?.let { MemoryRow(it) }
     }
 }
@@ -163,7 +165,9 @@ private fun HealthStatusCard(title: String, status: String, isOk: Boolean) {
                     color = onContainer
                 )
                 Text(
-                    text = if (isOk) stringResource(R.string.health_overall_status) else stringResource(R.string.health_issues_detected),
+                    text = if (isOk) stringResource(R.string.health_overall_status) else stringResource(
+                        R.string.health_issues_detected
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = onContainer.copy(alpha = 0.8f)
                 )
@@ -245,13 +249,26 @@ private fun MemoryRow(memory: MemoryInfo) {
                 )
                 val usageText = when {
                     memory.usagePercent != null && memory.used != null && memory.total != null ->
-                        stringResource(R.string.health_usage_with_total_format, memory.usagePercent, memory.used, memory.total)
+                        stringResource(
+                            R.string.health_usage_with_total_format,
+                            memory.usagePercent,
+                            memory.used,
+                            memory.total
+                        )
+
                     memory.usagePercent != null && memory.used != null ->
-                        stringResource(R.string.health_usage_with_used_format, memory.usagePercent, memory.used)
+                        stringResource(
+                            R.string.health_usage_with_used_format,
+                            memory.usagePercent,
+                            memory.used
+                        )
+
                     memory.usagePercent != null ->
                         stringResource(R.string.health_usage_format, memory.usagePercent)
+
                     memory.used != null ->
                         stringResource(R.string.health_usage_just_used_format, memory.used)
+
                     else ->
                         stringResource(R.string.health_usage_format, 0.0)
                 }

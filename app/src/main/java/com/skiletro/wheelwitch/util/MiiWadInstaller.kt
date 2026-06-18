@@ -6,14 +6,15 @@ import android.net.Uri
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.FileProvider
 import com.skiletro.wheelwitch.data.GameTypeParser
-import com.skiletro.wheelwitch.util.DolphinLauncher
+import com.skiletro.wheelwitch.util.MiiWadInstaller.getCachedWadFile
 import java.io.File
 import java.io.FileInputStream
 import java.util.zip.ZipInputStream
 
 /** Downloads and installs the Mii Channel WAD file for use as a Mii Maker in Dolphin. */
 object MiiWadInstaller {
-    private const val MII_MAKER_ZIP_URL = "https://filecache45.gamebanana.com/mods/mii_channel_symbols_-_hacs.zip"
+    private const val MII_MAKER_ZIP_URL =
+        "https://filecache45.gamebanana.com/mods/mii_channel_symbols_-_hacs.zip"
     private const val WAD_FILE_NAME = "Mii Channel Symbols - HACS.wad"
     private const val ZIP_FILE_NAME = "mii_channel_symbols.zip"
     private const val CACHE_DIR_NAME = "mii_maker"

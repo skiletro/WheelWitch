@@ -45,16 +45,23 @@ fun parseRaceStats(jsonString: String): RaceStats {
         totalRaces = root.optInt("totalRacesTracked", 0),
         totalPlayers = root.optInt("uniquePlayersCount", 0),
         trackedSince = root.optNonEmptyString("trackedSince"),
-        allPlayedTracks = root.optJSONArray("allPlayedTracks")?.let { parseTrackStats(it) } ?: emptyList(),
-        topCharacters = root.optJSONArray("topCharacters")?.let { parseNamedStats(it) } ?: emptyList(),
+        allPlayedTracks = root.optJSONArray("allPlayedTracks")?.let { parseTrackStats(it) }
+            ?: emptyList(),
+        topCharacters = root.optJSONArray("topCharacters")?.let { parseNamedStats(it) }
+            ?: emptyList(),
         topVehicles = root.optJSONArray("topVehicles")?.let { parseNamedStats(it) } ?: emptyList(),
         topCombos = root.optJSONArray("topCombos")?.let { parseNamedStats(it) } ?: emptyList(),
-        mostActivePlayers = root.optJSONArray("mostActivePlayers")?.let { parseActivePlayers(it) } ?: emptyList(),
-        racesByDayOfWeek = root.optJSONArray("racesByDayOfWeek")?.let { parseDayStats(it) } ?: emptyList(),
+        mostActivePlayers = root.optJSONArray("mostActivePlayers")?.let { parseActivePlayers(it) }
+            ?: emptyList(),
+        racesByDayOfWeek = root.optJSONArray("racesByDayOfWeek")?.let { parseDayStats(it) }
+            ?: emptyList(),
         racesByHour = root.optJSONArray("racesByHour")?.let { parseHourStats(it) } ?: emptyList(),
-        topCharactersByWinRate = root.optJSONArray("topCharactersByWinRate")?.let { parseWinRateStats(it) } ?: emptyList(),
-        topVehiclesByWinRate = root.optJSONArray("topVehiclesByWinRate")?.let { parseWinRateStats(it) } ?: emptyList(),
-        topCombosByWinRate = root.optJSONArray("topCombosByWinRate")?.let { parseWinRateStats(it) } ?: emptyList(),
+        topCharactersByWinRate = root.optJSONArray("topCharactersByWinRate")
+            ?.let { parseWinRateStats(it) } ?: emptyList(),
+        topVehiclesByWinRate = root.optJSONArray("topVehiclesByWinRate")
+            ?.let { parseWinRateStats(it) } ?: emptyList(),
+        topCombosByWinRate = root.optJSONArray("topCombosByWinRate")?.let { parseWinRateStats(it) }
+            ?: emptyList(),
     )
 }
 

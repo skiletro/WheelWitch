@@ -18,13 +18,17 @@ android {
         val commitCount = try {
             Runtime.getRuntime().exec("git rev-list --count HEAD")
                 .inputStream.readBytes().decodeToString().trim().toInt()
-        } catch (_: Exception) { 1 }
+        } catch (_: Exception) {
+            1
+        }
         versionCode = commitCount
         versionName = "0.$commitCount.0"
         val gitHash = try {
             Runtime.getRuntime().exec("git rev-parse --short HEAD")
                 .inputStream.readBytes().decodeToString().trim()
-        } catch (_: Exception) { "unknown" }
+        } catch (_: Exception) {
+            "unknown"
+        }
         buildConfigField("String", "GIT_HASH", "\"$gitHash\"")
     }
 

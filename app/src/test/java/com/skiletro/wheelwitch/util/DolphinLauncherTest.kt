@@ -132,7 +132,11 @@ class DolphinLauncherTest {
 
     @Test
     fun `generateLaunchJson omits My Stuff option when mode is Disabled`() {
-        val json = DolphinLauncher.generateLaunchJson("/s", "/g.iso", myStuffMode = DolphinLauncher.MyStuffMode.Disabled)
+        val json = DolphinLauncher.generateLaunchJson(
+            "/s",
+            "/g.iso",
+            myStuffMode = DolphinLauncher.MyStuffMode.Disabled
+        )
         val options = JSONObject(json)
             .getJSONObject("riivolution")
             .getJSONArray("patches")
@@ -146,7 +150,11 @@ class DolphinLauncherTest {
 
     @Test
     fun `generateLaunchJson uses choice 2 for My Stuff when mode is Everything`() {
-        val json = DolphinLauncher.generateLaunchJson("/s", "/g.iso", myStuffMode = DolphinLauncher.MyStuffMode.Everything)
+        val json = DolphinLauncher.generateLaunchJson(
+            "/s",
+            "/g.iso",
+            myStuffMode = DolphinLauncher.MyStuffMode.Everything
+        )
         val options = JSONObject(json)
             .getJSONObject("riivolution")
             .getJSONArray("patches")
@@ -160,7 +168,11 @@ class DolphinLauncherTest {
 
     @Test
     fun `generateLaunchJson uses choice 4 for My Stuff when mode is MusicOnly`() {
-        val json = DolphinLauncher.generateLaunchJson("/s", "/g.iso", myStuffMode = DolphinLauncher.MyStuffMode.MusicOnly)
+        val json = DolphinLauncher.generateLaunchJson(
+            "/s",
+            "/g.iso",
+            myStuffMode = DolphinLauncher.MyStuffMode.MusicOnly
+        )
         val options = JSONObject(json)
             .getJSONObject("riivolution")
             .getJSONArray("patches")

@@ -42,8 +42,10 @@ sealed class SaveInfoState {
  * (e.g. on process death + restoration), which is fine because only the
  * latest instance is relevant.
  */
-class SaveDataViewModel(application: Application) : AndroidViewModel(application), SaveDataDelegate {
-    private val prefs = application.getSharedPreferences(PrefsKeys.PREFS_NAME, Application.MODE_PRIVATE)
+class SaveDataViewModel(application: Application) : AndroidViewModel(application),
+    SaveDataDelegate {
+    private val prefs =
+        application.getSharedPreferences(PrefsKeys.PREFS_NAME, Application.MODE_PRIVATE)
     private val app = application
 
     private val _hasSave = MutableStateFlow(false)
@@ -193,7 +195,8 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
                     storage.readBytes(SaveManager.SAVE_RELATIVE)
                 }
                 if (bytes == null) {
-                    _saveInfoState.value = SaveInfoState.Error(app.getString(R.string.status_save_not_found))
+                    _saveInfoState.value =
+                        SaveInfoState.Error(app.getString(R.string.status_save_not_found))
                     return@launch
                 }
 
@@ -203,7 +206,12 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
                 resolveFallbackSlot(saveInfo)
                 mergeLeaderboards(saveInfo)
             } catch (e: Exception) {
-                _saveInfoState.value = SaveInfoState.Error(e.message ?: app.getString(R.string.vm_failed_format, "read save data"))
+                _saveInfoState.value = SaveInfoState.Error(
+                    e.message ?: app.getString(
+                        R.string.vm_failed_format,
+                        "read save data"
+                    )
+                )
             }
         }
     }
