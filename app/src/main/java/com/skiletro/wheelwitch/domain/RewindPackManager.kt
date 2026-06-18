@@ -87,7 +87,7 @@ object RewindPackManager {
         onProgress(ProgressInfo.Extracting(0f))
         storage.extractZip(zipFile) { progress ->
             onProgress(ProgressInfo.Extracting(progress))
-        }
+        }.getOrThrow()
 
         writeLocalVersion(storage, targetVersion)
         zipFile.delete()
@@ -189,18 +189,18 @@ object RewindPackManager {
             onProgress(ProgressInfo.ApplyingUpdate(displayIndex, results.size, step.description, 0f))
             storage.extractZip(zipFile) { progress ->
                 onProgress(ProgressInfo.ApplyingUpdate(displayIndex, results.size, step.description, progress))
-            }
+            }.getOrThrow()
             writeLocalVersion(storage, step.version)
             zipFile.delete()
         }
     }
 
+    private fun writeLocalVersion(storage: PackStorage, version: SemVersion) {
+        storage.writeFile(VERSION_FILE, version.toString())
+    }
+
     private fun readLocalVersion(storage: PackStorage): SemVersion? {
         val text = storage.readFile(VERSION_FILE) ?: return null
         return SemVersion.parse(text.trim())
-    }
-
-    private fun writeLocalVersion(storage: PackStorage, version: SemVersion) {
-        storage.writeFile(VERSION_FILE, version.toString())
     }
 }

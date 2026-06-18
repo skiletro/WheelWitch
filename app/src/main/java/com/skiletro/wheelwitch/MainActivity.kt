@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -123,6 +125,13 @@ private fun MainScreen(
     var onboardingComplete by remember { mutableStateOf(prefs.getBoolean(PrefsKeys.ONBOARDING_COMPLETED_KEY, false)) }
     var onboardingStorageSelected by remember { mutableStateOf(false) }
     var onboardingIsoSelected by remember { mutableStateOf(false) }
+    var permissionGranted by remember { mutableStateOf(Environment.isExternalStorageManager()) }
+
+    val storagePermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) {
+        permissionGranted = Environment.isExternalStorageManager()
+    }
 
     val storagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
@@ -241,9 +250,12 @@ private fun MainScreen(
                         storageConfigured = packUpdate.storageRootPath != null,
                         isoConfigured = DolphinLauncher.getGameIsoPath(context) != null,
                         onPickStorage = { storagePicker.launch(null) },
-                        onSkipStorage = { onboardingStorageSelected = true },
                         onPickIso = { isoPicker.launch(ISO_MIME_TYPES) },
                         onSkipIso = { onboardingIsoSelected = true },
+                        onRequestStoragePermission = {
+                            val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                            storagePermissionLauncher.launch(intent)
+                        },
                         onComplete = {
                             prefs.edit().putBoolean(PrefsKeys.ONBOARDING_COMPLETED_KEY, true).apply()
                             onboardingComplete = true

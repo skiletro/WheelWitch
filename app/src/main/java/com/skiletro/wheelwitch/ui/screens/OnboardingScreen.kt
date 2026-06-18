@@ -1,5 +1,6 @@
 package com.skiletro.wheelwitch.ui.screens
 
+import android.os.Environment
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.LinearEasing
@@ -68,9 +69,9 @@ fun OnboardingScreen(
     storageConfigured: Boolean,
     isoConfigured: Boolean,
     onPickStorage: () -> Unit,
-    onSkipStorage: () -> Unit,
     onPickIso: () -> Unit,
     onSkipIso: () -> Unit,
+    onRequestStoragePermission: () -> Unit,
     onComplete: () -> Unit
 ) {
     var step by remember { mutableStateOf(0) }
@@ -81,7 +82,7 @@ fun OnboardingScreen(
     val miiInstallFailedMessage = stringResource(R.string.onboarding_mii_install_failed)
 
     LaunchedEffect(step, dolphinRetry) {
-        if (step == 1) {
+        if (step == 2) {
             dolphinInstalled = null
             withContext(Dispatchers.IO) {
                 dolphinInstalled = DolphinLauncher.isDolphinInstalled(context)
@@ -90,17 +91,17 @@ fun OnboardingScreen(
     }
 
     LaunchedEffect(storageSelected) {
-        if (storageSelected && step == 2) step = 3
+        if (storageSelected && step == 3) step = 4
     }
 
     LaunchedEffect(isoSelected) {
-        if (isoSelected && step == 3) step = 4
+        if (isoSelected && step == 4) step = 5
     }
 
     var miiWadState by remember { mutableStateOf<MiiWadOnboarding?>(null) }
 
     LaunchedEffect(step) {
-        if (step == 4) {
+        if (step == 5) {
             miiWadState = withContext(Dispatchers.IO) {
                 if (MiiWadInstaller.getCachedWadFile(context) != null) MiiWadOnboarding.Installed
                 else MiiWadOnboarding.NotInstalled
@@ -145,23 +146,27 @@ fun OnboardingScreen(
                 ) {
                     when (currentStep) {
                         0 -> WelcomeStep(onNext = { step = 1 })
-                        1 -> DolphinCheckStep(
+                        1 -> PermissionStep(
+                            onGrant = onRequestStoragePermission,
+                            onNext = { step = 2 }
+                        )
+                        2 -> DolphinCheckStep(
                             installed = dolphinInstalled,
                             onRetry = { dolphinRetry++ },
-                            onNext = { step = 2 },
+                            onNext = { step = 3 },
                             onDownload = { DolphinLauncher.openDolphinDownload(context) }
                         )
-                        2 -> StorageStep(
+                        3 -> StorageStep(
                             onPickStorage = onPickStorage,
-                            onContinue = onSkipStorage,
+                            onContinue = { step = 4 },
                             alreadyConfigured = storageConfigured
                         )
-                        3 -> IsoStep(
+                        4 -> IsoStep(
                             onPickIso = onPickIso,
                             onContinue = onSkipIso,
                             alreadyConfigured = isoConfigured
                         )
-                        4 -> MiiStep(
+                        5 -> MiiStep(
                             state = miiWadState,
                             onInstall = {
                                 miiWadState = MiiWadOnboarding.Installing
@@ -178,17 +183,17 @@ fun OnboardingScreen(
                                     }
                                 }
                             },
-                            onSkip = { step = 5 },
-                            onNext = { step = 5 }
+                            onSkip = { step = 6 },
+                            onNext = { step = 6 }
                         )
-                        5 -> CompleteStep(onDone = onComplete)
+                        6 -> CompleteStep(onDone = onComplete)
                     }
                 }
             }
         }
         StepDots(
             current = step,
-            total = 6,
+            total = 7,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 24.dp)
@@ -316,6 +321,48 @@ private fun WelcomeStep(onNext: () -> Unit) {
 }
 
 @Composable
+private fun PermissionStep(onGrant: () -> Unit, onNext: () -> Unit) {
+    var checkKey by remember { mutableStateOf(0) }
+    val isGranted = remember(checkKey) { Environment.isExternalStorageManager() }
+    StepCard(
+        title = stringResource(R.string.onboarding_permission_title),
+        body = stringResource(R.string.onboarding_permission_body)
+    ) {
+        if (isGranted) {
+            Text(
+                text = stringResource(R.string.onboarding_permission_granted),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            StepPrimaryButton(
+                text = stringResource(R.string.onboarding_continue),
+                onClick = onNext
+            )
+        } else {
+            StepPrimaryButton(
+                text = stringResource(R.string.onboarding_permission_grant),
+                onClick = onGrant
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = { checkKey++ },
+                shape = buttonShape,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.onboarding_check_again),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun DolphinCheckStep(
     installed: Boolean?,
     onRetry: () -> Unit,
@@ -386,20 +433,6 @@ private fun StorageStep(onPickStorage: () -> Unit, onContinue: () -> Unit, alrea
                 text = stringResource(R.string.onboarding_select_folder),
                 onClick = onPickStorage
             )
-            Spacer(modifier = Modifier.height(12.dp))
-            OutlinedButton(
-                onClick = onContinue,
-                shape = buttonShape,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.onboarding_skip),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
         }
     }
 }

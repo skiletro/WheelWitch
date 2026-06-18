@@ -43,6 +43,10 @@
     <string name="onboarding_app_name">Wheel Witch</string>
     <string name="onboarding_welcome_body">Your companion for installing and launching the Retro Rewind Mario Kart Wii pack with Dolphin Emulator.</string>
     <string name="onboarding_get_started">Let\'s get started</string>
+    <string name="onboarding_permission_title">Storage Access</string>
+    <string name="onboarding_permission_body">Wheel Witch needs access to all files on this device to efficiently install and update the Retro Rewind Pack. Without this permission, installing the pack would take much longer.</string>
+    <string name="onboarding_permission_grant">Grant Access</string>
+    <string name="onboarding_permission_granted">Access granted!</string>
     <string name="onboarding_dolphin_title">Dolphin Emulator</string>
     <string name="onboarding_dolphin_body">Wheel Witch requires Dolphin Emulator to launch Retro Rewind.</string>
     <string name="onboarding_dolphin_checking">Checking...</string>

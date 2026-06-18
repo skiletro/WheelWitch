@@ -61,7 +61,12 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
             _state.value = UiState.NoStorage
             return
         }
-        storage = PackStorage(app, Uri.parse(uriString))
+        val path = PackStorage.resolveTreeUriToPath(Uri.parse(uriString))
+        if (path == null) {
+            _state.value = UiState.NoStorage
+            return
+        }
+        storage = PackStorage(path)
         currentStorage = storage
         refreshIsoPath()
         checkStatus()
@@ -75,7 +80,12 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
     /** Persists [uri] as the pack storage root and re-checks the pack status. */
     fun setStorageUri(uri: Uri) {
         prefs.edit().putString(PrefsKeys.STORAGE_URI_KEY, uri.toString()).apply()
-        storage = PackStorage(app, uri)
+        val path = PackStorage.resolveTreeUriToPath(uri)
+        if (path == null) {
+            _state.value = UiState.Error(app.getString(R.string.home_no_iso_cant_launch))
+            return
+        }
+        storage = PackStorage(path)
         currentStorage = storage
         checkStatus()
     }
@@ -194,10 +204,6 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
             return
         }
         val rootPath = activeStorage.rootPath
-        if (rootPath == null) {
-            _state.value = UiState.Error(app.getString(R.string.home_no_iso_cant_launch))
-            return
-        }
 
         viewModelScope.launch {
             try {
