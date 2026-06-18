@@ -80,6 +80,11 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for build instructions, signing setup, an
 
 - [ ] Back up `wc24scr.vff` - either the file itself or the entire `RMCP` folder
 - [ ] Generalise save backup/restore to support other `RMCx` save types (not just `RMCP` - see `SaveManager.kt:8`)
+- [ ] Disable license button if no licenses are created, or they cannot be found.
+- [ ] Fix Wheel Witch logo speed changing depending on device
+- [ ] Add animation to downloading and extracting bar (smooth rather than solid steps)
+- [ ] Add logcat debugging information throughout program
+- [ ] Add button to export logging so end users can report bugs easier
 
 ## Credits
 
