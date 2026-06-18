@@ -22,7 +22,7 @@
     <string name="home_no_internet">● No internet</string>
     <string name="home_up_to_date">Up to date (v%s)</string>
     <string name="home_version_installed">v%s installed</string>
-    <string name="home_update_format">v%s → v%s</string>
+    <string name="home_update_format">v%1$s → v%2$s</string>
     <string name="player_default">Player</string>
     <string name="home_vr_active_suffix"> VR · %1$sx active</string>
     <string name="home_vr_suffix"> VR</string>
@@ -32,7 +32,7 @@
     <string name="home_exit_confirm">Exit</string>
     <string name="home_exit_cancel">Cancel</string>
     <string name="home_extracting">Extracting files...</string>
-    <string name="home_update_step_format">Update %d/%d: %s</string>
+    <string name="home_update_step_format">Update %1$d/%2$d: %3$s</string>
     <string name="home_rom_not_found">Mario Kart Wii ROM not found. Please select it again.</string>
     <string name="home_rom_invalid">The selected file is not a valid Mario Kart Wii ROM.</string>
     <string name="home_rom_unreachable">Could not access the selected file.</string>
@@ -175,15 +175,15 @@
     <string name="rooms_refresh">Refresh</string>
     <string name="rooms_open">Open</string>
     <string name="rooms_empty">Empty</string>
-    <string name="rooms_player_count_format">%d player%s</string>
+    <string name="rooms_player_count_format">%1$d player%2$s</string>
     <string name="rooms_joinable">Joinable</string>
     <string name="rooms_visibility_public">Public</string>
     <string name="rooms_visibility_private">Private</string>
-    <string name="rooms_meta_format">Room: %s  |  Type: %s</string>
-    <string name="rooms_meta_vr_format">Average VR: %d  |  Visibility: %s</string>
+    <string name="rooms_meta_format">Room: %1$s  |  Type: %2$s</string>
+    <string name="rooms_meta_vr_format">Average VR: %1$d  |  Visibility: %2$s</string>
     <string name="rooms_host">Host</string>
     <string name="rooms_players_label">Players</string>
-    <string name="rooms_player_meta_format">FC: %s  |  VR: %d  |  BR: %d</string>
+    <string name="rooms_player_meta_format">FC: %1$s  |  VR: %2$d  |  BR: %3$d</string>
     <string name="rooms_quoted_name_format">\u201C%s\u201D</string>
 
     <!-- health -->
@@ -203,8 +203,8 @@
     <string name="health_indicator_no_internet">No internet</string>
     <string name="health_indicator_checking">Checking...</string>
     <string name="health_usage_format">Usage: %.1f%%</string>
-    <string name="health_usage_with_total_format">Usage: %.1f%% (%s / %s)</string>
-    <string name="health_usage_with_used_format">Usage: %.1f%% (%s)</string>
+    <string name="health_usage_with_total_format">Usage: %1$.1f%% (%2$s / %3$s)</string>
+    <string name="health_usage_with_used_format">Usage: %1$.1f%% (%2$s)</string>
     <string name="health_usage_just_used_format">Usage: (%s)</string>
 
     <!-- race stats -->
@@ -222,7 +222,7 @@
     <string name="race_stats_vehicles">Vehicles</string>
     <string name="race_stats_combos">Combos</string>
     <string name="race_stats_win_rate_format">%.1f%%</string>
-    <string name="race_stats_win_count_format">%sW / %sR</string>
+    <string name="race_stats_win_count_format">%1$sW / %2$sR</string>
     <string name="race_stats_just_now">just now</string>
     <string name="race_stats_minutes_ago">%dm ago</string>
     <string name="race_stats_hours_ago">%dh ago</string>
@@ -240,7 +240,7 @@
     <string name="save_info_title">Licenses</string>
     <string name="save_info_try_again">Try Again</string>
     <string name="save_info_empty">Empty</string>
-    <string name="save_info_race_format">Race: W %d / L %d</string>
+    <string name="save_info_race_format">Race: W %1$d / L %2$d</string>
 
     <!-- quick launch -->
     <string name="quick_launch_storage_error">Storage not configured.\nOpen Wheel Witch first to set up your pack location.</string>
