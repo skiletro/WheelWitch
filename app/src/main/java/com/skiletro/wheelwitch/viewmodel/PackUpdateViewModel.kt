@@ -222,12 +222,12 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
 
     fun setMyStuffMode(mode: DolphinLauncher.MyStuffMode) {
         _myStuffMode.value = mode
-        prefs.edit().putString(PrefsKeys.RIIVOLUTION_MY_STUFF_MODE, mode.name).apply()
+        prefs.edit().putString(PrefsKeys.RIIVOLUTION_MY_STUFF_MODE_KEY, mode.name).apply()
         regenerateLaunchJson()
     }
 
     private fun readMyStuffMode(): DolphinLauncher.MyStuffMode {
-        val name = prefs.getString(PrefsKeys.RIIVOLUTION_MY_STUFF_MODE, null)
+        val name = prefs.getString(PrefsKeys.RIIVOLUTION_MY_STUFF_MODE_KEY, null)
         return if (name != null) {
             try { DolphinLauncher.MyStuffMode.valueOf(name) }
             catch (_: IllegalArgumentException) { DolphinLauncher.MyStuffMode.Everything }

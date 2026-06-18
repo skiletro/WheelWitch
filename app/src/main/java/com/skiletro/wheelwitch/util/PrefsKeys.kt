@@ -2,8 +2,11 @@ package com.skiletro.wheelwitch.util
 
 /** Shared keys/names for SharedPreferences access across the app. */
 object PrefsKeys {
+    /** Main app state: storage URI, selected slot, last server version, theme, onboarding, Riivolution mode. */
     const val PREFS_NAME = "wheelwitch"
+    /** Settings screen state: theme picker choices that survive process death. */
     const val SETTINGS_PREFS = "settings"
+    /** Race-stats JSON cache: stores the last successful `/api/racestats/global` response. */
     const val RACE_STATS_PREFS = "race_stats_cache"
     const val RACE_STATS_KEY = "race_stats_json"
     const val STORAGE_URI_KEY = "storage_tree_uri"
@@ -13,5 +16,5 @@ object PrefsKeys {
     const val THEME_MODE_KEY = "theme_mode"
     const val APP_THEME_KEY = "app_theme"
     const val ONBOARDING_COMPLETED_KEY = "onboarding_completed"
-    const val RIIVOLUTION_MY_STUFF_MODE = "riivolution_my_stuff_mode"
+    const val RIIVOLUTION_MY_STUFF_MODE_KEY = "riivolution_my_stuff_mode"
 }

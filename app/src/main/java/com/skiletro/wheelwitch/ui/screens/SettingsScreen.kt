@@ -60,11 +60,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
-import com.skiletro.wheelwitch.ui.components.cacheSize
 import com.skiletro.wheelwitch.ui.components.formatBytes
 import com.skiletro.wheelwitch.ui.theme.AppTheme
 import com.skiletro.wheelwitch.ui.theme.ThemeMode
 import com.skiletro.wheelwitch.util.DolphinLauncher
+import com.skiletro.wheelwitch.util.MiiFaceCache
+import com.skiletro.wheelwitch.util.cacheSize
 import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
 import com.skiletro.wheelwitch.viewmodel.PackUpdateViewModel
 import com.skiletro.wheelwitch.viewmodel.SaveDataViewModel
@@ -441,7 +442,7 @@ fun SettingsScreen(
             }
             item {
                 var miiCacheSizeBytes by remember {
-                    mutableStateOf(com.skiletro.wheelwitch.util.MiiFaceCache.cacheSize())
+                    mutableStateOf(MiiFaceCache.cacheSize())
                 }
                 SettingsItem(
                     icon = Icons.Filled.Cached,
@@ -450,7 +451,7 @@ fun SettingsScreen(
                     trailing = {
                         TextButton(
                             onClick = {
-                                com.skiletro.wheelwitch.util.MiiFaceCache.clear()
+                                MiiFaceCache.clear()
                                 miiCacheSizeBytes = 0
                             },
                             enabled = miiCacheSizeBytes > 0,

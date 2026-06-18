@@ -7,14 +7,31 @@ import androidx.documentfile.provider.DocumentFile
 import java.io.File
 import java.util.zip.ZipFile
 
-/** Reads/writes pack files using direct `java.io.File` path resolution when possible, falling back to SAF [DocumentFile] for metadata operations. */
+/**
+ * Reads/writes pack files using direct `java.io.File` path resolution
+ * when possible, falling back to SAF [DocumentFile] for metadata
+ * operations.
+ *
+ * Each read/write method first tries [resolveDirect] (a plain `File` under
+ * [rootPath]); if that returns null or the file is missing, it falls back
+ * to [resolveDoc] (a SAF `DocumentFile`). The fallback exists for storage
+ * roots whose content URI cannot be resolved to a real filesystem path
+ * (e.g. some USB/OTG volumes).
+ */
 class PackStorage(private val context: Context, private val rootUri: Uri) {
     private val resolver get() = context.contentResolver
     private val rootDoc: DocumentFile? by lazy { DocumentFile.fromTreeUri(context, rootUri) }
     val rootPath: String? = resolveToRealPath(rootUri)
 
     companion object {
-        const val COPY_BUFFER_SIZE = 262144
+        const val COPY_BUFFER_SIZE = 256 * 1024
+
+        /** Progress callback is invoked at most every N entries to avoid UI spam. */
+        private const val PROGRESS_REPORT_EVERY_N_ENTRIES = 50
+
+        private const val PRIMARY_STORAGE_PREFIX = "/storage/emulated/0/"
+        private const val RAW_STORAGE_PREFIX = "/storage/raw/"
+        private const val VOLUME_STORAGE_PREFIX = "/storage/"
 
         /**
          * Resolves a content URI to a real filesystem path
@@ -23,41 +40,36 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
          * Note: for `raw:` URIs (e.g. USB/OTG volumes), the inferred path
          * is best-effort and may not actually exist on the device.
          */
-        fun resolveContentUriToPath(uri: Uri): String? {
-            val docId = try {
-                DocumentsContract.getDocumentId(uri)
-            } catch (e: Exception) {
-                return uri.path
-            }
-            val parts = docId.split(":")
-            if (parts.size < 2) return uri.path
-            return when {
-                parts[0].equals("primary", ignoreCase = true) ->
-                    "/storage/emulated/0/${parts[1]}"
-                parts[0].equals("raw", ignoreCase = true) ->
-                    "/storage/raw/${parts[1]}"
-                else ->
-                    "/storage/${parts[0]}/${parts[1]}"
-            }
-        }
+        fun resolveContentUriToPath(uri: Uri): String? =
+            buildPathFromDocId(
+                docId = runCatching { DocumentsContract.getDocumentId(uri) }.getOrNull(),
+                fallbackPath = uri.path,
+            )
 
-        private fun resolveToRealPath(treeUri: Uri): String? {
-            val docId = try {
-                DocumentsContract.getTreeDocumentId(treeUri)
-            } catch (e: Exception) {
-                return null
-            }
+        private fun resolveToRealPath(treeUri: Uri): String? =
+            buildPathFromDocId(
+                docId = runCatching { DocumentsContract.getTreeDocumentId(treeUri) }.getOrNull(),
+                fallbackPath = null,
+            )
+
+        /**
+         * Shared helper for both URI flavors. Splits [docId] on `":"` and
+         * maps the storage-type prefix to a real path. Returns [fallbackPath]
+         * when [docId] is null or has no `:` separator.
+         */
+        private fun buildPathFromDocId(docId: String?, fallbackPath: String?): String? {
+            if (docId == null) return fallbackPath
             val parts = docId.split(":")
-            if (parts.size < 2) return null
+            if (parts.size < 2) return fallbackPath
             val storageType = parts[0]
             val relativePath = parts[1]
             return when {
                 storageType.equals("primary", ignoreCase = true) ->
-                    "/storage/emulated/0/$relativePath"
+                    "$PRIMARY_STORAGE_PREFIX$relativePath"
                 storageType.equals("raw", ignoreCase = true) ->
-                    "/storage/raw/$relativePath"
+                    "$RAW_STORAGE_PREFIX$relativePath"
                 else ->
-                    "/storage/$storageType/$relativePath"
+                    "$VOLUME_STORAGE_PREFIX$storageType/$relativePath"
             }
         }
     }
@@ -80,7 +92,7 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
         }
         ensureDocDirs(childPath)
         val doc = getOrCreateDoc(childPath)
-        requireNotNull(resolver.openOutputStream(doc.uri)) { "Failed to open output stream for $childPath" }.use { it.write(content.toByteArray()) }
+        openOutput(childPath, doc).use { it.write(content.toByteArray()) }
     }
 
     /** Deletes a file relative to the storage root. Returns true if the file existed and was deleted. */
@@ -118,11 +130,13 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
                         }
                     }
                 } else {
+                    // SAF: directories are created implicitly by ensureDocDirs
+                    // below when the first file inside them is written.
                     if (!entry.isDirectory) {
                         ensureDocDirs(name)
                         val doc = getOrCreateDoc(name)
                         zf.getInputStream(entry).use { input ->
-                            requireNotNull(resolver.openOutputStream(doc.uri)) { "Failed to open output stream for $name" }.use { output ->
+                            openOutput(name, doc).use { output ->
                                 input.copyTo(output, COPY_BUFFER_SIZE)
                             }
                         }
@@ -130,7 +144,7 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
                 }
 
                 processed++
-                if (processed % 50 == 0 || processed == total) {
+                if (processed % PROGRESS_REPORT_EVERY_N_ENTRIES == 0 || processed == total) {
                     onProgress(processed.toFloat() / total)
                 }
             }
@@ -162,8 +176,12 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
         }
         ensureDocDirs(childPath)
         val doc = getOrCreateDoc(childPath)
-        requireNotNull(resolver.openOutputStream(doc.uri)) { "Failed to open output stream for $childPath" }.use { it.write(data) }
+        openOutput(childPath, doc).use { it.write(data) }
     }
+
+    /** Opens an output stream on [doc], failing with a descriptive message that includes [childPath]. */
+    private fun openOutput(childPath: String, doc: DocumentFile) =
+        requireNotNull(resolver.openOutputStream(doc.uri)) { "Failed to open output stream for $childPath" }
 
     private fun resolveDirect(childPath: String): File? {
         return rootPath?.let { File(it, childPath) }
@@ -185,8 +203,15 @@ class PackStorage(private val context: Context, private val rootUri: Uri) {
         val name = path.split("/").last()
         val parentPath = path.substringBeforeLast("/", "")
         if (parentPath.isNotEmpty()) ensureDocDirs(parentPath)
-        val parent = if (parentPath.isNotEmpty()) resolveDoc(parentPath) ?: error("Parent not found: $parentPath") else rootDoc ?: error("Storage root not available")
+        val parent = parentDoc(parentPath)
         return parent.createFile("application/octet-stream", name) ?: error("Cannot create file: $path")
+    }
+
+    private fun parentDoc(parentPath: String): DocumentFile {
+        if (parentPath.isEmpty()) {
+            return rootDoc ?: error("Storage root not available")
+        }
+        return resolveDoc(parentPath) ?: error("Parent not found: $parentPath")
     }
 
     private fun ensureDocDirs(path: String) {

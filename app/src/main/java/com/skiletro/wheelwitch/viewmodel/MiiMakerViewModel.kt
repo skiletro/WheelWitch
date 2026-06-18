@@ -13,10 +13,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.io.File
 
 /**
  * Owns the Mii Channel WAD install / launch / delete state.
+ *
+ * Exposes three pieces of state: [hasWad] (a cached WAD is present),
+ * [isInstallingWad] (an install is in flight), and [miiMakerError]
+ * (the last user-facing error message, if any).
  *
  * [installMiiMakerWad] is guarded by a [Mutex] so concurrent user taps
  * cannot trigger parallel installs.
@@ -35,19 +38,21 @@ class MiiMakerViewModel(application: Application) : AndroidViewModel(application
     private val installMutex = Mutex()
 
     init {
-        refreshMiiMakerState()
+        refreshHasWad()
     }
 
-    fun refreshMiiMakerState() {
-        _hasWad.value = MiiWadInstaller.getCachedWadFile(getApplication()) != null
+    /** Re-checks whether a cached WAD exists and updates [hasWad]. */
+    fun refreshHasWad() {
+        _hasWad.value = MiiWadInstaller.getCachedWadFile(app) != null
     }
 
+    /** Clears the last error message shown to the user. */
     fun clearError() {
         _miiMakerError.value = null
     }
 
+    /** Launches Dolphin with the cached Mii Channel WAD, if one is present. */
     fun launchMiiMaker() {
-        val app = getApplication<Application>()
         viewModelScope.launch {
             try {
                 val cached = withContext(Dispatchers.IO) {
@@ -62,8 +67,13 @@ class MiiMakerViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    /**
+     * Downloads and extracts the Mii Channel WAD. No-op when there is no
+     * network connection; in that case [miiMakerError] is populated.
+     *
+     * Guarded by [installMutex] so concurrent calls serialize.
+     */
     fun installMiiMakerWad() {
-        val app = getApplication<Application>()
         viewModelScope.launch {
             installMutex.withLock {
                 _isInstallingWad.value = true
@@ -71,27 +81,28 @@ class MiiMakerViewModel(application: Application) : AndroidViewModel(application
                 try {
                     if (!app.isNetworkAvailable()) {
                         _miiMakerError.value = app.getString(R.string.vm_no_internet)
-                    } else {
-                        withContext(Dispatchers.IO) {
-                            MiiWadInstaller.downloadAndExtractWad(app)
-                        }
-                        refreshMiiMakerState()
+                        return@withLock
                     }
+                    withContext(Dispatchers.IO) {
+                        MiiWadInstaller.downloadAndExtractWad(app)
+                    }
+                    refreshHasWad()
                 } catch (e: Exception) {
                     _miiMakerError.value = e.message ?: app.getString(R.string.vm_mii_install_failed)
+                } finally {
+                    _isInstallingWad.value = false
                 }
-                _isInstallingWad.value = false
             }
         }
     }
 
+    /** Deletes the cached WAD and refreshes [hasWad]. */
     fun deleteWad() {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
-                val dir = File(getApplication<Application>().cacheDir, "mii_maker")
-                dir.deleteRecursively()
+                MiiWadInstaller.clearCache(app)
             }
-            refreshMiiMakerState()
+            refreshHasWad()
         }
     }
 }

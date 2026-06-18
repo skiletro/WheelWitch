@@ -27,6 +27,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Request
 
+/** Pixel width requested from the Mii image service; matches typical display size. */
+private const val MII_FACE_FETCH_WIDTH = 96
+
+/** Corner radius applied to rendered Mii face bitmaps. */
+private val MiiFaceCorner = 10.dp
+
 /**
  * Renders a Mii face from either an already-rendered PNG (base64) or raw
  * Mii data that needs to be fetched from the configured image service and
@@ -59,7 +65,7 @@ fun MiiFace(
         Image(
             bitmap = pngBitmap.asImageBitmap(),
             contentDescription = null,
-            modifier = modifier.clip(RoundedCornerShape(10.dp))
+            modifier = modifier.clip(RoundedCornerShape(MiiFaceCorner))
         )
         return
     }
@@ -67,14 +73,14 @@ fun MiiFace(
     var miiBitmap by remember { mutableStateOf<Bitmap?>(null) }
     LaunchedEffect(miiDataBase64) {
         val data = miiDataBase64 ?: return@LaunchedEffect
-        val cached = withContext(Dispatchers.IO) { MiiFaceCache.get(data) }
+        val cached = withContext(Dispatchers.IO) { MiiFaceCache.getAndTouch(data) }
         if (cached != null) {
             miiBitmap = cached
         } else {
             val fetched = withContext(Dispatchers.IO) {
                 val url = "$MII_IMAGE_BASE_URL?data=${
                     URLEncoder.encode(data, "UTF-8")
-                }&width=96&type=face"
+                }&width=$MII_FACE_FETCH_WIDTH&type=face"
                 val request = Request.Builder().url(url).build()
                 HttpClientProvider.client.newCall(request).execute().use { response ->
                     val bytes = response.body?.bytes()
@@ -101,7 +107,7 @@ fun MiiFace(
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(MiiFaceCorner))
             )
         } else if (miiDataBase64 != null) {
             CircularProgressIndicator(strokeWidth = 3.dp)

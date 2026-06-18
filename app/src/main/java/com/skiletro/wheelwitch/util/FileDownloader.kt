@@ -7,7 +7,7 @@ import java.io.IOException
 
 /** Shared HTTP download utility used by both [RewindPackManager] and [MiiWadInstaller]. */
 object FileDownloader {
-    private const val DOWNLOAD_BUFFER = 262144
+    private const val DOWNLOAD_BUFFER_SIZE = 256 * 1024
 
     /**
      * Downloads [url] to [targetFile]. Blocking — call from a background dispatcher.
@@ -41,17 +41,21 @@ object FileDownloader {
             try {
                 return downloadOnce(url, targetFile, onProgress, client)
             } catch (e: Http4xxException) {
+                // 4xx is deterministic (auth, not-found, etc.); retrying cannot fix it.
                 throw e
             } catch (e: EmptyBodyException) {
+                // An empty body is also deterministic; retrying cannot fix it.
                 throw e
             } catch (e: IOException) {
+                // Transient network failure; retry after backoff.
                 lastError = e
             } catch (e: Http5xxException) {
+                // Transient server failure; retry after backoff.
                 lastError = e
             }
 
             if (attempt < totalAttempts - 1) {
-                val backoff = initialBackoffMillis shl attempt
+                val backoff = initialBackoffMillis * (1L shl attempt)
                 try {
                     Thread.sleep(backoff)
                 } catch (ie: InterruptedException) {
@@ -89,7 +93,7 @@ object FileDownloader {
 
             body.byteStream().use { input ->
                 targetFile.outputStream().use { output ->
-                    val buffer = ByteArray(DOWNLOAD_BUFFER)
+                    val buffer = ByteArray(DOWNLOAD_BUFFER_SIZE)
                     var bytesRead: Int
                     var totalRead = 0L
                     var lastReported = -1f
@@ -114,7 +118,10 @@ object FileDownloader {
         }
     }
 
+    /** Non-retriable: deterministic client error (HTTP 4xx). */
     private class Http4xxException(message: String) : IOException(message)
+    /** Retriable: transient server error (HTTP 5xx). */
     private class Http5xxException(message: String) : IOException(message)
+    /** Non-retriable: response body missing or empty. */
     private class EmptyBodyException(message: String) : IOException(message)
 }

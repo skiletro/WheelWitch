@@ -3,6 +3,7 @@ package com.skiletro.wheelwitch.util
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.annotation.VisibleForTesting
 import androidx.core.content.FileProvider
 import com.skiletro.wheelwitch.util.DolphinLauncher
 import java.io.File
@@ -13,20 +14,36 @@ import java.util.zip.ZipInputStream
 object MiiWadInstaller {
     private const val MII_MAKER_ZIP_URL = "https://filecache45.gamebanana.com/mods/mii_channel_symbols_-_hacs.zip"
     private const val WAD_FILE_NAME = "Mii Channel Symbols - HACS.wad"
+    private const val ZIP_FILE_NAME = "mii_channel_symbols.zip"
+    private const val CACHE_DIR_NAME = "mii_maker"
+
+    /**
+     * Magic first 4 bytes of a valid Wii WAD file: the header-length field set
+     * to 0x20 (32 bytes). Used by [isValidWad] to reject obviously bad files
+     * before handing them to Dolphin.
+     */
+    private val WAD_HEADER_MAGIC = byteArrayOf(0x00, 0x00, 0x00, 0x20)
 
     /** Returns the cached WAD file from `cache/mii_maker/`, or null if not yet downloaded. */
     fun getCachedWadFile(context: Context): File? {
-        val dir = File(context.cacheDir, "mii_maker")
+        val dir = File(context.cacheDir, CACHE_DIR_NAME)
         val wad = File(dir, WAD_FILE_NAME)
         return if (wad.exists()) wad else null
     }
 
-    /** Downloads the WAD zip from GameBanana, extracts the `.wad` file, and returns it. Validates WAD magic header before returning. */
+    /**
+     * Downloads the WAD zip from GameBanana, extracts the `.wad` file, and
+     * returns it. Validates WAD magic header before returning.
+     *
+     * Leaves the extracted WAD at `cache/mii_maker/$WAD_FILE_NAME` (the file
+     * [getCachedWadFile] returns). The intermediate zip is deleted after
+     * extraction.
+     */
     fun downloadAndExtractWad(context: Context): File {
-        val cacheDir = File(context.cacheDir, "mii_maker")
+        val cacheDir = File(context.cacheDir, CACHE_DIR_NAME)
         cacheDir.mkdirs()
 
-        val zipFile = File(cacheDir, "mii_channel_symbols.zip")
+        val zipFile = File(cacheDir, ZIP_FILE_NAME)
         FileDownloader.downloadToFile(
             MII_MAKER_ZIP_URL,
             zipFile,
@@ -39,11 +56,16 @@ object MiiWadInstaller {
         return wadFile
     }
 
+    /** Removes the `cache/mii_maker/` directory and everything in it. */
+    fun clearCache(context: Context) {
+        File(context.cacheDir, CACHE_DIR_NAME).deleteRecursively()
+    }
+
     fun isValidWad(file: File): Boolean {
         return try {
-            val bytes = file.readBytes().take(4)
-            bytes.size == 4 && bytes[0] == 0x00.toByte() && bytes[1] == 0x00.toByte() &&
-                    bytes[2] == 0x00.toByte() && bytes[3] == 0x20.toByte()
+            val bytes = file.readBytes()
+            bytes.size >= WAD_HEADER_MAGIC.size &&
+                bytes.copyOfRange(0, WAD_HEADER_MAGIC.size).contentEquals(WAD_HEADER_MAGIC)
         } catch (_: Exception) {
             false
         }
@@ -67,6 +89,7 @@ object MiiWadInstaller {
         context.startActivity(intent)
     }
 
+    @VisibleForTesting
     fun extractWadForTest(zipFile: File, destDir: File): File = extractWad(zipFile, destDir)
 
     private fun extractWad(zipFile: File, destDir: File): File {
@@ -85,6 +108,8 @@ object MiiWadInstaller {
                 entry = zis.nextEntry
             }
         }
+        // Prefer the HACS variant: it is the symbol-patched build Dolphin needs
+        // to run Mii Maker. Fall back to any .wad if it is not present.
         return wadFiles.firstOrNull { it.name.contains("HACS", ignoreCase = true) }
             ?: wadFiles.firstOrNull()
             ?: error("No .wad file found in the archive")

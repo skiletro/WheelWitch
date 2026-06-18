@@ -3,9 +3,6 @@ package com.skiletro.wheelwitch.util
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 
-/** Base URL for fetching Mii face images by Base64-encoded RFL data. */
-const val MII_IMAGE_BASE_URL = "https://mii-unsecure.ariankordi.net/miis/image.png"
-
 /**
  * Shared OkHttpClient singletons.
  *
@@ -18,21 +15,15 @@ const val MII_IMAGE_BASE_URL = "https://mii-unsecure.ariankordi.net/miis/image.p
  * connections.
  */
 object HttpClientProvider {
-    val client: OkHttpClient by lazy {
-        OkHttpClient.Builder()
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
-            .followRedirects(true)
-            .followSslRedirects(true)
-            .build()
-    }
+    val client: OkHttpClient by lazy { buildClient(readTimeoutSeconds = 15) }
 
-    val largeDownloadClient: OkHttpClient by lazy {
+    val largeDownloadClient: OkHttpClient by lazy { buildClient(readTimeoutSeconds = 60) }
+
+    private fun buildClient(readTimeoutSeconds: Long): OkHttpClient =
         OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(readTimeoutSeconds, TimeUnit.SECONDS)
             .followRedirects(true)
             .followSslRedirects(true)
             .build()
-    }
 }
