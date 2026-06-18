@@ -8,6 +8,12 @@ An Android app that downloads/updates the Retro Rewind Mario Kart Wii Pack and l
 
 See [CONTRIBUTING.md#build](CONTRIBUTING.md#build) for build commands and signing setup.
 
+### Formatting (Spotless + ktfmt)
+
+- `./gradlew spotlessApply` — auto-format all `.kt` and `.kts` files
+- `./gradlew spotlessCheck` — verify formatting (for CI)
+- No configuration to debate — ktfmt DEFAULT style is enforced
+
 ## Git & Commits
 
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) — `<type>(<scope>): <description>`, lowercase imperative, no trailing period. See [CONTRIBUTING.md#commit-messages](CONTRIBUTING.md#commit-messages) for types and scopes.
