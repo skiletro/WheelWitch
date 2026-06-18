@@ -120,3 +120,9 @@ dependencies {
 tasks.withType<Test> {
   useJUnitPlatform()
 }
+
+tasks.register("printVersionName") {
+  group = "versioning"
+  description = "Prints the versionName for CI consumption"
+  doLast { println(android.defaultConfig.versionName) }
+}

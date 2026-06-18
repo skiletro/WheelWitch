@@ -4,5 +4,5 @@
   "appId": "com.skiletro.wheelwitch",
   "sourceUrl": "https://github.com/skiletro/WheelWitch",
   "sourceType": "GitHubReleases",
-  "additionalSettings": "{\"includePrereleases\":true}"
+  "additionalSettings": "{\"includePrereleases\":true,\"apkFilterRegEx\":\"wheelwitch-.*\\\\.apk\",\"versionExtractionRegEx\":\"wheelwitch-([\\\\d.]+)-[a-f0-9]+\\\\.apk\"}"
 }
