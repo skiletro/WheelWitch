@@ -17,6 +17,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.model.ChangelogEntry
 
+private const val Bullet = "\u2022"
+
+/**
+ * Renders one [ChangelogEntry] as a card: version + date header row
+ * followed by a bulleted list of changes.
+ */
 @Composable
 fun ChangelogCard(
     entry: ChangelogEntry,
@@ -54,7 +60,7 @@ fun ChangelogCard(
                         verticalAlignment = Alignment.Top
                     ) {
                         Text(
-                            text = "\u2022",
+                            text = Bullet,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.width(12.dp)

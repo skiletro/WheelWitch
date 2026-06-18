@@ -50,7 +50,7 @@ fun TimeTrialScreen(
         ScreenHeader(
             title = stringResource(R.string.time_trial_title),
             onBack = { viewModel.goBack() },
-            titleModifier = com.skiletro.wheelwitch.ui.components.sharedTitleModifier(
+            titleModifier = com.skiletro.wheelwitch.ui.components.SharedTitleModifier(
                 key = "online_title_TimeTrial",
                 sharedTransitionScope = sharedTransitionScope,
                 animatedContentScope = animatedContentScope,

@@ -28,6 +28,9 @@ import androidx.compose.ui.graphics.Shape
  *   state (used for things like a currently-selected license slot).
  * - Focus state is hoisted to a `remember` scope (NOT inside the clickable
  *   lambda) so the state survives recomposition correctly.
+ * - The focus border is drawn with [shape] when it is a
+ *   [RoundedCornerShape]; any other shape falls back to [buttonShape]
+ *   for the border because [focusBorder] only supports rounded corners.
  */
 @Composable
 fun FocusableSurface(

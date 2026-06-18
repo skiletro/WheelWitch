@@ -32,22 +32,34 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
-import com.skiletro.wheelwitch.ui.components.SparkleHat
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
-private const val APP_NAME = "Wheel Witch"
-private const val PACK_NAME = "Retro Rewind Pack"
-private const val SUBTITLE = "$PACK_NAME Manager"
+private const val TopBarBobAmplitudeDp = 4
+private const val TopBarBobPeriodMs = 1500
+private const val ClockRefreshMs = 60_000L
+private val TopBarHorizontalPadding = 20.dp
+private val TopBarVerticalPadding = 16.dp
+private const val DisabledIconAlpha = 0.38f
 
+/**
+ * Top app bar shown on the Home screen.
+ *
+ * Renders the brand name + subtitle, a clock, and four icon buttons:
+ * online menu, save data (licenses), Mii Maker, and settings.
+ *
+ * [onLaunchMiiMaker] and [onOpenOnlineMenu] accept an `enabled` flag
+ * that gates the corresponding button. The Mii Maker button also dims
+ * its icon tint manually when disabled because the default Material
+ * disabled styling is too subtle on this design.
+ */
 @Composable
 fun TopBar(
     onOpenSettings: () -> Unit,
@@ -55,14 +67,14 @@ fun TopBar(
     miiMakerEnabled: Boolean,
     onOpenOnlineMenu: () -> Unit,
     onlineMenuEnabled: Boolean,
-    onOpenSaveInfo: () -> Unit = {}
+    onOpenSaveInfo: () -> Unit
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "bob")
     val bobOffset by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = -4f,
+        targetValue = -TopBarBobAmplitudeDp.toFloat(),
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1500, easing = FastOutSlowInEasing),
+            animation = tween(durationMillis = TopBarBobPeriodMs, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "bobOffset"
@@ -71,7 +83,7 @@ fun TopBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(horizontal = TopBarHorizontalPadding, vertical = TopBarVerticalPadding),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -85,13 +97,13 @@ fun TopBar(
             modifier = Modifier.weight(1f)
         ) {
             Text(
-                text = APP_NAME,
+                text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                text = SUBTITLE,
+                text = stringResource(R.string.topbar_subtitle),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -105,7 +117,7 @@ fun TopBar(
         }
         IconButton(onClick = onOpenSaveInfo) {
             Icon(
-                imageVector = Icons.Default.Person,
+                imageVector = Icons.Filled.Person,
                 contentDescription = stringResource(R.string.cd_save_data),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -118,13 +130,13 @@ fun TopBar(
                 imageVector = Icons.Filled.Checkroom,
                 contentDescription = stringResource(R.string.cd_mii_maker),
                 tint = if (miiMakerEnabled) MaterialTheme.colorScheme.onSurfaceVariant
-                       else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
+                       else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledIconAlpha),
                 modifier = Modifier.size(24.dp)
             )
         }
         IconButton(onClick = onOpenSettings) {
             Icon(
-                imageVector = Icons.Default.Settings,
+                imageVector = Icons.Filled.Settings,
                 contentDescription = stringResource(R.string.cd_settings),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -134,6 +146,7 @@ fun TopBar(
     }
 }
 
+/** Displays the current time, refreshing once per [ClockRefreshMs]. */
 @Composable
 private fun ClockText() {
     var timeText by remember { mutableStateOf("") }
@@ -142,7 +155,7 @@ private fun ClockText() {
         while (isActive) {
             val now = LocalTime.now()
             timeText = now.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
-            delay(60_000)
+            delay(ClockRefreshMs)
         }
     }
 

@@ -73,7 +73,7 @@ fun LeaderboardScreen(
             title = stringResource(R.string.leaderboard_title),
             onBack = { viewModel.goBack() },
             onRefresh = { viewModel.fetchLeaderboard() },
-            titleModifier = com.skiletro.wheelwitch.ui.components.sharedTitleModifier(
+            titleModifier = com.skiletro.wheelwitch.ui.components.SharedTitleModifier(
                 key = "online_title_Leaderboard",
                 sharedTransitionScope = sharedTransitionScope,
                 animatedContentScope = animatedContentScope,

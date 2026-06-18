@@ -27,6 +27,18 @@ private const val SPARKLE_COUNT = 6
 private const val SPARKLE_PERIOD_MS = 3000
 private val SPARKLE_INDICES = listOf(0, 3, 4)
 
+/** Extra canvas space beyond [hatSize] so sparkles at the orbit edge are not clipped. */
+private val SparklePaddingDp = 30.dp
+/** Sparkle orbit radius as a fraction of hatSize. */
+private const val SparkleOrbitFactor = 0.58f
+private val SparkleSizeDp = 3.dp
+private val SparkleStrokeDp = 2.dp
+// Three-phase alpha curve: fade in from 0 to 1 over [0, SparkleFadeInEnd],
+// hold at 1 over [SparkleFadeInEnd, SparkleFadeOutStart], fade out to 0
+// over [SparkleFadeOutStart, 1].
+private const val SparkleFadeInEnd = 0.35f
+private const val SparkleFadeOutStart = 0.65f
+
 /**
  * Renders the wizard hat icon with an animated sparkle overlay.
  *
@@ -56,20 +68,20 @@ fun SparkleHat(
 
     Box(
         modifier = modifier
-            .size(hatSize + 30.dp)
+            .size(hatSize + SparklePaddingDp)
             .drawBehind {
-                val radius = (hatSize.value * 0.58f).dp.toPx()
-                val sparkleSize = 3.dp.toPx()
-                val strokeW = 2.dp.toPx()
+                val radius = (hatSize.value * SparkleOrbitFactor).dp.toPx()
+                val sparkleSize = SparkleSizeDp.toPx()
+                val strokeW = SparkleStrokeDp.toPx()
                 val centerX = size.width / 2
                 val centerY = size.height / 2
 
                 for (i in SPARKLE_INDICES) {
                     val rawPhase = (sparklePhase + i.toFloat() / SPARKLE_COUNT) % 1f
                     val alpha = when {
-                        rawPhase < 0.35f -> rawPhase / 0.35f
-                        rawPhase < 0.65f -> 1f
-                        else -> 1f - (rawPhase - 0.65f) / 0.35f
+                        rawPhase < SparkleFadeInEnd -> rawPhase / SparkleFadeInEnd
+                        rawPhase < SparkleFadeOutStart -> 1f
+                        else -> 1f - (rawPhase - SparkleFadeOutStart) / (1f - SparkleFadeOutStart)
                     }
 
                     val angle = i.toFloat() / SPARKLE_COUNT * 2f * Math.PI.toFloat()

@@ -19,9 +19,16 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.skiletro.wheelwitch.ui.components.buttonShape
-import com.skiletro.wheelwitch.ui.components.focusBorder
 
+private val PrimaryActionButtonHeight = 56.dp
+private const val SubTextAlpha = 0.7f
+
+/**
+ * Primary call-to-action button: 56dp tall, filled with the primary
+ * color, [titleMedium] semi-bold label. An optional [subText] line
+ * renders below the main label at reduced alpha. Integrates with
+ * [focusBorder] for gamepad focus indication.
+ */
 @Composable
 fun PrimaryActionButton(
     text: String,
@@ -37,7 +44,7 @@ fun PrimaryActionButton(
         enabled = enabled,
         shape = buttonShape,
         modifier = modifier
-            .height(56.dp)
+            .height(PrimaryActionButtonHeight)
             .onFocusChanged { isFocused = it.isFocused }
             .focusBorder(isFocused),
         colors = ButtonDefaults.buttonColors(
@@ -60,7 +67,7 @@ fun PrimaryActionButton(
                     text = subText,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Normal,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = SubTextAlpha),
                     textAlign = TextAlign.Center
                 )
             }

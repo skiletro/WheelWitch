@@ -294,7 +294,7 @@ private fun HubOption(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                    modifier = com.skiletro.wheelwitch.ui.components.sharedTitleModifier(
+                    modifier = com.skiletro.wheelwitch.ui.components.SharedTitleModifier(
                         key = titleSharedKey ?: "",
                         sharedTransitionScope = sharedTransitionScope,
                         animatedContentScope = animatedContentScope,

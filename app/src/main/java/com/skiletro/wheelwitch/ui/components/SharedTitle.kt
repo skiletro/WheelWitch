@@ -18,10 +18,10 @@ import androidx.compose.ui.Modifier
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun sharedTitleModifier(
+fun SharedTitleModifier(
     key: String,
     sharedTransitionScope: SharedTransitionScope?,
-    animatedContentScope: AnimatedVisibilityScope?,
+    animatedContentScope: AnimatedVisibilityScope?
 ): Modifier {
     if (sharedTransitionScope == null || animatedContentScope == null) {
         return Modifier

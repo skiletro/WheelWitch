@@ -81,7 +81,7 @@ fun RoomsScreen(
             title = stringResource(R.string.rooms_title),
             onBack = onClose,
             onRefresh = onRefresh,
-            titleModifier = com.skiletro.wheelwitch.ui.components.sharedTitleModifier(
+            titleModifier = com.skiletro.wheelwitch.ui.components.SharedTitleModifier(
                 key = "online_title_Rooms",
                 sharedTransitionScope = sharedTransitionScope,
                 animatedContentScope = animatedContentScope,

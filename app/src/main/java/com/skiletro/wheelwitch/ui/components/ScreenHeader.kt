@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -21,8 +22,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.skiletro.wheelwitch.R
+
+private val HeaderPadding = PaddingValues(horizontal = 12.dp, vertical = 16.dp)
 
 /**
  * Standard screen header.
@@ -50,7 +55,7 @@ fun ScreenHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(PaddingValues(horizontal = 12.dp, vertical = 16.dp)),
+            .padding(HeaderPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -63,12 +68,12 @@ fun ScreenHeader(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = stringResource(R.string.cd_back),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         } else {
-            androidx.compose.foundation.layout.Spacer(modifier = Modifier)
+            Spacer(modifier = Modifier)
         }
 
         Text(
@@ -92,7 +97,7 @@ fun ScreenHeader(
             ) {
                 Icon(
                     imageVector = Icons.Filled.Refresh,
-                    contentDescription = "Refresh",
+                    contentDescription = stringResource(R.string.cd_refresh),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

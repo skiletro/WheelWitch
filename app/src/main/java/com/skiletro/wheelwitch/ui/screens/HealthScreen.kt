@@ -69,7 +69,7 @@ fun HealthScreen(
             title = stringResource(R.string.health_title),
             onBack = { viewModel.goBack() },
             onRefresh = { viewModel.fetchHealth() },
-            titleModifier = com.skiletro.wheelwitch.ui.components.sharedTitleModifier(
+            titleModifier = com.skiletro.wheelwitch.ui.components.SharedTitleModifier(
                 key = "online_title_Health",
                 sharedTransitionScope = sharedTransitionScope,
                 animatedContentScope = animatedContentScope,

@@ -76,7 +76,7 @@ fun RaceStatsScreen(
             title = stringResource(R.string.race_stats_title),
             onBack = { viewModel.goBack() },
             onRefresh = { viewModel.fetchRaceStats() },
-            titleModifier = com.skiletro.wheelwitch.ui.components.sharedTitleModifier(
+            titleModifier = com.skiletro.wheelwitch.ui.components.SharedTitleModifier(
                 key = "online_title_RaceStats",
                 sharedTransitionScope = sharedTransitionScope,
                 animatedContentScope = animatedContentScope,

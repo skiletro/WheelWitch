@@ -1,10 +1,12 @@
 <resources>
     <string name="app_name">Wheel Witch</string>
     <string name="cd_back">Back</string>
+    <string name="cd_refresh">Refresh</string>
     <string name="cd_settings">Settings</string>
     <string name="cd_mii_maker">Mii Maker</string>
     <string name="cd_save_data">Licenses</string>
     <string name="cd_online_menu">Online Menu</string>
+    <string name="topbar_subtitle">Retro Rewind Pack Manager</string>
 
     <!-- home -->
     <string name="home_checking">Checking...</string>
