@@ -14,6 +14,13 @@ See [CONTRIBUTING.md#build](CONTRIBUTING.md#build) for build commands and signin
 - `./gradlew spotlessCheck` — verify formatting (for CI)
 - No configuration to debate — ktfmt DEFAULT style is enforced
 
+### Linting (Android Lint)
+
+- `./gradlew lint` — runs Android Lint on the default variant
+- `./gradlew check` — includes lint + unit tests
+- Config in `app/lint.xml` (silences non-actionable checks)
+- Keep lint clean before committing — no errors allowed
+
 ## Git & Commits
 
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) — `<type>(<scope>): <description>`, lowercase imperative, no trailing period. See [CONTRIBUTING.md#commit-messages](CONTRIBUTING.md#commit-messages) for types and scopes.

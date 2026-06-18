@@ -4,6 +4,7 @@ package com.skiletro.wheelwitch.ui.screens
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -105,7 +106,7 @@ fun HomeScreen(
         showExitDialog = true
     }
 
-    val activity = (LocalContext.current as? android.app.Activity)
+    val activity = LocalActivity.current
 
     if (showExitDialog) {
         AlertDialog(

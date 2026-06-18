@@ -513,6 +513,8 @@ fun SettingsScreen(
                                 shape = RoundedCornerShape(14.dp)
                             ) { Text(stringResource(R.string.settings_simulate)) }
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                val shortcutLabel = stringResource(R.string.settings_shortcut_short)
+                                val shortcutLongLabel = stringResource(R.string.settings_shortcut_long)
                                 val shortcutManager =
                                     remember { context.getSystemService(Context.SHORTCUT_SERVICE) as? ShortcutManager }
                                 if (shortcutManager?.isRequestPinShortcutSupported == true) {
@@ -525,8 +527,8 @@ fun SettingsScreen(
                                                 }
                                             val shortcut =
                                                 ShortcutInfo.Builder(context, "quick_launch")
-                                                    .setShortLabel(context.getString(R.string.settings_shortcut_short))
-                                                    .setLongLabel(context.getString(R.string.settings_shortcut_long))
+                                                    .setShortLabel(shortcutLabel)
+                                                    .setLongLabel(shortcutLongLabel)
                                                     .setIcon(
                                                         Icon.createWithResource(
                                                             context,

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lint>
+    <!-- Stylistic; not actionable -->
+    <issue id="TypographyEllipsis" severity="ignore" />
+
+    <!-- Version availability noise; we bump on purpose -->
+    <issue id="GradleDependency" severity="ignore" />
+    <issue id="NewerVersionAvailable" severity="ignore" />
+    <issue id="AndroidGradlePluginVersion" severity="ignore" />
+
+    <!-- Intentional for sideloaded app -->
+    <issue id="ScopedStorage" severity="ignore" />
+
+    <!-- Intentional landscape lock for gamepad ergonomics -->
+    <issue id="DiscouragedApi" severity="ignore" />
+</lint>
