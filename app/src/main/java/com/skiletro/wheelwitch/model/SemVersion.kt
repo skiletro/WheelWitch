@@ -11,6 +11,8 @@ data class SemVersion(val major: Int, val minor: Int, val patch: Int, val preRel
         if (preRelease != null && other.preRelease != null) {
             preRelease.compareTo(other.preRelease).let { if (it != 0) return it }
         }
+        // A released version (no pre-release) outranks any pre-release of the
+        // same major.minor.patch, e.g. 3.2.6 > 3.2.6-beta1.
         if (preRelease == null && other.preRelease != null) return 1
         if (preRelease != null && other.preRelease == null) return -1
         return 0
@@ -21,7 +23,7 @@ data class SemVersion(val major: Int, val minor: Int, val patch: Int, val preRel
     }
 
     companion object {
-        /** Parses a version string ("v3.2.6", "3.2.6-beta1") into [SemVersion], or null on failure. */
+        /** Parses a version string ("v3.2.6", "3.2.6-beta1") into [SemVersion], or null on failure. Accepts >= 3 numeric segments; anything beyond patch is ignored. */
         fun parse(text: String): SemVersion? {
             val cleaned = text.trimStart('v', 'V')
             val dashIdx = cleaned.indexOf('-')

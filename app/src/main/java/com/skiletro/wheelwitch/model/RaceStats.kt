@@ -1,5 +1,6 @@
 package com.skiletro.wheelwitch.model
 
+import com.skiletro.wheelwitch.util.optNonEmptyString
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -10,6 +11,17 @@ data class ActivePlayer(val name: String, val pid: String, val fc: String, val r
 data class DayStat(val dayName: String, val raceCount: Int)
 data class HourStat(val hour: Int, val raceCount: Int)
 
+/**
+ * Global race statistics parsed from the RWFC `/api/racestats/global`
+ * response. All list fields default to empty when the corresponding JSON
+ * array is absent.
+ *
+ * [trackedSince] is an ISO-8601 timestamp string (e.g. "2024-01-15") for
+ * the earliest date included in the stats, or null when the server omits it.
+ *
+ * [ActivePlayer.pid] is the player's persistent ID and [ActivePlayer.fc]
+ * is their friend code.
+ */
 data class RaceStats(
     val totalRaces: Int,
     val totalPlayers: Int,
@@ -26,12 +38,13 @@ data class RaceStats(
     val topCombosByWinRate: List<WinRateStat>,
 )
 
+/** Parses the `/api/racestats/global` JSON response into [RaceStats]; missing or null fields default to empty/0. */
 fun parseRaceStats(jsonString: String): RaceStats {
     val root = JSONObject(jsonString)
     return RaceStats(
         totalRaces = root.optInt("totalRacesTracked", 0),
         totalPlayers = root.optInt("uniquePlayersCount", 0),
-        trackedSince = if (!root.isNull("trackedSince")) root.optString("trackedSince", "").takeIf { it.isNotEmpty() } else null,
+        trackedSince = root.optNonEmptyString("trackedSince"),
         allPlayedTracks = root.optJSONArray("allPlayedTracks")?.let { parseTrackStats(it) } ?: emptyList(),
         topCharacters = root.optJSONArray("topCharacters")?.let { parseNamedStats(it) } ?: emptyList(),
         topVehicles = root.optJSONArray("topVehicles")?.let { parseNamedStats(it) } ?: emptyList(),
