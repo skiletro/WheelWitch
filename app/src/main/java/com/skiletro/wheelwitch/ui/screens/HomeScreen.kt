@@ -306,6 +306,7 @@ private fun HomeBottomBar(
 
         AnimatedContent(
             targetState = state,
+            contentKey = { it::class },
             transitionSpec = {
                 (fadeIn(animationSpec = androidx.compose.animation.core.tween(250)) +
                     scaleIn(initialScale = 0.92f, animationSpec = androidx.compose.animation.core.tween(250)))
@@ -499,8 +500,7 @@ private fun ActivePlayerCard(
 fun ProgressButton(progress: Float, label: String) {
     Column(
         modifier = Modifier
-            .widthIn(min = 220.dp)
-            .animateContentSize(animationSpec = androidx.compose.animation.core.tween(300)),
+            .widthIn(min = 220.dp),
         horizontalAlignment = Alignment.End
     ) {
         LinearProgressIndicator(
