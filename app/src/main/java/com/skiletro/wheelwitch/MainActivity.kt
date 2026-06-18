@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -40,6 +41,7 @@ import com.skiletro.wheelwitch.ui.screens.SettingsScreen
 import com.skiletro.wheelwitch.ui.theme.AppTheme
 import com.skiletro.wheelwitch.ui.theme.ThemeMode
 import com.skiletro.wheelwitch.ui.theme.WheelWitchTheme
+import com.skiletro.wheelwitch.data.GameTypeParser
 import com.skiletro.wheelwitch.data.PackStorage
 import com.skiletro.wheelwitch.util.DolphinLauncher
 import com.skiletro.wheelwitch.util.PrefsKeys
@@ -151,16 +153,43 @@ private fun MainScreen(
         }
     }
 
+    /** Opens a system file picker to select a Mario Kart Wii ROM (ISO/RVZ/WBFS) and validates it before persisting. */
     val isoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
-        if (uri != null) {
-            val path = PackStorage.resolveContentUriToPath(uri)
-            if (path != null) {
-                packUpdate.setGameIsoPath(path)
-                onboardingIsoSelected = true
-            }
+        // if user cancels the picker, silently return early
+        if (uri == null) return@rememberLauncherForActivityResult
+
+        // check if we can actually read the path
+        val path = PackStorage.resolveContentUriToPath(uri) ?: run {
+            Toast.makeText(context, R.string.home_rom_unreachable, Toast.LENGTH_SHORT).show()
+            return@rememberLauncherForActivityResult
         }
+
+        // validate the game file exists and has a known Mario Kart Wii magic header + game ID
+        val file = java.io.File(path)
+        if (!file.exists()) {
+            Toast.makeText(context, R.string.home_rom_invalid, Toast.LENGTH_SHORT).show()
+            return@rememberLauncherForActivityResult
+        }
+
+        val isValid = runCatching {
+            val header = file.inputStream().use { input ->
+                val buf = ByteArray(4096)
+                val bytesRead = input.read(buf)
+                if (bytesRead <= 0) ByteArray(0) else buf.copyOf(bytesRead)
+            }
+            GameTypeParser.checkValidity(file.name, header)
+        }.getOrDefault(false)
+
+        // if it isn't valid, we need to return
+        if (!isValid) {
+            Toast.makeText(context, R.string.home_rom_invalid, Toast.LENGTH_SHORT).show()
+            return@rememberLauncherForActivityResult
+        }
+
+        packUpdate.setGameIsoPath(path)
+        onboardingIsoSelected = true
     }
 
     val backupPicker = rememberLauncherForActivityResult(

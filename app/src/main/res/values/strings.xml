@@ -34,6 +34,8 @@
     <string name="home_extracting">Extracting files...</string>
     <string name="home_update_step_format">Update %d/%d: %s</string>
     <string name="home_rom_not_found">Mario Kart Wii ROM not found. Please select it again.</string>
+    <string name="home_rom_invalid">The selected file is not a valid Mario Kart Wii ROM.</string>
+    <string name="home_rom_unreachable">Could not access the selected file.</string>
     <string name="home_no_iso_cant_launch">Cannot resolve storage path. Please pick a new storage folder.</string>
     <string name="home_launch_failed">Failed to launch Dolphin</string>
     <string name="home_cannot_reach_server">Cannot reach the update server. Please check your internet connection and try again.</string>
