@@ -119,7 +119,7 @@ fun RaceStatsScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         PrimaryActionButton(
-                            text = stringResource(R.string.race_stats_retry),
+                            text = stringResource(R.string.action_retry),
                             onClick = { viewModel.fetchRaceStats() }
                         )
                     }

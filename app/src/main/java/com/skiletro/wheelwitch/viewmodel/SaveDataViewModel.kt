@@ -93,7 +93,7 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
             val storage = PackUpdateViewModel.currentStorage ?: return@launch
             withContext(Dispatchers.IO) {
                 val data = storage.readBytes(SaveManager.SAVE_RELATIVE)
-                    ?: throw Exception(app.getString(R.string.vm_save_not_found))
+                    ?: throw Exception(app.getString(R.string.status_save_not_found))
                 app.contentResolver.openOutputStream(destUri)?.use { it.write(data) }
                     ?: throw Exception(app.getString(R.string.vm_save_write_failed))
             }
@@ -188,12 +188,12 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
             _saveInfoState.value = SaveInfoState.Loading
             try {
                 val storage = PackUpdateViewModel.currentStorage
-                    ?: throw Exception(app.getString(R.string.vm_storage_not_configured))
+                    ?: throw Exception(app.getString(R.string.error_storage_not_configured))
                 val bytes = withContext(Dispatchers.IO) {
                     storage.readBytes(SaveManager.SAVE_RELATIVE)
                 }
                 if (bytes == null) {
-                    _saveInfoState.value = SaveInfoState.Error(app.getString(R.string.vm_save_no_save_file))
+                    _saveInfoState.value = SaveInfoState.Error(app.getString(R.string.status_save_not_found))
                     return@launch
                 }
 
@@ -203,7 +203,7 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
                 resolveFallbackSlot(saveInfo)
                 mergeLeaderboards(saveInfo)
             } catch (e: Exception) {
-                _saveInfoState.value = SaveInfoState.Error(e.message ?: app.getString(R.string.vm_save_info_failed))
+                _saveInfoState.value = SaveInfoState.Error(e.message ?: app.getString(R.string.vm_failed_format, "read save data"))
             }
         }
     }

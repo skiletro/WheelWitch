@@ -117,12 +117,12 @@ fun HomeScreen(
             text = { Text(stringResource(R.string.home_exit_message)) },
             confirmButton = {
                 TextButton(onClick = { activity?.finish() }) {
-                    Text(stringResource(R.string.home_exit_confirm))
+                    Text(stringResource(R.string.action_exit))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showExitDialog = false }) {
-                    Text(stringResource(R.string.home_exit_cancel))
+                    Text(stringResource(R.string.action_cancel))
                 }
             }
         )
@@ -319,7 +319,7 @@ private fun HomeBottomBar(
                     ProgressButton(currentState.progress, currentState.message)
                 }
                 is UiState.Extracting -> {
-                    ProgressButton(currentState.progress, stringResource(R.string.home_extracting))
+                    ProgressButton(currentState.progress, stringResource(R.string.status_extracting))
                 }
                 is UiState.ApplyingUpdate -> {
                     ProgressButton(currentState.progress, stringResource(R.string.home_update_step_format, currentState.index, currentState.total, currentState.description))
@@ -332,7 +332,7 @@ private fun HomeBottomBar(
                         modifier = Modifier.height(56.dp)
                     ) {
                         Text(
-                            text = stringResource(R.string.home_checking),
+                            text = stringResource(R.string.status_checking),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Medium
                         )
@@ -345,7 +345,7 @@ private fun HomeBottomBar(
                         modifier = Modifier.height(56.dp)
                     ) {
                         Text(
-                            text = stringResource(R.string.home_try_again),
+                            text = stringResource(R.string.action_retry),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Medium
                         )
@@ -393,7 +393,7 @@ private fun HomeBottomBar(
                         when (status) {
                             is PackStatus.NotInstalled -> {
                                 PrimaryActionButton(
-                                    text = stringResource(R.string.home_install),
+                                    text = stringResource(R.string.action_install),
                                     onClick = onInstallOrUpdate ?: {}
                                 )
                             }
@@ -404,13 +404,14 @@ private fun HomeBottomBar(
                                 )
                             }
                             else -> {
+                                val bullet = "\u2022 "
                                 val launchSubText = when (serverConnectivity) {
                                     ServerConnectivity.Online -> {
                                         val count = playerCount
-                                        if (count != null) stringResource(R.string.home_racers_online, count) else null
+                                        if (count != null) "$bullet${stringResource(R.string.home_racers_online, count)}" else null
                                     }
-                                    ServerConnectivity.Offline -> stringResource(R.string.home_offline)
-                                    ServerConnectivity.NoInternet -> stringResource(R.string.home_no_internet)
+                                    ServerConnectivity.Offline -> "$bullet${stringResource(R.string.home_offline)}"
+                                    ServerConnectivity.NoInternet -> "$bullet${stringResource(R.string.status_no_internet)}"
                                     ServerConnectivity.Unknown -> null
                                 }
                                 if (hasIso) {
@@ -431,7 +432,7 @@ private fun HomeBottomBar(
                 }
                 is UiState.NoStorage -> {
                     Text(
-                        text = stringResource(R.string.home_storage_not_configured),
+                        text = stringResource(R.string.error_storage_not_configured),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

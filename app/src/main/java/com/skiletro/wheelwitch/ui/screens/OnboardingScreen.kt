@@ -79,7 +79,7 @@ fun OnboardingScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var dolphinInstalled by remember { mutableStateOf<Boolean?>(null) }
-    val miiInstallFailedMessage = stringResource(R.string.onboarding_mii_install_failed)
+    val miiInstallFailedMessage = stringResource(R.string.vm_failed_format, "install Mii Maker WAD")
 
     LaunchedEffect(step, dolphinRetry) {
         if (step == 2) {
@@ -375,13 +375,13 @@ private fun DolphinCheckStep(
     ) {
         when (installed) {
             null -> Text(
-                text = stringResource(R.string.onboarding_dolphin_checking),
+                text = stringResource(R.string.status_checking),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             true -> {
                 Text(
-                    text = stringResource(R.string.onboarding_dolphin_installed),
+                    text = stringResource(R.string.status_installed_format, "Dolphin"),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -393,7 +393,7 @@ private fun DolphinCheckStep(
             }
             false -> {
                 Text(
-                    text = stringResource(R.string.onboarding_dolphin_not_installed),
+                    text = stringResource(R.string.status_not_installed_format, "Dolphin"),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.error
@@ -485,13 +485,13 @@ private fun MiiStep(
     ) {
         when (state) {
             null -> Text(
-                text = stringResource(R.string.onboarding_mii_checking),
+                text = stringResource(R.string.status_checking),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             is MiiWadOnboarding.Installed -> {
                 Text(
-                    text = stringResource(R.string.onboarding_mii_installed),
+                    text = stringResource(R.string.status_installed_format, "Mii Channel"),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -542,13 +542,13 @@ private fun MiiStep(
                 StepSecondaryActions(
                     secondaryText = stringResource(R.string.onboarding_skip),
                     onSecondary = onSkip,
-                    primaryText = stringResource(R.string.onboarding_retry),
+                    primaryText = stringResource(R.string.action_retry),
                     onPrimary = onInstall,
                 )
             }
             is MiiWadOnboarding.NotInstalled -> {
                 Text(
-                    text = stringResource(R.string.onboarding_mii_not_installed),
+                    text = stringResource(R.string.status_not_installed),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -562,7 +562,7 @@ private fun MiiStep(
                 StepSecondaryActions(
                     secondaryText = stringResource(R.string.onboarding_skip),
                     onSecondary = onSkip,
-                    primaryText = stringResource(R.string.onboarding_install),
+                    primaryText = stringResource(R.string.action_install),
                     onPrimary = onInstall,
                 )
             }

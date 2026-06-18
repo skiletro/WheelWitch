@@ -125,7 +125,7 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
     fun downloadOrUpdate(status: PackStatus) {
         viewModelScope.launch {
             val activeStorage = storage ?: run {
-                _state.value = UiState.Error(app.getString(R.string.vm_storage_not_configured))
+                _state.value = UiState.Error(app.getString(R.string.error_storage_not_configured))
                 return@launch
             }
             try {
@@ -138,7 +138,7 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
                     is PackStatus.UpdateAvailable -> performIncrementalUpdate(activeStorage, status)
                     is PackStatus.Installed -> {
                         // Installed (without server info) means the server was unreachable.
-                        _state.value = UiState.Error(app.getString(R.string.home_cannot_reach_server))
+                        _state.value = UiState.Error(app.getString(R.string.error_cannot_reach_server))
                         return@launch
                     }
                     is PackStatus.UpToDate -> {
@@ -191,7 +191,7 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
     /** Launches Dolphin with the configured ISO and RR.json; reports errors via [state]. */
     fun launchDolphin() {
         val activeStorage = storage ?: run {
-            _state.value = UiState.Error(app.getString(R.string.vm_storage_not_configured))
+            _state.value = UiState.Error(app.getString(R.string.error_storage_not_configured))
             return
         }
         val gameIsoPath = DolphinLauncher.getGameIsoPath(app)

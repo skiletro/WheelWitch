@@ -108,7 +108,7 @@ fun SettingsScreen(
                 Button(onClick = { onDeleteSave(); showDeleteConfirm = false }) { Text(stringResource(R.string.settings_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.settings_cancel)) }
+                TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.action_cancel)) }
             }
         )
     }
@@ -122,7 +122,7 @@ fun SettingsScreen(
                 Button(onClick = { miiMaker.deleteWad(); showWadDeleteConfirm = false }) { Text(stringResource(R.string.settings_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { showWadDeleteConfirm = false }) { Text(stringResource(R.string.settings_cancel)) }
+                TextButton(onClick = { showWadDeleteConfirm = false }) { Text(stringResource(R.string.action_cancel)) }
             }
         )
     }
@@ -168,7 +168,7 @@ fun SettingsScreen(
                 SettingsItem(
                     icon = Icons.Filled.SaveAlt,
                     title = stringResource(R.string.settings_backup),
-                    summary = if (hasSave) stringResource(R.string.settings_save_found) else stringResource(R.string.settings_save_missing),
+                    summary = if (hasSave) stringResource(R.string.settings_save_found) else stringResource(R.string.status_save_not_found),
                     trailing = {
                         Button(
                             onClick = onBackupSave,
@@ -328,7 +328,7 @@ fun SettingsScreen(
                 SettingsItem(
                     icon = Icons.Filled.Dns,
                     title = stringResource(R.string.settings_pack_storage),
-                    summary = packUpdate.storageRootPath ?: stringResource(R.string.settings_not_configured),
+                    summary = packUpdate.storageRootPath ?: stringResource(R.string.error_storage_not_configured),
                     trailing = null
                 )
             }
@@ -393,7 +393,7 @@ fun SettingsScreen(
                 SettingsCategoryHeader(stringResource(R.string.settings_mii_maker_section))
             }
             item {
-                val wadStatus = if (hasWad) stringResource(R.string.settings_installed) else stringResource(R.string.settings_not_installed)
+                val wadStatus = if (hasWad) stringResource(R.string.status_installed) else stringResource(R.string.status_not_installed)
                 SettingsItem(
                     icon = Icons.Filled.Checkroom,
                     title = stringResource(R.string.settings_mii_channel_wad),
@@ -411,7 +411,7 @@ fun SettingsScreen(
                                 onClick = { miiMaker.installMiiMakerWad() },
                                 shape = RoundedCornerShape(14.dp),
                                 contentPadding = ButtonDefaults.TextButtonContentPadding
-                            ) { Text(stringResource(R.string.settings_install)) }
+                            ) { Text(stringResource(R.string.action_install)) }
                         }
                     }
                 )

@@ -93,7 +93,7 @@ fun SaveInfoScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         PrimaryActionButton(
-                            text = stringResource(R.string.save_info_try_again),
+                            text = stringResource(R.string.action_retry),
                             onClick = onRefresh
                         )
                     }
@@ -230,7 +230,7 @@ private fun LicenseCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = stringResource(R.string.save_info_empty),
+                        text = stringResource(R.string.status_empty),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )

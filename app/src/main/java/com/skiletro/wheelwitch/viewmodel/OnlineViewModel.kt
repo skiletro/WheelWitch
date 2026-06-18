@@ -159,7 +159,7 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
                     _leaderboardState.value = if (stateBeforeFetch is LeaderboardState.Success) {
                         stateBeforeFetch
                     } else {
-                        LeaderboardState.Error(e.message ?: getApplication<Application>().getString(R.string.vm_leaderboard_failed))
+                        LeaderboardState.Error(e.message ?: getApplication<Application>().getString(R.string.vm_failed_format, "load leaderboard"))
                     }
                 }
             }
@@ -223,7 +223,7 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
                     serverConnectivity = connectivity
                 )
             }.onFailure { e ->
-                _roomsState.value = RoomsState.Error(e.message ?: getApplication<Application>().getString(R.string.vm_rooms_failed))
+                _roomsState.value = RoomsState.Error(e.message ?: getApplication<Application>().getString(R.string.vm_failed_format, "load rooms"))
             }
         }
     }
@@ -258,7 +258,7 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
                     )
                     _healthState.value = HealthState.Success(liveOnlyHealth)
                 } else {
-                    _healthState.value = HealthState.Error(e.message ?: getApplication<Application>().getString(R.string.vm_health_failed))
+                    _healthState.value = HealthState.Error(e.message ?: getApplication<Application>().getString(R.string.vm_failed_format, "fetch server health"))
                 }
             }
         }
@@ -294,7 +294,7 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
                 if (fallback != null) {
                     _raceStatsState.value = RaceStatsState.Success(fallback.stats, fallback.cachedAt)
                 } else {
-                    _raceStatsState.value = RaceStatsState.Error(e.message ?: getApplication<Application>().getString(R.string.vm_race_stats_failed))
+                    _raceStatsState.value = RaceStatsState.Error(e.message ?: getApplication<Application>().getString(R.string.vm_failed_format, "fetch race stats"))
                 }
             }
         }

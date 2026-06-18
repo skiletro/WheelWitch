@@ -8,37 +8,56 @@
     <string name="cd_online_menu">Online Menu</string>
     <string name="topbar_subtitle">Retro Rewind Pack Manager</string>
 
+    <!-- general actions -->
+    <string name="action_install">Install</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_exit">Exit</string>
+
+    <!-- general status -->
+    <string name="status_checking">Checking...</string>
+    <string name="status_not_installed">Not installed</string>
+    <string name="status_installed">Installed</string>
+    <string name="status_not_installed_format">%s is not installed</string>
+    <string name="status_installed_format">%s is installed!</string>
+    <string name="status_extracting">Extracting files...</string>
+    <string name="status_empty">Empty</string>
+    <string name="status_no_internet">No internet</string>
+    <string name="status_save_not_found">No save file found</string>
+
+    <!-- general errors -->
+    <string name="error_storage_not_configured">Storage not configured</string>
+    <string name="error_cannot_reach_server">Cannot reach the update server. Please check your internet connection and try again.</string>
+    <string name="error_no_internet">No internet connection. Please connect to the internet and try again.</string>
+
+    <!-- viewmodel error messages -->
+    <string name="vm_failed_format">Failed to %s</string>
+    <string name="vm_save_write_failed">Cannot write to selected location</string>
+    <string name="vm_save_read_failed">Cannot read from selected file</string>
+    <string name="vm_unknown_error">Unknown error</string>
+
     <!-- home -->
-    <string name="home_checking">Checking...</string>
-    <string name="home_try_again">Try Again</string>
     <string name="home_check_for_updates">Check for updates</string>
-    <string name="home_install">Install</string>
     <string name="home_update_to">Update to v%s</string>
     <string name="home_launch_retro_rewind">Launch Retro Rewind</string>
     <string name="home_select_rom">Select Mario Kart Wii ROM</string>
-    <string name="home_storage_not_configured">Storage not configured</string>
-    <string name="home_racers_online">● %d racers online</string>
-    <string name="home_offline">● Offline</string>
-    <string name="home_no_internet">● No internet</string>
+    <string name="home_racers_online">%d racers online</string>
+    <string name="home_offline">Offline</string>
     <string name="home_up_to_date">Up to date (v%s)</string>
     <string name="home_version_installed">v%s installed</string>
-    <string name="home_update_format">v%1$s → v%2$s</string>
+    <string name="home_update_format">v%1$s \u2192 v%2$s</string>
     <string name="player_default">Player</string>
-    <string name="home_vr_active_suffix"> VR · %1$sx active</string>
+    <string name="home_vr_active_suffix"> VR \u00b7 %1$sx active</string>
     <string name="home_vr_suffix"> VR</string>
     <string name="home_active_license">Active license</string>
     <string name="home_exit_title">Exit Wheel Witch?</string>
     <string name="home_exit_message">Are you sure you want to close the app?</string>
-    <string name="home_exit_confirm">Exit</string>
-    <string name="home_exit_cancel">Cancel</string>
-    <string name="home_extracting">Extracting files...</string>
     <string name="home_update_step_format">Update %1$d/%2$d: %3$s</string>
     <string name="home_rom_not_found">Mario Kart Wii ROM not found. Please select it again.</string>
     <string name="home_rom_invalid">The selected file is not a valid Mario Kart Wii ROM.</string>
     <string name="home_rom_unreachable">Could not access the selected file.</string>
     <string name="home_no_iso_cant_launch">Cannot resolve storage path. Please pick a new storage folder.</string>
     <string name="home_launch_failed">Failed to launch Dolphin</string>
-    <string name="home_cannot_reach_server">Cannot reach the update server. Please check your internet connection and try again.</string>
 
     <!-- onboarding -->
     <string name="onboarding_welcome_to">Welcome to</string>
@@ -51,10 +70,7 @@
     <string name="onboarding_permission_granted">Access granted!</string>
     <string name="onboarding_dolphin_title">Dolphin Emulator</string>
     <string name="onboarding_dolphin_body">Wheel Witch requires Dolphin Emulator to launch Retro Rewind.</string>
-    <string name="onboarding_dolphin_checking">Checking...</string>
-    <string name="onboarding_dolphin_installed">Dolphin is installed!</string>
     <string name="onboarding_continue">Continue</string>
-    <string name="onboarding_dolphin_not_installed">Dolphin is not installed</string>
     <string name="onboarding_dolphin_install_body">Please install Dolphin Emulator before continuing. You can download it from the official website.</string>
     <string name="onboarding_check_again">Check Again</string>
     <string name="onboarding_download_dolphin">Download Dolphin</string>
@@ -69,14 +85,8 @@
     <string name="onboarding_select_rom">Select ROM File</string>
     <string name="onboarding_mii_title">Mii Channel WAD</string>
     <string name="onboarding_mii_body">Optionally install the Mii Channel WAD to create and edit Miis within Dolphin.</string>
-    <string name="onboarding_mii_checking">Checking...</string>
-    <string name="onboarding_mii_installed">Mii Channel is installed!</string>
     <string name="onboarding_installing">Installing Mii Channel WAD...</string>
-    <string name="onboarding_install">Install</string>
-    <string name="onboarding_retry">Retry</string>
-    <string name="onboarding_mii_not_installed">Not installed</string>
     <string name="onboarding_mii_skip_hint">You can skip this step and install later from Settings if you change your mind.</string>
-    <string name="onboarding_mii_install_failed">Failed to install Mii Channel WAD</string>
     <string name="cd_installing">Installing</string>
     <string name="onboarding_complete_title">You\'re all set!</string>
     <string name="onboarding_complete_body">Everything is ready. Let\'s get you into the main app.</string>
@@ -86,7 +96,6 @@
     <string name="settings_title">Settings</string>
     <string name="settings_save_data">Save Data</string>
     <string name="settings_save_found">Save file found</string>
-    <string name="settings_save_missing">No save file found</string>
     <string name="settings_backup">Backup</string>
     <string name="settings_restore">Restore</string>
     <string name="settings_delete_save">Delete save data</string>
@@ -113,12 +122,10 @@
     <string name="settings_pick">Pick</string>
     <string name="settings_clear">Clear</string>
     <string name="settings_pack_storage">Pack storage</string>
-    <string name="settings_not_configured">Not configured</string>
     <string name="settings_mii_maker_section">Mii Maker</string>
     <string name="settings_mii_channel_wad">Mii Channel WAD</string>
-    <string name="settings_installed">Installed</string>
-    <string name="settings_not_installed">Not installed</string>
     <string name="settings_installing">Installing...</string>
+    <string name="settings_delete">Delete</string>
     <string name="settings_advanced">Advanced</string>
     <string name="settings_download_cache">Download cache</string>
     <string name="settings_mii_face_cache">Mii face cache</string>
@@ -138,10 +145,7 @@
     <string name="settings_delete_save_dialog_body">Are you sure you want to delete the save file? This cannot be undone.</string>
     <string name="settings_delete_wad_dialog_title">Delete Mii Channel WAD</string>
     <string name="settings_delete_wad_dialog_body">Delete the cached Mii Channel WAD file? It will be re-downloaded the next time you use Mii Maker.</string>
-    <string name="settings_delete">Delete</string>
-    <string name="settings_cancel">Cancel</string>
     <string name="settings_replace_save_sub">Replace current save with a backup</string>
-    <string name="settings_install">Install</string>
     <string name="settings_shortcut_short">Quick Launch</string>
     <string name="settings_shortcut_long">Launch Retro Rewind</string>
     <string name="settings_about_summary">%1$s \u2014 %2$s</string>
@@ -163,7 +167,6 @@
     <!-- leaderboard -->
     <string name="leaderboard_title">Leaderboard</string>
     <string name="leaderboard_no_entries">No entries yet.</string>
-    <string name="leaderboard_retry">Retry</string>
     <string name="leaderboard_rank_format">#%d</string>
     <string name="leaderboard_vr_label">VR</string>
 
@@ -171,10 +174,8 @@
     <string name="rooms_title">Online Rooms</string>
     <string name="rooms_no_rooms">No rooms found.</string>
     <string name="rooms_select_a_room">Select a room</string>
-    <string name="rooms_try_again">Try Again</string>
     <string name="rooms_refresh">Refresh</string>
     <string name="rooms_open">Open</string>
-    <string name="rooms_empty">Empty</string>
     <string name="rooms_player_count_format">%1$d player%2$s</string>
     <string name="rooms_joinable">Joinable</string>
     <string name="rooms_visibility_public">Public</string>
@@ -197,11 +198,8 @@
     <string name="health_postgresql">PostgreSQL</string>
     <string name="health_retro_wfc_api">Retro WFC API</string>
     <string name="health_memory">Memory</string>
-    <string name="health_retry">Retry</string>
     <string name="health_indicator_online">Server online</string>
     <string name="health_indicator_offline">Server offline</string>
-    <string name="health_indicator_no_internet">No internet</string>
-    <string name="health_indicator_checking">Checking...</string>
     <string name="health_usage_format">Usage: %.1f%%</string>
     <string name="health_usage_with_total_format">Usage: %1$.1f%% (%2$s / %3$s)</string>
     <string name="health_usage_with_used_format">Usage: %1$.1f%% (%2$s)</string>
@@ -209,7 +207,6 @@
 
     <!-- race stats -->
     <string name="race_stats_title">Race Statistics</string>
-    <string name="race_stats_retry">Retry</string>
     <string name="race_stats_races">Races</string>
     <string name="race_stats_players">Players</string>
     <string name="race_stats_since">Since</string>
@@ -238,37 +235,16 @@
 
     <!-- save info -->
     <string name="save_info_title">Licenses</string>
-    <string name="save_info_try_again">Try Again</string>
-    <string name="save_info_empty">Empty</string>
     <string name="save_info_race_format">Race: W %1$d / L %2$d</string>
 
     <!-- quick launch -->
     <string name="quick_launch_storage_error">Storage not configured.\nOpen Wheel Witch first to set up your pack location.</string>
-    <string name="quick_launch_cannot_reach_server">Cannot reach the update server.\nCheck your internet connection.</string>
     <string name="quick_launch_checking">Checking for updates...</string>
-    <string name="quick_launch_extracting">Extracting files...</string>
     <string name="quick_launch_preparing">Preparing...</string>
     <string name="quick_launch_up_to_date">Everything\'s up to date!</string>
     <string name="quick_launch_starting_in">Starting in %d...</string>
     <string name="quick_launch_launching">Launching!</string>
     <string name="quick_launch_launching_dolphin">Launching Dolphin Emulator...</string>
-    <string name="quick_launch_exit">Exit</string>
-
-    <!-- viewmodel error messages -->
-    <string name="vm_storage_not_configured">Storage not configured</string>
-    <string name="vm_no_internet">No internet connection. Please connect to the internet and try again.</string>
-    <string name="vm_mii_install_failed">Failed to install Mii Maker WAD</string>
-    <string name="vm_mii_launch_failed">Failed to launch Mii Maker</string>
-    <string name="vm_rooms_failed">Failed to load rooms</string>
-    <string name="vm_leaderboard_failed">Failed to load leaderboard</string>
-    <string name="vm_health_failed">Failed to fetch server health</string>
-    <string name="vm_race_stats_failed">Failed to fetch race stats</string>
-    <string name="vm_save_info_failed">Failed to read save data</string>
-    <string name="vm_save_not_found">Save file not found</string>
-    <string name="vm_save_write_failed">Cannot write to selected location</string>
-    <string name="vm_save_read_failed">Cannot read from selected file</string>
-    <string name="vm_save_no_save_file">No save file found</string>
-    <string name="vm_unknown_error">Unknown error</string>
 
     <!-- version history -->
     <string name="version_history_title">Version History</string>
@@ -282,7 +258,4 @@
     <string name="settings_my_stuff_disabled">Disabled</string>
     <string name="settings_my_stuff_music">Music Only</string>
     <string name="settings_my_stuff_everything">Everything</string>
-
-
-    <!-- formatting helpers -->
 </resources>

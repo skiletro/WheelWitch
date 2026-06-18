@@ -63,7 +63,7 @@ class MiiMakerViewModel(application: Application) : AndroidViewModel(application
                     MiiWadInstaller.launchWadFile(app, cached).getOrThrow()
                 }
             } catch (e: Exception) {
-                _miiMakerError.value = e.message ?: app.getString(R.string.vm_mii_launch_failed)
+                _miiMakerError.value = e.message ?: app.getString(R.string.vm_failed_format, "launch Mii Maker")
             }
         }
     }
@@ -81,7 +81,7 @@ class MiiMakerViewModel(application: Application) : AndroidViewModel(application
                 _miiMakerError.value = null
                 try {
                     if (!app.isNetworkAvailable()) {
-                        _miiMakerError.value = app.getString(R.string.vm_no_internet)
+                        _miiMakerError.value = app.getString(R.string.error_no_internet)
                         return@withLock
                     }
                     withContext(Dispatchers.IO) {
@@ -89,7 +89,7 @@ class MiiMakerViewModel(application: Application) : AndroidViewModel(application
                     }
                     refreshHasWad()
                 } catch (e: Exception) {
-                    _miiMakerError.value = e.message ?: app.getString(R.string.vm_mii_install_failed)
+                    _miiMakerError.value = e.message ?: app.getString(R.string.vm_failed_format, "install Mii Maker WAD")
                 } finally {
                     _isInstallingWad.value = false
                 }

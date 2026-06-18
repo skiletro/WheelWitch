@@ -119,7 +119,7 @@ fun QuickLaunchScreen(
                         ProgressBar(s.progress)
                     }
                     is UiState.Extracting -> {
-                        StatusMessage(stringResource(R.string.quick_launch_extracting))
+                        StatusMessage(stringResource(R.string.status_extracting))
                         Spacer(modifier = Modifier.height(24.dp))
                         ProgressBar(s.progress)
                     }
@@ -131,7 +131,7 @@ fun QuickLaunchScreen(
                     is UiState.Ready -> {
                         when (s.status) {
                             is PackStatus.Installed -> {
-                                StatusMessage(stringResource(R.string.quick_launch_cannot_reach_server), isError = true)
+                                StatusMessage(stringResource(R.string.error_cannot_reach_server), isError = true)
                                 Spacer(modifier = Modifier.height(24.dp))
                                 ExitButton(onClick = onFinish)
                             }
@@ -177,7 +177,7 @@ private fun ExitButton(onClick: () -> Unit) {
         shape = buttonShape,
         modifier = Modifier.height(48.dp)
     ) {
-        Text(stringResource(R.string.quick_launch_exit), fontWeight = FontWeight.Medium)
+        Text(stringResource(R.string.action_exit), fontWeight = FontWeight.Medium)
     }
 }
 

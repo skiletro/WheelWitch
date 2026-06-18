@@ -215,11 +215,11 @@ private fun HealthIndicator(
         }
         com.skiletro.wheelwitch.model.ServerConnectivity.NoInternet -> {
             dotColor = MaterialTheme.colorScheme.onSurfaceVariant
-            label = stringResource(R.string.health_indicator_no_internet)
+            label = stringResource(R.string.status_no_internet)
         }
         else -> {
             dotColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-            label = stringResource(R.string.health_indicator_checking)
+            label = stringResource(R.string.status_checking)
         }
     }
 

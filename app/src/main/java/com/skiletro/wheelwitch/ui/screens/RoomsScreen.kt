@@ -112,7 +112,7 @@ fun RoomsScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         PrimaryActionButton(
-                            text = stringResource(R.string.rooms_try_again),
+                            text = stringResource(R.string.action_retry),
                             onClick = onRefresh
                         )
                     }
@@ -226,7 +226,7 @@ fun RoomListItem(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = room.players.firstOrNull()?.name ?: stringResource(R.string.rooms_empty),
+                        text = room.players.firstOrNull()?.name ?: stringResource(R.string.status_empty),
                         fontWeight = FontWeight.SemiBold,
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1,
