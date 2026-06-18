@@ -105,15 +105,16 @@ fun SaveInfoScreen(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        for (i in 0..3 step 2) {
+                        // Render licenses in pairs (2x2 grid).
+                        saveFileInfo.licenses.chunked(2).forEach { pair ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .weight(1f),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                val left = saveFileInfo.licenses.getOrNull(i)
-                                val right = saveFileInfo.licenses.getOrNull(i + 1)
+                                val left = pair.getOrNull(0)
+                                val right = pair.getOrNull(1)
                                 LicenseCard(
                                     license = left,
                                     isSelected = left?.slotIndex == selectedSlotIndex,
@@ -145,23 +146,21 @@ private fun LicenseCard(
     onSelect: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val info = license
-
     val backgroundColor = when {
-        info?.exists != true -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        license?.exists != true -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         else -> MaterialTheme.colorScheme.surfaceVariant
     }
 
     FocusableSurface(
         modifier = modifier,
         onClick = onSelect,
-        enabled = info?.exists == true,
+        enabled = license?.exists == true,
         selected = isSelected,
         shape = cardShape,
         color = backgroundColor
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            if (info?.exists == true) {
+            if (license?.exists == true) {
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
@@ -169,20 +168,20 @@ private fun LicenseCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     MiiFace(
-                        imageBase64 = info.leaderboardMiiImageBase64,
-                        miiDataBase64 = info.miiDataBase64,
+                        imageBase64 = license.leaderboardMiiImageBase64,
+                        miiDataBase64 = license.miiDataBase64,
                         modifier = Modifier.size(84.dp)
                     )
                     Spacer(modifier = Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = info.miiName ?: stringResource(R.string.player_default),
+                            text = license.miiName ?: stringResource(R.string.player_default),
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleLarge,
                             maxLines = 1,
                             fontFamily = CtmkfFontFamily
                         )
-                        info.friendCode?.let { fc ->
+                        license.friendCode?.let { fc ->
                             Text(
                                 text = fc,
                                 style = MaterialTheme.typography.bodyMedium,
@@ -194,14 +193,14 @@ private fun LicenseCard(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            val displayVr = info.leaderboardVr ?: cachedLeaderboardVr ?: info.vr
-                            StatLabel("VR", displayVr)
+                            val displayVr = license.leaderboardVr ?: cachedLeaderboardVr ?: license.vr
+                            StatLabel(stringResource(R.string.leaderboard_vr_label), displayVr)
                         }
                         Spacer(modifier = Modifier.height(2.dp))
-                        val rW = info.raceWins ?: 0
-                        val rL = info.raceLosses ?: 0
+                        val raceWins = license.raceWins ?: 0
+                        val raceLosses = license.raceLosses ?: 0
                         Text(
-                            text = stringResource(R.string.save_info_race_format, rW, rL),
+                            text = stringResource(R.string.save_info_race_format, raceWins, raceLosses),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

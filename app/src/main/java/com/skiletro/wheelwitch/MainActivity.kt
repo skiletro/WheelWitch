@@ -1,5 +1,6 @@
 package com.skiletro.wheelwitch
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -19,13 +20,13 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -44,6 +45,9 @@ import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 import com.skiletro.wheelwitch.viewmodel.PackUpdateViewModel
 import com.skiletro.wheelwitch.viewmodel.SaveDataViewModel
+
+private const val ONBOARDING_TRANSITION_MS = 300
+private val ISO_MIME_TYPES = arrayOf("application/octet-stream", "*/*")
 
 /** Single-activity entry point. Hosts [HomeScreen] with onboarding wizard, settings navigation, and save info/rooms overlays. */
 class MainActivity : ComponentActivity() {
@@ -113,7 +117,7 @@ private fun MainScreen(
     themeMode: ThemeMode = ThemeMode.System,
     onChangeThemeMode: (ThemeMode) -> Unit = {}
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences(PrefsKeys.SETTINGS_PREFS, Context.MODE_PRIVATE) }
     var quickLaunchMode by remember { mutableStateOf(quickLaunchFromIntent) }
     var onboardingComplete by remember { mutableStateOf(prefs.getBoolean(PrefsKeys.ONBOARDING_COMPLETED_KEY, false)) }
@@ -176,24 +180,28 @@ private fun MainScreen(
         if (quickLaunchMode) {
             QuickLaunchScreen(
                 viewModel = packUpdate,
-                onFinish = { (context as? android.app.Activity)?.finish() }
+                onFinish = { (context as? Activity)?.finish() }
             )
         } else {
             AnimatedContent(
                 targetState = onboardingComplete,
                 transitionSpec = {
-                    fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+                    fadeIn(tween(ONBOARDING_TRANSITION_MS)) togetherWith fadeOut(tween(ONBOARDING_TRANSITION_MS))
                 },
                 label = "onboarding_transition"
             ) { completed ->
                 if (completed) {
+                    // HomeScreen is removed from composition when settings is open (if-guard);
+                    // SettingsScreen uses AnimatedVisibility so it can slide in/out. The two
+                    // mechanisms are intentionally different: home disappears instantly to
+                    // avoid double-draw during the slide animation.
                     if (!showSettings) {
                         HomeScreen(
                             packUpdate = packUpdate,
                             saveData = saveData,
                             miiMaker = miiMaker,
                             onlineViewModel = onlineViewModel,
-                            onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
+                            onPickIso = { isoPicker.launch(ISO_MIME_TYPES) },
                             onOpenSettings = { showSettings = true }
                         )
                     }
@@ -208,14 +216,14 @@ private fun MainScreen(
                             saveData = saveData,
                             miiMaker = miiMaker,
                             onBackupSave = { backupPicker.launch("rksys.dat") },
-                            onRestoreSave = { restorePicker.launch(arrayOf("application/octet-stream", "*/*")) },
+                            onRestoreSave = { restorePicker.launch(ISO_MIME_TYPES) },
                             onDeleteSave = { saveData.deleteSave() },
                             onClose = { showSettings = false },
                             appTheme = appTheme,
                             onChangeAppTheme = onChangeAppTheme,
                             themeMode = themeMode,
                             onChangeThemeMode = onChangeThemeMode,
-                            onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
+                            onPickIso = { isoPicker.launch(ISO_MIME_TYPES) },
                             onSimulateQuickLaunch = { quickLaunchMode = true },
                             onRelaunchOnboarding = {
                                 prefs.edit().putBoolean(PrefsKeys.ONBOARDING_COMPLETED_KEY, false).apply()
@@ -234,7 +242,7 @@ private fun MainScreen(
                         isoConfigured = DolphinLauncher.getGameIsoPath(context) != null,
                         onPickStorage = { storagePicker.launch(null) },
                         onSkipStorage = { onboardingStorageSelected = true },
-                        onPickIso = { isoPicker.launch(arrayOf("application/octet-stream", "*/*")) },
+                        onPickIso = { isoPicker.launch(ISO_MIME_TYPES) },
                         onSkipIso = { onboardingIsoSelected = true },
                         onComplete = {
                             prefs.edit().putBoolean(PrefsKeys.ONBOARDING_COMPLETED_KEY, true).apply()
