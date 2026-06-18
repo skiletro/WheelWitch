@@ -2,13 +2,26 @@ package com.skiletro.wheelwitch.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Purple palette (dark)
+/**
+ * Per-theme color tokens.
+ *
+ * The `80`/`40` suffix follows Material 3 tonal palette notation: `80`
+ * is the tone used on dark themes (lighter accent) and `40` is the tone
+ * used on light themes (darker accent). The `On*` variants are the
+ * foreground colors that sit on top of the matching accent.
+ *
+ * Each palette block declares four roles: primary, secondary, tertiary,
+ * and the on-primary foreground. Other roles (background, surface, etc.)
+ * are either inlined in [Theme.kt] or left to Material 3 defaults.
+ */
+
+// Hex palette (dark) — the default brand theme
 val Purple80 = Color(0xFFD0B0FF)
 val PurpleGrey80 = Color(0xFFB8A0CC)
 val LightPurple80 = Color(0xFFFFB3D0)
 val OnPurple80 = Color(0xFF3D0080)
 
-// Purple palette (light)
+// Hex palette (light)
 val Purple40 = Color(0xFF6A1B9A)
 val PurpleGrey40 = Color(0xFF7B5293)
 val LightPurple40 = Color(0xFF942D66)
@@ -25,9 +38,10 @@ val SwampGreenGrey40 = Color(0xFF388E3C)
 val SwampLightGreen40 = Color(0xFF1B5E20)
 val OnSwampGreen40 = Color.White
 
-// Wizard palette (dark)
+// Wizard palette (dark) — based on the WheelWizard project palette
 val WizardTeal80 = Color(0xFF00A488)
 val WizardTealGrey80 = Color(0xFF4DB6AC)
+// Wizard's tertiary is a neutral grey rather than a light accent.
 val WizardNeutral80 = Color(0xFF8B91A5)
 val OnWizardTeal80 = Color(0xFF00332A)
 // Wizard palette (light)
@@ -46,3 +60,9 @@ val CatppuccinMauve40 = Color(0xFF8839EF)
 val CatppuccinLavender40 = Color(0xFF7287FD)
 val CatppuccinSky40 = Color(0xFF04A5E5)
 val OnCatppuccinMauve40 = Color.White
+
+// OLED overrides — applied on top of any dark scheme when ThemeMode.Oled is active
+val OledSurfaceVariant = Color(0xFF121212)
+val OledOnBackground = Color(0xFFE0E0E0)
+val OledOnSurface = Color(0xFFE0E0E0)
+val OledOnSurfaceVariant = Color(0xFFB0B0B0)

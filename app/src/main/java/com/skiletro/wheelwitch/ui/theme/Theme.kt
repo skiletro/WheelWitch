@@ -16,7 +16,8 @@ import androidx.compose.ui.platform.LocalContext
 import android.app.Activity
 import com.skiletro.wheelwitch.R
 
-private val PurpleDarkColorScheme = darkColorScheme(
+// Hex scheme: primary/secondary/tertiary roles only; background/surface/etc. use Material defaults.
+private val HexDarkColorScheme = darkColorScheme(
     primary = Purple80,
     onPrimary = OnPurple80,
     primaryContainer = Color(0xFF4A0080),
@@ -31,7 +32,7 @@ private val PurpleDarkColorScheme = darkColorScheme(
     onTertiaryContainer = Color(0xFFFFD9E4)
 )
 
-private val PurpleLightColorScheme = lightColorScheme(
+private val HexLightColorScheme = lightColorScheme(
     primary = Purple40,
     onPrimary = OnPurple40,
     primaryContainer = Color(0xFFF0E0FF),
@@ -46,6 +47,7 @@ private val PurpleLightColorScheme = lightColorScheme(
     onTertiaryContainer = Color(0xFF3E0020)
 )
 
+// Swamp scheme: primary/secondary/tertiary roles only; background/surface/etc. use Material defaults.
 private val SwampDarkColorScheme = darkColorScheme(
     primary = SwampGreen80,
     onPrimary = OnSwampGreen80,
@@ -76,6 +78,7 @@ private val SwampLightColorScheme = lightColorScheme(
     onTertiaryContainer = Color(0xFF002106)
 )
 
+// Wizard scheme: fully specified including background/surface.
 private val WizardDarkColorScheme = darkColorScheme(
     primary = WizardTeal80,
     onPrimary = OnWizardTeal80,
@@ -120,6 +123,7 @@ private val WizardLightColorScheme = lightColorScheme(
     outline = Color(0xFFB4B8C5),
 )
 
+// Catppuccin scheme: fully specified, based on the official Mocha/Latte palettes.
 private val CatppuccinDarkColorScheme = darkColorScheme(
     primary = CatppuccinMauve80,
     onPrimary = OnCatppuccinMauve80,
@@ -164,6 +168,15 @@ private val CatppuccinLightColorScheme = lightColorScheme(
     outline = Color(0xFF9CA0B0),
 )
 
+/**
+ * How the dark/light scheme is chosen.
+ *
+ * - [Light]: always light.
+ * - [Dark]: always dark.
+ * - [Oled]: always dark, plus pure-black background/surface overrides
+ *   for AMOLED displays.
+ * - [System]: follow the system setting.
+ */
 enum class ThemeMode { Light, Dark, Oled, System }
 
 enum class AppTheme(val labelRes: Int) {
@@ -175,7 +188,7 @@ enum class AppTheme(val labelRes: Int) {
 
     @Composable
     fun colorScheme(darkTheme: Boolean): ColorScheme = when (this) {
-        Hex -> if (darkTheme) PurpleDarkColorScheme else PurpleLightColorScheme
+        Hex -> if (darkTheme) HexDarkColorScheme else HexLightColorScheme
         Swamp -> if (darkTheme) SwampDarkColorScheme else SwampLightColorScheme
         Wizard -> if (darkTheme) WizardDarkColorScheme else WizardLightColorScheme
         Catppuccin -> if (darkTheme) CatppuccinDarkColorScheme else CatppuccinLightColorScheme
@@ -201,16 +214,18 @@ fun WheelWitchTheme(
         if (themeMode == ThemeMode.Oled) scheme.copy(
             background = Color.Black,
             surface = Color.Black,
-            surfaceVariant = Color(0xFF121212),
-            onBackground = Color(0xFFE0E0E0),
-            onSurface = Color(0xFFE0E0E0),
-            onSurfaceVariant = Color(0xFFB0B0B0),
+            surfaceVariant = OledSurfaceVariant,
+            onBackground = OledOnBackground,
+            onSurface = OledOnSurface,
+            onSurfaceVariant = OledOnSurfaceVariant,
         ) else scheme
     }
 
     val statusColors = if (darkTheme) DarkStatusColors else LightStatusColors
 
     val context = LocalContext.current
+    // Keep the Activity window background in sync with the theme so the status bar
+    // area matches during recomposition and there is no white flash on theme change.
     SideEffect {
         (context as? Activity)?.window?.decorView?.setBackgroundColor(
             colorScheme.background.toArgb()
