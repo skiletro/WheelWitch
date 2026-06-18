@@ -3,6 +3,7 @@ package com.skiletro.wheelwitch.data
 import java.util.Base64
 import com.skiletro.wheelwitch.model.LicenseInfo
 import com.skiletro.wheelwitch.model.SaveFileInfo
+import com.skiletro.wheelwitch.util.ByteReader
 import java.security.MessageDigest
 
 /** Parses a Mario Kart Wii `rksys.dat` save file (big-endian binary format, RKPD magic) into [SaveFileInfo]. */
@@ -48,11 +49,11 @@ object RksysParser {
             return LicenseInfo(slotIndex = slotIndex, exists = false)
         }
 
-        val miiName = readUTF16BE(bytes, base + MII_NAME_OFFSET, MII_NAME_LENGTH)
-        val pid = readUInt32BE(bytes, base + PID_OFFSET)
-        val vr = readUInt16BE(bytes, base + VR_OFFSET)
-        val raceWins = readInt32BE(bytes, base + RACE_WINS_OFFSET)
-        val raceLosses = readInt32BE(bytes, base + RACE_LOSSES_OFFSET)
+        val miiName = ByteReader.readUTF16BE(bytes, base + MII_NAME_OFFSET, MII_NAME_LENGTH)
+        val pid = ByteReader.readUInt32BE(bytes, base + PID_OFFSET)
+        val vr = ByteReader.readUInt16BE(bytes, base + VR_OFFSET)
+        val raceWins = ByteReader.readInt32BE(bytes, base + RACE_WINS_OFFSET)
+        val raceLosses = ByteReader.readInt32BE(bytes, base + RACE_LOSSES_OFFSET)
 
         val miiDataBase64 = if (base + MII_RFL_OFFSET + MII_RFL_DATA_LENGTH <= bytes.size) {
             val rflData = bytes.copyOfRange(base + MII_RFL_OFFSET, base + MII_RFL_OFFSET + MII_RFL_DATA_LENGTH)
@@ -107,42 +108,5 @@ object RksysParser {
         return "${fcStr.substring(0, 4)}-${fcStr.substring(4, 8)}-${fcStr.substring(8, 12)}"
     }
 
-    private fun readUInt16BE(bytes: ByteArray, offset: Int): Int {
-        if (offset + 2 > bytes.size) return 0
-        return ((bytes[offset].toInt() and 0xFF) shl 8) or (bytes[offset + 1].toInt() and 0xFF)
-    }
 
-    private fun readUInt32BE(bytes: ByteArray, offset: Int): Long {
-        if (offset + 4 > bytes.size) return 0
-        return (((bytes[offset].toInt() and 0xFF).toLong() shl 24) or
-                ((bytes[offset + 1].toInt() and 0xFF).toLong() shl 16) or
-                ((bytes[offset + 2].toInt() and 0xFF).toLong() shl 8) or
-                (bytes[offset + 3].toInt() and 0xFF).toLong())
-    }
-
-    /** Signed variant of [readUInt32BE]; returns the same 4 bytes as a Kotlin [Int]. */
-    private fun readInt32BE(bytes: ByteArray, offset: Int): Int {
-        if (offset + 4 > bytes.size) return 0
-        return ((bytes[offset].toInt() and 0xFF) shl 24) or
-                ((bytes[offset + 1].toInt() and 0xFF) shl 16) or
-                ((bytes[offset + 2].toInt() and 0xFF) shl 8) or
-                (bytes[offset + 3].toInt() and 0xFF)
-    }
-
-    /**
-     * Reads a null-terminated UTF-16BE string of up to [maxBytes] bytes.
-     * Surrogate pairs are not handled (Mii names are BMP-only), so each
-     * 2-byte word is treated as one code unit.
-     */
-    private fun readUTF16BE(bytes: ByteArray, offset: Int, maxBytes: Int): String {
-        if (offset + 2 > bytes.size) return ""
-        val end = offset + maxBytes.coerceAtMost(bytes.size - offset)
-        val sb = StringBuilder()
-        for (i in offset until end step 2) {
-            val codeUnit = ((bytes[i].toInt() and 0xFF) shl 8) or (bytes[i + 1].toInt() and 0xFF)
-            if (codeUnit == 0) break
-            sb.append(codeUnit.toChar())
-        }
-        return sb.toString()
-    }
 }

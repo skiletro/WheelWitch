@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.FileProvider
+import com.skiletro.wheelwitch.data.GameTypeParser
 import com.skiletro.wheelwitch.util.DolphinLauncher
 import java.io.File
 import java.io.FileInputStream
@@ -16,13 +17,6 @@ object MiiWadInstaller {
     private const val WAD_FILE_NAME = "Mii Channel Symbols - HACS.wad"
     private const val ZIP_FILE_NAME = "mii_channel_symbols.zip"
     private const val CACHE_DIR_NAME = "mii_maker"
-
-    /**
-     * Magic first 4 bytes of a valid Wii WAD file: the header-length field set
-     * to 0x20 (32 bytes). Used by [isValidWad] to reject obviously bad files
-     * before handing them to Dolphin.
-     */
-    private val WAD_HEADER_MAGIC = byteArrayOf(0x00, 0x00, 0x00, 0x20)
 
     /** Returns the cached WAD file from `cache/mii_maker/`, or null if not yet downloaded. */
     fun getCachedWadFile(context: Context): File? {
@@ -64,8 +58,7 @@ object MiiWadInstaller {
     fun isValidWad(file: File): Boolean {
         return try {
             val bytes = file.readBytes()
-            bytes.size >= WAD_HEADER_MAGIC.size &&
-                bytes.copyOfRange(0, WAD_HEADER_MAGIC.size).contentEquals(WAD_HEADER_MAGIC)
+            GameTypeParser.checkValidity(file.name, bytes)
         } catch (_: Exception) {
             false
         }
