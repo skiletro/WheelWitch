@@ -26,11 +26,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -43,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
@@ -154,7 +150,7 @@ private fun HubPage(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             HubOption(
-                icon = Icons.Default.Person,
+                icon = ImageVector.vectorResource(R.drawable.ic_person),
                 title = stringResource(R.string.online_rooms),
                 description = stringResource(R.string.online_rooms_desc),
                 onClick = { viewModel.navigateTo(OnlineMenuPage.Rooms) },
@@ -163,7 +159,7 @@ private fun HubPage(
                 animatedContentScope = animatedContentScope,
             )
             HubOption(
-                icon = Icons.Default.Star,
+                icon = ImageVector.vectorResource(R.drawable.ic_star),
                 title = stringResource(R.string.online_leaderboard),
                 description = stringResource(R.string.online_leaderboard_desc),
                 onClick = { viewModel.navigateTo(OnlineMenuPage.Leaderboard) },
@@ -172,7 +168,7 @@ private fun HubPage(
                 animatedContentScope = animatedContentScope,
             )
             HubOption(
-                icon = Icons.Default.Favorite,
+                icon = ImageVector.vectorResource(R.drawable.ic_favorite),
                 title = stringResource(R.string.online_server_health),
                 description = stringResource(R.string.online_server_health_desc),
                 onClick = { viewModel.navigateTo(OnlineMenuPage.Health) },
@@ -181,7 +177,7 @@ private fun HubPage(
                 animatedContentScope = animatedContentScope,
             )
             HubOption(
-                icon = Icons.Default.PlayArrow,
+                icon = ImageVector.vectorResource(R.drawable.ic_play_arrow),
                 title = stringResource(R.string.online_race_stats),
                 description = stringResource(R.string.online_race_stats_desc),
                 onClick = { viewModel.navigateTo(OnlineMenuPage.RaceStats) },
@@ -190,7 +186,7 @@ private fun HubPage(
                 animatedContentScope = animatedContentScope,
             )
             HubOption(
-                icon = Icons.Default.Star,
+                icon = ImageVector.vectorResource(R.drawable.ic_star),
                 title = stringResource(R.string.online_time_trials),
                 description = stringResource(R.string.online_time_trials_desc),
                 enabled = false

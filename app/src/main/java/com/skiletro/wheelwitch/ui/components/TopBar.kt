@@ -15,11 +15,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Checkroom
-import androidx.compose.material.icons.filled.Dns
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,7 +27,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
@@ -110,14 +107,14 @@ fun TopBar(
         }
         IconButton(onClick = onOpenOnlineMenu, enabled = onlineMenuEnabled) {
             Icon(
-                imageVector = Icons.Filled.Dns,
+                imageVector = ImageVector.vectorResource(R.drawable.ic_dns),
                 contentDescription = stringResource(R.string.cd_online_menu),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         IconButton(onClick = onOpenSaveInfo) {
             Icon(
-                imageVector = Icons.Filled.Person,
+                imageVector = ImageVector.vectorResource(R.drawable.ic_person),
                 contentDescription = stringResource(R.string.cd_save_data),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -127,7 +124,7 @@ fun TopBar(
             enabled = miiMakerEnabled
         ) {
             Icon(
-                imageVector = Icons.Filled.Checkroom,
+                imageVector = ImageVector.vectorResource(R.drawable.ic_checkroom),
                 contentDescription = stringResource(R.string.cd_mii_maker),
                 tint = if (miiMakerEnabled) MaterialTheme.colorScheme.onSurfaceVariant
                 else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledIconAlpha),
@@ -136,7 +133,7 @@ fun TopBar(
         }
         IconButton(onClick = onOpenSettings) {
             Icon(
-                imageVector = Icons.Filled.Settings,
+                imageVector = ImageVector.vectorResource(R.drawable.ic_settings),
                 contentDescription = stringResource(R.string.cd_settings),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )

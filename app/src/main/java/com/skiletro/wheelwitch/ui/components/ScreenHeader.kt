@@ -7,9 +7,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -22,7 +19,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
@@ -67,7 +66,7 @@ fun ScreenHeader(
                     .focusBorder(backFocused)
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_back),
                     contentDescription = stringResource(R.string.cd_back),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -96,7 +95,7 @@ fun ScreenHeader(
                     .focusBorder(refreshFocused)
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Refresh,
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_refresh),
                     contentDescription = stringResource(R.string.cd_refresh),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -21,23 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.automirrored.filled.Shortcut
-import androidx.compose.material.icons.filled.Cached
-import androidx.compose.material.icons.filled.Checkroom
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Dns
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Gamepad
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Nightlight
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Restore
-import androidx.compose.material.icons.filled.SaveAlt
-import androidx.compose.material.icons.filled.BugReport
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -59,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -158,7 +142,7 @@ fun SettingsScreen(
         ) {
             IconButton(onClick = onClose) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_back),
                     contentDescription = stringResource(R.string.cd_back),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -184,7 +168,7 @@ fun SettingsScreen(
             }
             item {
                 SettingsItem(
-                    icon = Icons.Filled.SaveAlt,
+                    icon = ImageVector.vectorResource(R.drawable.ic_save_alt),
                     title = stringResource(R.string.settings_backup),
                     summary = if (hasSave) stringResource(R.string.settings_save_found) else stringResource(
                         R.string.status_save_not_found
@@ -208,7 +192,7 @@ fun SettingsScreen(
                     }
                 )
                 SettingsItem(
-                    icon = Icons.Filled.Restore,
+                    icon = ImageVector.vectorResource(R.drawable.ic_restore),
                     title = stringResource(R.string.settings_restore),
                     summary = stringResource(R.string.settings_replace_save_sub),
                     trailing = {
@@ -230,7 +214,7 @@ fun SettingsScreen(
                 )
                 if (hasSave) {
                     SettingsItem(
-                        icon = Icons.Filled.Delete,
+                        icon = ImageVector.vectorResource(R.drawable.ic_delete),
                         title = stringResource(R.string.settings_delete_save),
                         titleColor = MaterialTheme.colorScheme.error,
                         summary = stringResource(R.string.settings_delete_save_sub),
@@ -253,7 +237,7 @@ fun SettingsScreen(
             item {
                 val appThemeLabel = stringResource(appTheme.labelRes)
                 SettingsItem(
-                    icon = Icons.Filled.Palette,
+                    icon = ImageVector.vectorResource(R.drawable.ic_palette),
                     title = stringResource(R.string.settings_app_theme),
                     summary = appThemeLabel,
                     trailing = {
@@ -282,7 +266,7 @@ fun SettingsScreen(
                     }
                 )
                 SettingsItem(
-                    icon = Icons.Filled.Nightlight,
+                    icon = ImageVector.vectorResource(R.drawable.ic_nightlight),
                     title = stringResource(R.string.settings_dark_mode),
                     summary = when (themeMode) {
                         ThemeMode.Light -> stringResource(R.string.settings_always_light)
@@ -345,7 +329,7 @@ fun SettingsScreen(
                     else fileName
                 } else null
                 SettingsItem(
-                    icon = Icons.Filled.Gamepad,
+                    icon = ImageVector.vectorResource(R.drawable.ic_gamepad),
                     title = stringResource(R.string.settings_mario_kart_wii),
                     summary = fileSummary ?: stringResource(R.string.settings_rom_not_selected),
                     trailing = {
@@ -364,7 +348,7 @@ fun SettingsScreen(
                     }
                 )
                 SettingsItem(
-                    icon = Icons.Filled.Dns,
+                    icon = ImageVector.vectorResource(R.drawable.ic_dns),
                     title = stringResource(R.string.settings_pack_storage),
                     summary = packUpdate.storageRootPath
                         ?: stringResource(R.string.error_storage_not_configured),
@@ -379,7 +363,7 @@ fun SettingsScreen(
             item {
                 val myStuffMode by packUpdate.myStuffMode.collectAsState()
                 SettingsItem(
-                    icon = Icons.Filled.Folder,
+                    icon = ImageVector.vectorResource(R.drawable.ic_folder),
                     title = stringResource(R.string.settings_my_stuff),
                     summary = stringResource(R.string.settings_my_stuff_summary),
                     trailing = {
@@ -435,7 +419,7 @@ fun SettingsScreen(
                 val wadStatus =
                     if (hasWad) stringResource(R.string.status_installed) else stringResource(R.string.status_not_installed)
                 SettingsItem(
-                    icon = Icons.Filled.Checkroom,
+                    icon = ImageVector.vectorResource(R.drawable.ic_checkroom),
                     title = stringResource(R.string.settings_mii_channel_wad),
                     summary = if (miiMakerError != null) miiMakerError else wadStatus,
                     summaryColor = if (miiMakerError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -474,7 +458,7 @@ fun SettingsScreen(
                     mutableStateOf(loggingPrefs.getBoolean(PrefsKeys.LOGGING_TO_FILE_KEY, false))
                 }
                 SettingsItem(
-                    icon = Icons.Filled.Save,
+                    icon = ImageVector.vectorResource(R.drawable.ic_save),
                     title = stringResource(R.string.settings_logging_to_file),
                     summary = stringResource(R.string.settings_logging_to_file_sub),
                     trailing = {
@@ -490,7 +474,7 @@ fun SettingsScreen(
             }
             item {
                 SettingsItem(
-                    icon = Icons.Filled.BugReport,
+                    icon = ImageVector.vectorResource(R.drawable.ic_bug_report),
                     title = stringResource(R.string.settings_report_bug),
                     summary = stringResource(R.string.settings_report_bug_sub),
                     trailing = {
@@ -515,7 +499,7 @@ fun SettingsScreen(
                 val cacheDir = remember { java.io.File(context.cacheDir, "rewind_pack_downloads") }
                 var cacheSizeBytes by remember { mutableStateOf(cacheSize(cacheDir)) }
                 SettingsItem(
-                    icon = Icons.Filled.Cached,
+                    icon = ImageVector.vectorResource(R.drawable.ic_cached),
                     title = stringResource(R.string.settings_download_cache),
                     summary = formatBytes(cacheSizeBytes),
                     trailing = {
@@ -535,7 +519,7 @@ fun SettingsScreen(
                     mutableStateOf(MiiFaceCache.cacheSize())
                 }
                 SettingsItem(
-                    icon = Icons.Filled.Cached,
+                    icon = ImageVector.vectorResource(R.drawable.ic_cached),
                     title = stringResource(R.string.settings_mii_face_cache),
                     summary = formatBytes(miiCacheSizeBytes),
                     trailing = {
@@ -552,7 +536,7 @@ fun SettingsScreen(
             }
             item {
                 SettingsItem(
-                    icon = Icons.AutoMirrored.Filled.Shortcut,
+                    icon = ImageVector.vectorResource(R.drawable.ic_shortcut),
                     title = stringResource(R.string.settings_quick_launch),
                     summary = stringResource(R.string.settings_quick_launch_sub),
                     trailing = {
@@ -609,7 +593,7 @@ fun SettingsScreen(
             }
             item {
                 SettingsItem(
-                    icon = Icons.AutoMirrored.Filled.ExitToApp,
+                    icon = ImageVector.vectorResource(R.drawable.ic_exit_to_app),
                     title = stringResource(R.string.settings_onboarding),
                     summary = stringResource(R.string.settings_relaunch_onboarding),
                     trailing = {
@@ -638,7 +622,7 @@ fun SettingsScreen(
                         com.skiletro.wheelwitch.BuildConfig.VERSION_NAME
                     )
                 SettingsItem(
-                    icon = Icons.Filled.Info,
+                    icon = ImageVector.vectorResource(R.drawable.ic_info),
                     title = stringResource(R.string.settings_wheel_witch),
                     summary = stringResource(
                         R.string.settings_about_summary,
