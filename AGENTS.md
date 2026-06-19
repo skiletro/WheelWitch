@@ -37,6 +37,7 @@ See [CONTRIBUTING.md#build](CONTRIBUTING.md#build) for build commands and signin
 - **SAF folder picker** for storage; direct `java.io.File` I/O with `DocumentFile` fallback
 - **Dolphin launch**: `AutoStartFile` intent extra with kebab-case JSON; RR.json I/O in `DolphinLauncher`
 - **i18n**: all strings in `res/values/strings.xml`; Compose uses `stringResource()`, VMs use `app.getString()`
+- **Icons**: Material Symbols (Rounded) vector drawables in `res/drawable/ic_*.xml`, sourced from [fonts.google.com/icons](https://fonts.google.com/icons) (Android tab, 24dp). Loaded in Compose via `ImageVector.vectorResource(R.drawable.ic_x)`. Auto-mirrored icons (`arrow_back`, `exit_to_app`, `shortcut`) declare `android:autoMirrored="true"` on the root `<vector>` to mirror in RTL locales. The deprecated `androidx.compose.material.icons` artifacts are intentionally not used.
 
 ## Package Structure
 
