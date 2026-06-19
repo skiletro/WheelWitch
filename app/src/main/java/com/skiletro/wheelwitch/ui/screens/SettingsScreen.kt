@@ -419,7 +419,7 @@ fun SettingsScreen(
                 val wadStatus =
                     if (hasWad) stringResource(R.string.status_installed) else stringResource(R.string.status_not_installed)
                 SettingsItem(
-                    icon = ImageVector.vectorResource(R.drawable.ic_checkroom),
+                    icon = ImageVector.vectorResource(R.drawable.ic_face_up),
                     title = stringResource(R.string.settings_mii_channel_wad),
                     summary = if (miiMakerError != null) miiMakerError else wadStatus,
                     summaryColor = if (miiMakerError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,

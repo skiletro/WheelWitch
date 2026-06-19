@@ -114,7 +114,7 @@ fun TopBar(
         }
         IconButton(onClick = onOpenSaveInfo) {
             Icon(
-                imageVector = ImageVector.vectorResource(R.drawable.ic_person),
+                imageVector = ImageVector.vectorResource(R.drawable.ic_id_card_2),
                 contentDescription = stringResource(R.string.cd_save_data),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -124,7 +124,7 @@ fun TopBar(
             enabled = miiMakerEnabled
         ) {
             Icon(
-                imageVector = ImageVector.vectorResource(R.drawable.ic_checkroom),
+                imageVector = ImageVector.vectorResource(R.drawable.ic_face_up),
                 contentDescription = stringResource(R.string.cd_mii_maker),
                 tint = if (miiMakerEnabled) MaterialTheme.colorScheme.onSurfaceVariant
                 else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledIconAlpha),

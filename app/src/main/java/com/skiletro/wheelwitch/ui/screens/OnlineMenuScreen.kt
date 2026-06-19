@@ -150,7 +150,7 @@ private fun HubPage(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             HubOption(
-                icon = ImageVector.vectorResource(R.drawable.ic_person),
+                icon = ImageVector.vectorResource(R.drawable.ic_meeting_room),
                 title = stringResource(R.string.online_rooms),
                 description = stringResource(R.string.online_rooms_desc),
                 onClick = { viewModel.navigateTo(OnlineMenuPage.Rooms) },
@@ -159,7 +159,7 @@ private fun HubPage(
                 animatedContentScope = animatedContentScope,
             )
             HubOption(
-                icon = ImageVector.vectorResource(R.drawable.ic_star),
+                icon = ImageVector.vectorResource(R.drawable.ic_leaderboard),
                 title = stringResource(R.string.online_leaderboard),
                 description = stringResource(R.string.online_leaderboard_desc),
                 onClick = { viewModel.navigateTo(OnlineMenuPage.Leaderboard) },
@@ -177,7 +177,7 @@ private fun HubPage(
                 animatedContentScope = animatedContentScope,
             )
             HubOption(
-                icon = ImageVector.vectorResource(R.drawable.ic_play_arrow),
+                icon = ImageVector.vectorResource(R.drawable.ic_finance),
                 title = stringResource(R.string.online_race_stats),
                 description = stringResource(R.string.online_race_stats_desc),
                 onClick = { viewModel.navigateTo(OnlineMenuPage.RaceStats) },
@@ -186,7 +186,7 @@ private fun HubPage(
                 animatedContentScope = animatedContentScope,
             )
             HubOption(
-                icon = ImageVector.vectorResource(R.drawable.ic_star),
+                icon = ImageVector.vectorResource(R.drawable.ic_motorcycle),
                 title = stringResource(R.string.online_time_trials),
                 description = stringResource(R.string.online_time_trials_desc),
                 enabled = false
