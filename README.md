@@ -18,7 +18,7 @@
 
 <div align="center">
   <a href="https://github.com/skiletro/WheelWitch/releases/tag/latest"><img src="./.github/assets/badges/github.webp" alt="Latest Build" width="220"></a>&nbsp;&nbsp;&nbsp;&nbsp;
-  <a href="https://raw.githubusercontent.com/skiletro/WheelWitch/master/obtainium.json"><img src="./.github/assets/badges/obtainium.webp" alt="Add to Obtainium" width="220"></a>
+  <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.skiletro.wheelwitch%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fskiletro%2FWheelWitch%22%2C%22author%22%3A%22skiletro%22%2C%22name%22%3A%22WheelWitch%22%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Atrue%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22wheelwitch-.%2A%5C%5C%5C%5C.apk%5C%22%2C%5C%22versionExtractionRegEx%5C%22%3A%5C%22%28%5C%5C%5C%5Cd%2B%5C%5C%5C%5C.%5C%5C%5C%5Cd%2B%5C%5C%5C%5C.%5C%5C%5C%5Cd%2B%29%5C%22%2C%5C%22releaseTitleAsVersion%5C%22%3Atrue%7D%22%7D"><img src="./.github/assets/badges/obtainium.webp" alt="Add to Obtainium" width="220"></a>
 </div>
 
 ## Screenshots
