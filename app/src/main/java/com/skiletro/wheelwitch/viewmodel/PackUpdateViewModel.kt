@@ -327,7 +327,14 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
     private fun handleProgress(progress: ProgressInfo) {
         _state.value = when (progress) {
             is ProgressInfo.Checking -> UiState.Checking
-            is ProgressInfo.Downloading -> UiState.Downloading(progress.progress, progress.message)
+            is ProgressInfo.Downloading ->
+                UiState.Downloading(
+                    progress.progress,
+                    progress.bytesPerSecond,
+                    progress.bytesDownloaded,
+                    progress.totalBytes,
+                    progress.message,
+                )
             is ProgressInfo.Extracting -> UiState.Extracting(progress.progress)
             is ProgressInfo.ApplyingUpdate -> UiState.ApplyingUpdate(
                 progress.index, progress.total, progress.description, progress.progress

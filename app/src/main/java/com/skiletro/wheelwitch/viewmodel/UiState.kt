@@ -24,8 +24,14 @@ sealed class UiState {
     /** A status check or intermediate install phase is in progress. */
     data object Checking : UiState()
 
-    /** A download is in progress; [progress] is 0..1 and [message] is user-facing. */
-    data class Downloading(val progress: Float, val message: String) : UiState()
+    /** A download is in progress; [progress] is 0..1, [bytesPerSecond] is the smoothed transfer rate, [bytesDownloaded] and [totalBytes] (0 if unknown) report raw size, [message] is user-facing. */
+    data class Downloading(
+        val progress: Float,
+        val bytesPerSecond: Long,
+        val bytesDownloaded: Long,
+        val totalBytes: Long,
+        val message: String
+    ) : UiState()
 
     /** A zip extraction is in progress; [progress] is 0..1. */
     data class Extracting(val progress: Float) : UiState()

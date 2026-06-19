@@ -71,7 +71,7 @@ object RewindPackManager {
         val serverInfo = VersionFileParser.fetchServerInfo().getOrNull()
         val targetVersion = serverInfo?.latestVersion ?: error("Could not fetch version info")
 
-        onProgress(ProgressInfo.Downloading(0f, DOWNLOAD_MESSAGE))
+        onProgress(ProgressInfo.Downloading(0f, 0L, 0L, 0L, DOWNLOAD_MESSAGE))
         val cacheBase = tempCacheDir ?: error("Cache not initialized")
         cacheBase.mkdirs()
         val zipFile = File.createTempFile("install_", ".zip", cacheBase)
@@ -79,8 +79,16 @@ object RewindPackManager {
             FileDownloader.downloadToFile(
                 VersionFileParser.getFullZipUrl(),
                 zipFile,
-                onProgress = { progress ->
-                    onProgress(ProgressInfo.Downloading(progress, DOWNLOAD_MESSAGE))
+                onProgress = { p ->
+                    onProgress(
+                        ProgressInfo.Downloading(
+                            p.progress,
+                            p.bytesPerSecond,
+                            p.bytesDownloaded,
+                            p.totalBytes,
+                            DOWNLOAD_MESSAGE,
+                        )
+                    )
                 },
                 client = HttpClientProvider.largeDownloadClient
             )
@@ -172,8 +180,16 @@ object RewindPackManager {
         FileDownloader.downloadToFile(
             step.url,
             file,
-            onProgress = { progress ->
-                onProgress(ProgressInfo.Downloading(progress, "${step.description} - downloading"))
+            onProgress = { p ->
+                onProgress(
+                    ProgressInfo.Downloading(
+                        p.progress,
+                        p.bytesPerSecond,
+                        p.bytesDownloaded,
+                        p.totalBytes,
+                        "${step.description} - downloading",
+                    )
+                )
             },
             client = HttpClientProvider.largeDownloadClient
         )

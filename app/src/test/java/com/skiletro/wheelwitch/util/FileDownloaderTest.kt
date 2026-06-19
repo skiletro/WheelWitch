@@ -70,7 +70,7 @@ class FileDownloaderTest {
                 .setBody("12345")
         )
 
-        val reports = mutableListOf<Float>()
+        val reports = mutableListOf<DownloadProgress>()
         FileDownloader.downloadToFile(
             url = server.url("/file.bin").toString(),
             targetFile = targetFile,
@@ -80,7 +80,7 @@ class FileDownloaderTest {
             initialBackoffMillis = 10L,
         )
 
-        assertThat(reports.last()).isEqualTo(1f)
+        assertThat(reports.last().progress).isEqualTo(1f)
     }
 
     @Test

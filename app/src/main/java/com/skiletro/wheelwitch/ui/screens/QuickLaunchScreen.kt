@@ -50,6 +50,8 @@ import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.ui.components.SparkleHat
+import com.skiletro.wheelwitch.ui.components.formatBytesPerSecond
+import com.skiletro.wheelwitch.ui.components.formatDownloadProgress
 import com.skiletro.wheelwitch.ui.components.buttonShape
 import com.skiletro.wheelwitch.viewmodel.PackUpdateViewModel
 import com.skiletro.wheelwitch.viewmodel.UiState
@@ -122,7 +124,7 @@ fun QuickLaunchScreen(
                     is UiState.Downloading -> {
                         StatusMessage(s.message)
                         Spacer(modifier = Modifier.height(24.dp))
-                        ProgressBar(s.progress)
+                        DownloadStatus(s.progress, s.bytesPerSecond, s.bytesDownloaded, s.totalBytes)
                     }
 
                     is UiState.Extracting -> {
@@ -181,6 +183,50 @@ private fun ProgressBar(progress: Float) {
         color = MaterialTheme.colorScheme.primary,
         trackColor = MaterialTheme.colorScheme.surfaceVariant,
     )
+}
+
+@Composable
+private fun DownloadStatus(
+    progress: Float,
+    bytesPerSecond: Long,
+    bytesDownloaded: Long,
+    totalBytes: Long,
+) {
+    val percent = (progress.coerceIn(0f, 1f) * 100f).toInt()
+    val showSize = bytesDownloaded > 0L || totalBytes > 0L
+    Column(
+        modifier = Modifier.widthIn(max = 300.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        ProgressBar(progress)
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = stringResource(R.string.download_percent_format, percent),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.SemiBold
+            )
+            if (showSize) {
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = formatDownloadProgress(bytesDownloaded, totalBytes),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = formatBytesPerSecond(bytesPerSecond),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.End,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
 }
 
 @Composable

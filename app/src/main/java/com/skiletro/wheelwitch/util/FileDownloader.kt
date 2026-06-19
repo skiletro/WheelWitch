@@ -5,6 +5,14 @@ import okhttp3.Request
 import java.io.File
 import java.io.IOException
 
+/** Progress snapshot for an in-flight download, emitted to UI consumers. */
+data class DownloadProgress(
+    val progress: Float,
+    val bytesPerSecond: Long,
+    val bytesDownloaded: Long,
+    val totalBytes: Long,
+)
+
 /** Shared HTTP download utility used by both [RewindPackManager] and [MiiWadInstaller]. */
 object FileDownloader {
     private const val DOWNLOAD_BUFFER_SIZE = 256 * 1024
@@ -17,7 +25,10 @@ object FileDownloader {
      * responses are treated as deterministic failures and are not retried. Throws on exhausted
      * retries, on a 4xx, or on a missing/empty body.
      *
-     * @param onProgress Optional callback with progress as 0..1 (throttled to ≥1% changes, always emits 1f).
+     * @param onProgress Optional callback with progress and instantaneous byte rate. Throttled to
+     *   ≥1% progress changes; always emits progress=1f at the end of a successful download. Reset
+     *   to bytesPerSecond=0 at the start of each retry attempt so the UI does not show a stale rate
+     *   during backoff.
      * @param client OkHttp client to use. Defaults to [HttpClientProvider.client];
      *   pass [HttpClientProvider.largeDownloadClient] for big payloads to
      *   avoid spurious 15s read timeouts.
@@ -28,7 +39,7 @@ object FileDownloader {
     fun downloadToFile(
         url: String,
         targetFile: File,
-        onProgress: ((Float) -> Unit)? = null,
+        onProgress: ((DownloadProgress) -> Unit)? = null,
         client: OkHttpClient = HttpClientProvider.client,
         maxRetries: Int = 2,
         initialBackoffMillis: Long = 1000L,
@@ -38,6 +49,14 @@ object FileDownloader {
         var lastError: Throwable? = null
 
         for (attempt in 0 until totalAttempts) {
+            onProgress?.invoke(
+                DownloadProgress(
+                    progress = 0f,
+                    bytesPerSecond = 0L,
+                    bytesDownloaded = 0L,
+                    totalBytes = 0L,
+                )
+            )
             try {
                 return downloadOnce(url, targetFile, onProgress, client)
             } catch (e: Http4xxException) {
@@ -74,7 +93,7 @@ object FileDownloader {
     private fun downloadOnce(
         url: String,
         targetFile: File,
-        onProgress: ((Float) -> Unit)?,
+        onProgress: ((DownloadProgress) -> Unit)?,
         client: OkHttpClient,
     ): File {
         val request = Request.Builder().url(url).build()
@@ -97,18 +116,44 @@ object FileDownloader {
                     var bytesRead: Int
                     var totalRead = 0L
                     var lastReported = -1f
+                    var lastEmitNanos = System.nanoTime()
+                    var lastEmitBytes = 0L
+                    var smoothedBytesPerSecond = 0.0
                     while (input.read(buffer).also { bytesRead = it } != -1) {
                         output.write(buffer, 0, bytesRead)
                         if (onProgress != null && totalBytes > 0) {
                             totalRead += bytesRead
                             val p = totalRead.toFloat() / totalBytes
                             if (p - lastReported >= 0.01f) {
+                                val nowNanos = System.nanoTime()
+                                val instantBytesPerSecond = instantBytesPerSecond(
+                                    bytesSinceLast = totalRead - lastEmitBytes,
+                                    elapsedNanos = nowNanos - lastEmitNanos,
+                                )
+                                smoothedBytesPerSecond =
+                                    0.3 * instantBytesPerSecond + 0.7 * smoothedBytesPerSecond
+                                lastEmitNanos = nowNanos
+                                lastEmitBytes = totalRead
                                 lastReported = p
-                                onProgress(p)
+                                onProgress(
+                                    DownloadProgress(
+                                        progress = p,
+                                        bytesPerSecond = smoothedBytesPerSecond.toLong(),
+                                        bytesDownloaded = totalRead,
+                                        totalBytes = totalBytes,
+                                    )
+                                )
                             }
                         }
                     }
-                    onProgress?.invoke(1f)
+                    onProgress?.invoke(
+                        DownloadProgress(
+                            progress = 1f,
+                            bytesPerSecond = 0L,
+                            bytesDownloaded = totalRead,
+                            totalBytes = totalBytes,
+                        )
+                    )
                 }
             }
             if (targetFile.length() == 0L) throw EmptyBodyException("Downloaded file is empty")
@@ -117,6 +162,9 @@ object FileDownloader {
             response.close()
         }
     }
+
+    private fun instantBytesPerSecond(bytesSinceLast: Long, elapsedNanos: Long): Double =
+        if (elapsedNanos <= 0L) 0.0 else (bytesSinceLast * 1_000_000_000.0) / elapsedNanos
 
     /** Non-retriable: deterministic client error (HTTP 4xx). */
     private class Http4xxException(message: String) : IOException(message)

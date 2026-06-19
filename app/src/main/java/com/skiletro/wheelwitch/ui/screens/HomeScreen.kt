@@ -63,6 +63,8 @@ import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
 import com.skiletro.wheelwitch.ui.components.TopBar
 import com.skiletro.wheelwitch.ui.components.buttonShape
 import com.skiletro.wheelwitch.ui.components.focusBorder
+import com.skiletro.wheelwitch.ui.components.formatBytesPerSecond
+import com.skiletro.wheelwitch.ui.components.formatDownloadProgress
 import com.skiletro.wheelwitch.ui.components.sectionShape
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
 import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
@@ -318,7 +320,13 @@ private fun HomeBottomBar(
         ) { currentState ->
             when (currentState) {
                 is UiState.Downloading -> {
-                    ProgressButton(currentState.progress, currentState.message)
+                    ProgressButton(
+                        currentState.progress,
+                        currentState.message,
+                        currentState.bytesPerSecond,
+                        currentState.bytesDownloaded,
+                        currentState.totalBytes,
+                    )
                 }
 
                 is UiState.Extracting -> {
@@ -541,7 +549,16 @@ private fun ActivePlayerCard(
 }
 
 @Composable
-fun ProgressButton(progress: Float, label: String) {
+fun ProgressButton(
+    progress: Float,
+    label: String,
+    bytesPerSecond: Long? = null,
+    bytesDownloaded: Long = 0L,
+    totalBytes: Long = 0L,
+) {
+    val percent = (progress.coerceIn(0f, 1f) * 100f).toInt()
+    val showSize = bytesPerSecond != null && (bytesDownloaded > 0L || totalBytes > 0L)
+    val sizeText = if (showSize) formatDownloadProgress(bytesDownloaded, totalBytes) else ""
     Column(
         modifier = Modifier
             .widthIn(min = 220.dp),
@@ -557,6 +574,37 @@ fun ProgressButton(progress: Float, label: String) {
             trackColor = MaterialTheme.colorScheme.surfaceVariant,
         )
         Spacer(modifier = Modifier.height(6.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.download_percent_format, percent),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.SemiBold
+            )
+            if (showSize) {
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = sizeText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            if (bytesPerSecond != null) {
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = formatBytesPerSecond(bytesPerSecond),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.End,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
