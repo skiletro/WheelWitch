@@ -262,4 +262,20 @@
     <string name="settings_my_stuff_disabled">Disabled</string>
     <string name="settings_my_stuff_music">Music Only</string>
     <string name="settings_my_stuff_everything">Everything</string>
+
+    <!-- logging / bug report -->
+    <string name="settings_logging">Logging</string>
+    <string name="settings_logging_to_file">Save logs to file</string>
+    <string name="settings_logging_to_file_sub">Persist logs to a rotating file in the app cache</string>
+    <string name="settings_logging_to_file_on">On</string>
+    <string name="settings_logging_to_file_off">Off</string>
+    <string name="settings_report_bug">Report bug</string>
+    <string name="settings_report_bug_sub">Email us your logs to help fix issues</string>
+    <string name="settings_report">Report</string>
+    <string name="bug_report_chooser_title">Send bug report</string>
+    <string name="bug_report_subject">Wheel Witch logs — v%1$s (%2$s)</string>
+    <string name="bug_report_body_format">Wheel Witch bug report\n\nSummary:\n%1$s\n\nLogs are attached. Describe what happened below:\n\n</string>
+    <string name="bug_report_summary_with_error">Most recent error in the log buffer: %1$s</string>
+    <string name="bug_report_summary_no_error">No errors captured in the current log buffer.</string>
+    <string name="bug_report_share_failed">No app available to send the bug report. Logs have been copied to the clipboard.</string>
 </resources>

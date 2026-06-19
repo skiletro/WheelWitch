@@ -24,6 +24,7 @@ import com.skiletro.wheelwitch.util.MiiFaceCache
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Request
+import timber.log.Timber
 import java.net.URLEncoder
 import java.util.Base64
 
@@ -57,7 +58,8 @@ fun MiiFace(
             try {
                 val bytes = Base64.getDecoder().decode(b64)
                 BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Timber.tag("MiiFace").w(e, "Failed to decode inline Mii PNG")
                 null
             }
         }

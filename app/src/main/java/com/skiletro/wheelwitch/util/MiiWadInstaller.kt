@@ -7,6 +7,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.core.content.FileProvider
 import com.skiletro.wheelwitch.data.GameTypeParser
 import com.skiletro.wheelwitch.util.MiiWadInstaller.getCachedWadFile
+import timber.log.Timber
 import java.io.File
 import java.io.FileInputStream
 import java.util.zip.ZipInputStream
@@ -60,7 +61,8 @@ object MiiWadInstaller {
         return try {
             val bytes = file.readBytes()
             GameTypeParser.checkValidity(file.name, bytes)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Timber.tag("MiiWad").w(e, "WAD validation failed for %s", file.absolutePath)
             false
         }
     }
@@ -81,6 +83,7 @@ object MiiWadInstaller {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         context.startActivity(intent)
+        Timber.tag("MiiWad").d("Launched WAD via %s", contentUri)
     }
 
     @VisibleForTesting
@@ -104,8 +107,10 @@ object MiiWadInstaller {
         }
         // Prefer the HACS variant: it is the symbol-patched build Dolphin needs
         // to run Mii Maker. Fall back to any .wad if it is not present.
-        return wadFiles.firstOrNull { it.name.contains("HACS", ignoreCase = true) }
+        val chosen = wadFiles.firstOrNull { it.name.contains("HACS", ignoreCase = true) }
             ?: wadFiles.firstOrNull()
             ?: error("No .wad file found in the archive")
+        Timber.tag("MiiWad").d("Extracted WAD: %s", chosen.name)
+        return chosen
     }
 }

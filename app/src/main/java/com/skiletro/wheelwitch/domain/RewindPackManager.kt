@@ -16,6 +16,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.io.File
 import java.util.concurrent.TimeUnit
 
@@ -46,14 +47,21 @@ object RewindPackManager {
         val localVersion = readLocalVersion(storage)
         val serverInfo = VersionFileParser.fetchServerInfo().getOrNull()
         if (serverInfo == null) {
+            Timber.tag("RewindPack")
+                .w("Server info unavailable; localVersion=%s", localVersion)
             return if (localVersion != null) PackStatus.Installed(localVersion) else PackStatus.NotInstalled
         }
 
         return if (localVersion == null) {
+            Timber.tag("RewindPack").d("Not installed; server latest=%s", serverInfo.latestVersion)
             PackStatus.NotInstalled
         } else if (localVersion >= serverInfo.latestVersion) {
+            Timber.tag("RewindPack")
+                .d("Up to date: local=%s server=%s", localVersion, serverInfo.latestVersion)
             PackStatus.UpToDate(localVersion, serverInfo.latestVersion)
         } else {
+            Timber.tag("RewindPack")
+                .i("Update available: %s -> %s", localVersion, serverInfo.latestVersion)
             PackStatus.UpdateAvailable(localVersion, serverInfo.latestVersion, serverInfo)
         }
     }
@@ -95,12 +103,14 @@ object RewindPackManager {
         }
 
         onProgress(ProgressInfo.Extracting(0f))
+        Timber.tag("RewindPack").i("Extracting fresh install to %s", storage.rootPath)
         storage.extractZip(zipFile) { progress ->
             onProgress(ProgressInfo.Extracting(progress))
         }.getOrThrow()
 
         writeLocalVersion(storage, targetVersion)
         zipFile.delete()
+        Timber.tag("RewindPack").i("Fresh install complete: v%s", targetVersion)
         targetVersion
     }
 
@@ -166,6 +176,7 @@ object RewindPackManager {
         onProgress: (ProgressInfo) -> Unit,
     ) {
         onProgress(ProgressInfo.Checking("Applying file deletions..."))
+        Timber.tag("RewindPack").d("Applying %d file deletions", deletions.size)
         for (deletion in deletions) {
             storage.deleteFile(deletion.path)
         }
@@ -204,6 +215,7 @@ object RewindPackManager {
         for ((i, pair) in results.withIndex()) {
             val (step, zipFile) = pair
             val displayIndex = i + 1
+            Timber.tag("RewindPack").i("Applying update %d/%d: v%s", displayIndex, results.size, step.version)
             onProgress(
                 ProgressInfo.ApplyingUpdate(
                     displayIndex,

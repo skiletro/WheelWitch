@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import org.json.JSONArray
 import org.json.JSONObject
+import timber.log.Timber
 import java.io.File
 
 /** Launches Dolphin Emulator with Retro Rewind configuration and manages the RR.json launch descriptor. */
@@ -48,7 +49,8 @@ object DolphinLauncher {
         return try {
             context.packageManager.getPackageInfo(DOLPHIN_PACKAGE, 0)
             true
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Timber.tag("DolphinLauncher").d(e, "Dolphin package not installed")
             false
         }
     }
@@ -129,7 +131,8 @@ object DolphinLauncher {
         return if (file.exists()) {
             try {
                 JSONObject(file.readText()).optString("base-file", "").takeIf { it.isNotEmpty() }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Timber.tag("DolphinLauncher").w(e, "Failed to parse RR.json at %s", file.absolutePath)
                 null
             }
         } else null

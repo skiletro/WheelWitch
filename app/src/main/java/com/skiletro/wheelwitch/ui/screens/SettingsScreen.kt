@@ -35,6 +35,8 @@ import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.SaveAlt
+import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -43,6 +45,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -62,8 +65,10 @@ import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.ui.components.formatBytes
 import com.skiletro.wheelwitch.ui.theme.AppTheme
 import com.skiletro.wheelwitch.ui.theme.ThemeMode
+import com.skiletro.wheelwitch.util.BugReportLauncher
 import com.skiletro.wheelwitch.util.DolphinLauncher
 import com.skiletro.wheelwitch.util.MiiFaceCache
+import com.skiletro.wheelwitch.util.PrefsKeys
 import com.skiletro.wheelwitch.util.cacheSize
 import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
 import com.skiletro.wheelwitch.viewmodel.PackUpdateViewModel
@@ -454,6 +459,49 @@ fun SettingsScreen(
                                 contentPadding = ButtonDefaults.TextButtonContentPadding
                             ) { Text(stringResource(R.string.action_install)) }
                         }
+                    }
+                )
+            }
+
+            // Logging
+            item {
+                SettingsCategoryHeader(stringResource(R.string.settings_logging))
+            }
+            item {
+                val loggingPrefs = remember { context.getSharedPreferences(PrefsKeys.PREFS_NAME, Context.MODE_PRIVATE) }
+                var loggingToFile by remember {
+                    mutableStateOf(loggingPrefs.getBoolean(PrefsKeys.LOGGING_TO_FILE_KEY, false))
+                }
+                SettingsItem(
+                    icon = Icons.Filled.Save,
+                    title = stringResource(R.string.settings_logging_to_file),
+                    summary = stringResource(R.string.settings_logging_to_file_sub),
+                    trailing = {
+                        Switch(
+                            checked = loggingToFile,
+                            onCheckedChange = { enabled ->
+                                loggingToFile = enabled
+                                loggingPrefs.edit().putBoolean(PrefsKeys.LOGGING_TO_FILE_KEY, enabled).apply()
+                            }
+                        )
+                    }
+                )
+            }
+            item {
+                SettingsItem(
+                    icon = Icons.Filled.BugReport,
+                    title = stringResource(R.string.settings_report_bug),
+                    summary = stringResource(R.string.settings_report_bug_sub),
+                    trailing = {
+                        Button(
+                            onClick = { BugReportLauncher.launch(context) },
+                            shape = RoundedCornerShape(14.dp),
+                            contentPadding = ButtonDefaults.TextButtonContentPadding,
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        ) { Text(stringResource(R.string.settings_report), fontWeight = FontWeight.Medium) }
                     }
                 )
             }

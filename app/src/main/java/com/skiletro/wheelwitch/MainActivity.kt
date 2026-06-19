@@ -49,6 +49,7 @@ import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 import com.skiletro.wheelwitch.viewmodel.PackUpdateViewModel
 import com.skiletro.wheelwitch.viewmodel.SaveDataViewModel
+import timber.log.Timber
 
 private const val ONBOARDING_TRANSITION_MS = 300
 private val ISO_MIME_TYPES = arrayOf("application/octet-stream", "*/*")
@@ -161,7 +162,9 @@ private fun MainScreen(
                     Intent.FLAG_GRANT_READ_URI_PERMISSION or
                             Intent.FLAG_GRANT_WRITE_URI_PERMISSION
                 )
-            } catch (_: SecurityException) {
+            } catch (e: SecurityException) {
+                Timber.tag("MainActivity")
+                    .w(e, "Failed to take persistable URI permission for %s", uri)
                 return@rememberLauncherForActivityResult
             }
             packUpdate.setStorageUri(uri)

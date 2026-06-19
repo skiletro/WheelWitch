@@ -18,6 +18,7 @@ import com.skiletro.wheelwitch.util.HttpClientProvider
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Request
 import org.json.JSONObject
+import timber.log.Timber
 
 /** Parses RetroRewindVersion.txt format: lines of "version url path description". Skips malformed lines. */
 internal fun parseUpdatesText(text: String): List<UpdateEntry> {
@@ -156,7 +157,10 @@ object VersionFileParser {
         val request = Request.Builder().url(urlString).build()
         httpClient.newCall(request).execute().use { response ->
             val body = response.body?.string() ?: error("Empty response from $urlString")
-            if (!response.isSuccessful) error("$urlString returned ${response.code}: $body")
+            if (!response.isSuccessful) {
+                Timber.tag("Network").w("%s returned %d", urlString, response.code)
+                error("$urlString returned ${response.code}: $body")
+            }
             return body
         }
     }

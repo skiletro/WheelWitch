@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.io.File
 
 /**
@@ -108,6 +109,7 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
             val status = withContext(Dispatchers.IO) {
                 RewindPackManager.checkStatus(activeStorage)
             }
+            Timber.tag("PackUpdate").d("checkStatus -> %s", status::class.simpleName)
             // Both UpdateAvailable and UpToDate carry the server's latest version;
             // Kotlin cannot smart-cast across combined `is` branches, so they stay separate.
             val serverVersion = when (status) {
@@ -139,12 +141,21 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
                 withContext(Dispatchers.IO) {
                     SaveManager.backupSaveToCache(app, activeStorage)
                 }
+                Timber.tag("PackUpdate").d("Save backed up to cache before install/update")
 
                 val installedVersion = when (status) {
-                    is PackStatus.NotInstalled -> performFreshInstall(activeStorage)
-                    is PackStatus.UpdateAvailable -> performIncrementalUpdate(activeStorage, status)
+                    is PackStatus.NotInstalled -> {
+                        Timber.tag("PackUpdate").i("Starting fresh install")
+                        performFreshInstall(activeStorage)
+                    }
+                    is PackStatus.UpdateAvailable -> {
+                        Timber.tag("PackUpdate")
+                            .i("Starting incremental update from %s to %s", status.currentVersion, status.latestVersion)
+                        performIncrementalUpdate(activeStorage, status)
+                    }
                     is PackStatus.Installed -> {
-                        // Installed (without server info) means the server was unreachable.
+                        Timber.tag("PackUpdate")
+                            .w("Server unreachable but local install present")
                         _state.value =
                             UiState.Error(app.getString(R.string.error_cannot_reach_server))
                         return@launch
@@ -161,7 +172,9 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
                 _state.value =
                     UiState.Ready(PackStatus.UpToDate(installedVersion, installedVersion))
                 saveDataDelegate?.onPackStatusChanged()
+                Timber.tag("PackUpdate").i("Install/update complete: v%s", installedVersion)
             } catch (e: Exception) {
+                Timber.tag("PackUpdate").e(e, "Install/update failed")
                 _state.value = UiState.Error(e.message ?: app.getString(R.string.vm_unknown_error))
             }
         }
@@ -227,7 +240,9 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
                     rrJsonFile.writeText(json)
                 }
                 DolphinLauncher.launchDolphin(app, rrJsonFile.absolutePath).getOrThrow()
+                Timber.tag("PackUpdate").i("Dolphin launched with %s", rrJsonFile.absolutePath)
             } catch (e: Exception) {
+                Timber.tag("PackUpdate").e(e, "Dolphin launch failed")
                 _state.value =
                     UiState.Error(e.message ?: app.getString(R.string.home_launch_failed))
             }
@@ -275,7 +290,8 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
                 }
                 val info = GameTypeParser.parseGameInfo(file.name, header)
                 _gameInfo.value = info.takeIf { it.format != GameTypeParser.GameFormat.Invalid }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Timber.tag("PackUpdate").w(e, "Failed to parse game info for %s", path)
                 _gameInfo.value = null
             }
         }

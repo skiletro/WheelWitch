@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import timber.log.Timber
 import java.util.concurrent.TimeUnit
 
 /**
@@ -161,6 +162,7 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
                         page = nextPage
                     )
                 }.onFailure { e ->
+                    Timber.tag("Online").w(e, "Leaderboard page %d fetch failed", nextPage)
                     _leaderboardState.value = if (stateBeforeFetch is LeaderboardState.Success) {
                         stateBeforeFetch
                     } else {
@@ -188,8 +190,7 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
                         serverConnectivity = ServerConnectivity.Online
                     )
                 } else {
-                    // Use Success (not Error) with empty rooms + Offline connectivity so
-                    // the UI can show a friendly offline state instead of an error.
+                    Timber.tag("Online").w(roomsResult.exceptionOrNull(), "Initial rooms fetch failed")
                     _roomsState.value = RoomsState.Success(
                         rooms = emptyList(),
                         playerCount = null,
@@ -234,6 +235,7 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
                     serverConnectivity = connectivity
                 )
             }.onFailure { e ->
+                Timber.tag("Online").w(e, "Rooms fetch failed")
                 _roomsState.value = RoomsState.Error(
                     e.message ?: getApplication<Application>().getString(
                         R.string.vm_failed_format,
@@ -259,6 +261,7 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
             result.onSuccess { health ->
                 _healthState.value = HealthState.Success(health)
             }.onFailure { e ->
+                Timber.tag("Online").w(e, "Detailed health fetch failed; trying live endpoint")
                 val liveOk = withContext(Dispatchers.IO) {
                     VersionFileParser.fetchHealthLive().getOrDefault(false)
                 }
@@ -311,6 +314,7 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
                 saveRaceStatsCache(rawJson, now)
                 _raceStatsState.value = RaceStatsState.Success(stats, now)
             }.onFailure { e ->
+                Timber.tag("Online").w(e, "Race stats fetch failed")
                 val fallback = loadRaceStatsCache()
                 if (fallback != null) {
                     _raceStatsState.value =
@@ -343,7 +347,8 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
             val stats = parseRaceStats(json)
             val timestamp = wrapper.optLong(CACHE_KEY_CACHED_AT, 0L)
             RaceStatsCache(stats, timestamp)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Timber.tag("Online").w(e, "Failed to parse race stats cache")
             null
         }
     }

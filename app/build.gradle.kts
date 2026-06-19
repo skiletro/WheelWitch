@@ -48,6 +48,7 @@ android {
           "unknown"
         }
     buildConfigField("String", "GIT_HASH", "\"$gitHash\"")
+    buildConfigField("String", "LOGS_EMAIL", "\"wheelwitch@skilet.ro\"")
   }
 
   signingConfigs {
@@ -106,6 +107,7 @@ dependencies {
   implementation(libs.okhttp)
   implementation(libs.jsoup)
   implementation(libs.rollingnumbers)
+  implementation(libs.timber)
   debugImplementation(libs.androidx.compose.ui.tooling)
 
   testImplementation(libs.junit.jupiter.api)

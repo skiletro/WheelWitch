@@ -86,7 +86,7 @@ com.skiletro.wheelwitch
 | Local version file | `<storage>/RetroRewind6/version.txt` |
 | Save path (hardcoded `RMCP`) | `riivolution/save/RetroWFC/RMCP/rksys.dat` |
 
-## Tests (~89 tests)
+## Tests (~114 tests)
 
 ### Stack
 JUnit 5, MockK 1.13.x, Truth 1.4.x, `org.json:json` test dep (Android stubs throw "not mocked")
@@ -106,6 +106,10 @@ JUnit 5, MockK 1.13.x, Truth 1.4.x, `org.json:json` test dep (Android stubs thro
 | `util/DolphinLauncherTest.kt` | 9 | JSON generation, file I/O |
 | `util/MiiFaceCacheTest.kt` | 5 | cache size, clear, init |
 | `util/MiiWadInstallerTest.kt` | 8 | WAD validation, zip extraction, HACS variant |
+| `util/LogBufferTest.kt` | 6 | capacity, wrap-around, clear, snapshot ordering |
+| `util/MemoryBufferTreeTest.kt` | 4 | fan-out to buffer, minPriority filtering |
+| `util/OptionalFileTreeTest.kt` | 9 | enable/disable, file append, 1MB rotation |
+| `util/AppReleaseLogTreeTest.kt` | 2 | drops INFO/DEBUG/VERBOSE, keeps WARN/ERROR/ASSERT |
 | `data/RksysParserTest.kt` | 9 | RKPD binary parsing — slots, friend code golden |
 | `network/VersionFileParserTest.kt` | 13 | update/deletion parsing, leaderboard, health, tracks, race stats |
 | `domain/ChangelogParserTest.kt` | 7 | Jsoup table extraction, spoiler handling |

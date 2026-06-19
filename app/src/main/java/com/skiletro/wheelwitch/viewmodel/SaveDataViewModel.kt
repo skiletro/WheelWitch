@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import timber.log.Timber
 
 @Immutable
 sealed class SaveInfoState {
@@ -83,7 +84,8 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
                 _hasSave.value = withContext(Dispatchers.IO) {
                     SaveManager.hasSaveFile(storage)
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Timber.tag("SaveData").w(e, "Failed to check save state")
                 _hasSave.value = false
             }
         }
@@ -93,13 +95,18 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
     fun backupSave(destUri: Uri) {
         viewModelScope.launch {
             val storage = PackUpdateViewModel.currentStorage ?: return@launch
-            withContext(Dispatchers.IO) {
-                val data = storage.readBytes(SaveManager.SAVE_RELATIVE)
-                    ?: throw Exception(app.getString(R.string.status_save_not_found))
-                app.contentResolver.openOutputStream(destUri)?.use { it.write(data) }
-                    ?: throw Exception(app.getString(R.string.vm_save_write_failed))
+            try {
+                withContext(Dispatchers.IO) {
+                    val data = storage.readBytes(SaveManager.SAVE_RELATIVE)
+                        ?: throw Exception(app.getString(R.string.status_save_not_found))
+                    app.contentResolver.openOutputStream(destUri)?.use { it.write(data) }
+                        ?: throw Exception(app.getString(R.string.vm_save_write_failed))
+                }
+                Timber.tag("SaveData").i("Save backed up to %s", destUri)
+                refreshSaveState()
+            } catch (e: Exception) {
+                Timber.tag("SaveData").e(e, "Save backup failed")
             }
-            refreshSaveState()
         }
     }
 
@@ -107,12 +114,17 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
     fun restoreSave(sourceUri: Uri) {
         viewModelScope.launch {
             val storage = PackUpdateViewModel.currentStorage ?: return@launch
-            withContext(Dispatchers.IO) {
-                val data = app.contentResolver.openInputStream(sourceUri)?.use { it.readBytes() }
-                    ?: throw Exception(app.getString(R.string.vm_save_read_failed))
-                storage.writeBytes(SaveManager.SAVE_RELATIVE, data)
+            try {
+                withContext(Dispatchers.IO) {
+                    val data = app.contentResolver.openInputStream(sourceUri)?.use { it.readBytes() }
+                        ?: throw Exception(app.getString(R.string.vm_save_read_failed))
+                    storage.writeBytes(SaveManager.SAVE_RELATIVE, data)
+                }
+                Timber.tag("SaveData").i("Save restored from %s", sourceUri)
+                refreshSaveState()
+            } catch (e: Exception) {
+                Timber.tag("SaveData").e(e, "Save restore failed")
             }
-            refreshSaveState()
         }
     }
 
@@ -123,6 +135,7 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
             withContext(Dispatchers.IO) {
                 SaveManager.deleteSave(storage)
             }
+            Timber.tag("SaveData").i("Save deleted")
             refreshSaveState()
         }
     }
@@ -206,6 +219,7 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
                 resolveFallbackSlot(saveInfo)
                 mergeLeaderboards(saveInfo)
             } catch (e: Exception) {
+                Timber.tag("SaveData").e(e, "refreshSaveFileInfo failed")
                 _saveInfoState.value = SaveInfoState.Error(
                     e.message ?: app.getString(
                         R.string.vm_failed_format,
@@ -283,6 +297,9 @@ class SaveDataViewModel(application: Application) : AndroidViewModel(application
                     put(slot, obj.optInt(key, 0))
                 }
             }
-        }.getOrElse { emptyMap() }
+        }.getOrElse {
+            Timber.tag("SaveData").w(it, "Failed to read VR cache")
+            emptyMap()
+        }
     }
 }

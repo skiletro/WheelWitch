@@ -3,4 +3,7 @@
     <cache-path
         name="mii_maker"
         path="mii_maker/" />
+    <cache-path
+        name="logs"
+        path="logs/" />
 </paths>

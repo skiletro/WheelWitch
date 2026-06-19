@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 
 /**
  * Owns the Mii Channel WAD install / launch / delete state.
@@ -61,8 +62,10 @@ class MiiMakerViewModel(application: Application) : AndroidViewModel(application
                 }
                 if (cached != null) {
                     MiiWadInstaller.launchWadFile(app, cached).getOrThrow()
+                    Timber.tag("MiiMaker").i("Launched WAD: %s", cached.absolutePath)
                 }
             } catch (e: Exception) {
+                Timber.tag("MiiMaker").e(e, "Mii Maker launch failed")
                 _miiMakerError.value =
                     e.message ?: app.getString(R.string.vm_failed_format, "launch Mii Maker")
             }
@@ -82,14 +85,18 @@ class MiiMakerViewModel(application: Application) : AndroidViewModel(application
                 _miiMakerError.value = null
                 try {
                     if (!app.isNetworkAvailable()) {
+                        Timber.tag("MiiMaker").w("Install aborted: no network")
                         _miiMakerError.value = app.getString(R.string.error_no_internet)
                         return@withLock
                     }
+                    Timber.tag("MiiMaker").i("Starting WAD download/extract")
                     withContext(Dispatchers.IO) {
                         MiiWadInstaller.downloadAndExtractWad(app)
                     }
                     refreshHasWad()
+                    Timber.tag("MiiMaker").i("WAD installed successfully")
                 } catch (e: Exception) {
+                    Timber.tag("MiiMaker").e(e, "WAD install failed")
                     _miiMakerError.value = e.message ?: app.getString(
                         R.string.vm_failed_format,
                         "install Mii Maker WAD"
@@ -108,6 +115,7 @@ class MiiMakerViewModel(application: Application) : AndroidViewModel(application
                 MiiWadInstaller.clearCache(app)
             }
             refreshHasWad()
+            Timber.tag("MiiMaker").i("WAD cache cleared")
         }
     }
 }

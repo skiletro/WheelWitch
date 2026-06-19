@@ -12,6 +12,7 @@ import org.json.JSONObject
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
+import timber.log.Timber
 
 /**
  * Fetches and parses the Retro Rewind version history from the Tockdom
@@ -71,8 +72,8 @@ object ChangelogParser {
                     changes = (0 until changes.length()).map { changes.getString(it) },
                 )
             }
-        } catch (_: Exception) {
-            // Treat any parse failure (corrupt JSON, schema drift) as a cache miss.
+        } catch (e: Exception) {
+            Timber.tag("Changelog").w(e, "Changelog cache parse failed; treating as miss")
             null
         }
     }

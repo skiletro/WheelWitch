@@ -2,6 +2,7 @@ package com.skiletro.wheelwitch.util
 
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import timber.log.Timber
 import java.io.File
 import java.io.IOException
 
@@ -60,16 +61,18 @@ object FileDownloader {
             try {
                 return downloadOnce(url, targetFile, onProgress, client)
             } catch (e: Http4xxException) {
-                // 4xx is deterministic (auth, not-found, etc.); retrying cannot fix it.
+                Timber.tag("FileDownloader").w(e, "HTTP 4xx for %s — not retrying", url)
                 throw e
             } catch (e: EmptyBodyException) {
-                // An empty body is also deterministic; retrying cannot fix it.
+                Timber.tag("FileDownloader").w(e, "Empty body for %s — not retrying", url)
                 throw e
             } catch (e: IOException) {
-                // Transient network failure; retry after backoff.
+                Timber.tag("FileDownloader")
+                    .w(e, "Transient network failure on attempt %d/%d for %s", attempt + 1, totalAttempts, url)
                 lastError = e
             } catch (e: Http5xxException) {
-                // Transient server failure; retry after backoff.
+                Timber.tag("FileDownloader")
+                    .w(e, "HTTP 5xx on attempt %d/%d for %s", attempt + 1, totalAttempts, url)
                 lastError = e
             }
 
@@ -84,6 +87,8 @@ object FileDownloader {
             }
         }
 
+        Timber.tag("FileDownloader")
+            .e(lastError, "Download failed after %d attempts: %s", totalAttempts, url)
         throw IOException(
             "Download failed after $totalAttempts attempts: ${url}",
             lastError,
@@ -106,6 +111,7 @@ object FileDownloader {
                 throw Http5xxException("Download failed: HTTP ${response.code} ${response.message}")
             }
             check(response.isSuccessful) { "Download failed: HTTP ${response.code} ${response.message}" }
+            Timber.tag("FileDownloader").d("HTTP %d for %s", response.code, url)
             val body = response.body ?: throw EmptyBodyException("No response body")
             val totalBytes = body.contentLength()
             if (totalBytes == 0L) throw EmptyBodyException("Empty response body")
