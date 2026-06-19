@@ -74,7 +74,7 @@ fun OnboardingScreen(
     onRequestStoragePermission: () -> Unit,
     onComplete: () -> Unit
 ) {
-    var step by remember { mutableStateOf(0) }
+    var step by remember { mutableStateOf(OnboardingStep.Welcome) }
     var dolphinRetry by remember { mutableStateOf(0) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -82,7 +82,7 @@ fun OnboardingScreen(
     val miiInstallFailedMessage = stringResource(R.string.vm_failed_format, "install Mii Maker WAD")
 
     LaunchedEffect(step, dolphinRetry) {
-        if (step == 2) {
+        if (step == OnboardingStep.Dolphin) {
             dolphinInstalled = null
             withContext(Dispatchers.IO) {
                 dolphinInstalled = DolphinLauncher.isDolphinInstalled(context)
@@ -91,17 +91,17 @@ fun OnboardingScreen(
     }
 
     LaunchedEffect(storageSelected) {
-        if (storageSelected && step == 3) step = 4
+        if (storageSelected && step == OnboardingStep.Storage) step = OnboardingStep.Iso
     }
 
     LaunchedEffect(isoSelected) {
-        if (isoSelected && step == 4) step = 5
+        if (isoSelected && step == OnboardingStep.Iso) step = OnboardingStep.Mii
     }
 
     var miiWadState by remember { mutableStateOf<MiiWadOnboarding?>(null) }
 
     LaunchedEffect(step) {
-        if (step == 5) {
+        if (step == OnboardingStep.Mii) {
             miiWadState = withContext(Dispatchers.IO) {
                 if (MiiWadInstaller.getCachedWadFile(context) != null) MiiWadOnboarding.Installed
                 else MiiWadOnboarding.NotInstalled
@@ -109,8 +109,8 @@ fun OnboardingScreen(
         }
     }
 
-    BackHandler(enabled = step > 0) {
-        step--
+    BackHandler(enabled = step.previous() != null) {
+        step = step.previous() ?: step
     }
 
     Box(
@@ -145,32 +145,33 @@ fun OnboardingScreen(
                     verticalArrangement = Arrangement.Center
                 ) {
                     when (currentStep) {
-                        0 -> WelcomeStep(onNext = { step = 1 })
-                        1 -> PermissionStep(
+                        OnboardingStep.Welcome -> WelcomeStep(onNext = { step = OnboardingStep.Beta })
+                        OnboardingStep.Beta -> BetaStep(onNext = { step = OnboardingStep.Permission })
+                        OnboardingStep.Permission -> PermissionStep(
                             onGrant = onRequestStoragePermission,
-                            onNext = { step = 2 }
+                            onNext = { step = OnboardingStep.Dolphin }
                         )
 
-                        2 -> DolphinCheckStep(
+                        OnboardingStep.Dolphin -> DolphinCheckStep(
                             installed = dolphinInstalled,
                             onRetry = { dolphinRetry++ },
-                            onNext = { step = 3 },
+                            onNext = { step = OnboardingStep.Storage },
                             onDownload = { DolphinLauncher.openDolphinDownload(context) }
                         )
 
-                        3 -> StorageStep(
+                        OnboardingStep.Storage -> StorageStep(
                             onPickStorage = onPickStorage,
-                            onContinue = { step = 4 },
+                            onContinue = { step = OnboardingStep.Iso },
                             alreadyConfigured = storageConfigured
                         )
 
-                        4 -> IsoStep(
+                        OnboardingStep.Iso -> IsoStep(
                             onPickIso = onPickIso,
                             onContinue = onSkipIso,
                             alreadyConfigured = isoConfigured
                         )
 
-                        5 -> MiiStep(
+                        OnboardingStep.Mii -> MiiStep(
                             state = miiWadState,
                             onInstall = {
                                 miiWadState = MiiWadOnboarding.Installing
@@ -187,22 +188,41 @@ fun OnboardingScreen(
                                     }
                                 }
                             },
-                            onSkip = { step = 6 },
-                            onNext = { step = 6 }
+                            onSkip = { step = OnboardingStep.Complete },
+                            onNext = { step = OnboardingStep.Complete }
                         )
 
-                        6 -> CompleteStep(onDone = onComplete)
+                        OnboardingStep.Complete -> CompleteStep(onDone = onComplete)
                     }
                 }
             }
         }
         StepDots(
-            current = step,
-            total = 7,
+            current = step.ordinal,
+            total = OnboardingStep.TOTAL,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 24.dp)
         )
+    }
+}
+
+/** Ordered list of onboarding pages. [ordinal] doubles as the [StepDots] index. */
+private enum class OnboardingStep {
+    Welcome,
+    Beta,
+    Permission,
+    Dolphin,
+    Storage,
+    Iso,
+    Mii,
+    Complete;
+
+    /** Returns the previous step, or null if this is the first. */
+    fun previous(): OnboardingStep? = entries.getOrNull(ordinal - 1)
+
+    companion object {
+      val TOTAL: Int = entries.size
     }
 }
 
@@ -323,6 +343,20 @@ private fun WelcomeStep(onNext: () -> Unit) {
             onClick = onNext
         )
     }
+}
+
+@Composable
+private fun BetaStep(onNext: () -> Unit) {
+  StepCard(
+    title = stringResource(R.string.onboarding_beta_title),
+    titleStyle = MaterialTheme.typography.headlineSmall,
+    body = stringResource(R.string.onboarding_beta_body)
+  ) {
+    StepPrimaryButton(
+      text = stringResource(R.string.onboarding_beta_continue),
+      onClick = onNext
+    )
+  }
 }
 
 @Composable
