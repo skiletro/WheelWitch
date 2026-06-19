@@ -64,6 +64,7 @@ android {
 
   buildTypes {
     debug {
+      applicationIdSuffix = ".debug"
       buildConfigField("String", "GIT_HASH", "\"debug\"")
     }
     release {
