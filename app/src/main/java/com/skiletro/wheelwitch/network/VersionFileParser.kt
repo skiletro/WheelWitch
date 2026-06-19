@@ -15,6 +15,7 @@ import com.skiletro.wheelwitch.model.parseRaceStats
 import com.skiletro.wheelwitch.model.parseRooms
 import com.skiletro.wheelwitch.model.parseTracks
 import com.skiletro.wheelwitch.util.HttpClientProvider
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Request
 import org.json.JSONObject
 
@@ -31,8 +32,21 @@ internal fun parseUpdatesText(text: String): List<UpdateEntry> {
             val path = parts[2].trim()
             val description = parts[3].trim()
             val parsed = SemVersion.parse(version) ?: return@mapNotNull null
-            UpdateEntry(parsed, url, path, description)
+            UpdateEntry(parsed, normalizeUpdateUrl(url), path, description)
         }
+}
+
+/**
+ * Upgrades an update manifest URL to https and drops the legacy `:8000` port.
+ * The server currently serves `RetroRewindVersion.txt` entries pointing at
+ * `http://update.rwfc.net:8000/...`, which is blocked on modern Android and
+ * not what the rest of the app uses. Leaves anything HttpUrl can't parse
+ * unchanged so a malformed entry fails through to the normal skip path.
+ */
+internal fun normalizeUpdateUrl(url: String): String {
+    val parsed = url.toHttpUrlOrNull() ?: return url
+    if (parsed.scheme != "http") return url
+    return parsed.newBuilder().scheme("https").port(443).build().toString()
 }
 
 /** Parses RetroRewindDelete.txt format: lines of "version path". Skips malformed lines. */

@@ -64,6 +64,38 @@ class VersionFileParserTest {
     }
 
     @Test
+    fun `parseUpdatesText rewrites http to https and drops colon 8000`() {
+        val text =
+            "3.2.6 http://update.rwfc.net:8000/RetroRewind/zip/0017.zip /0017.zip Assets"
+        val updates = parseUpdatesText(text)
+        assertThat(updates).hasSize(1)
+        assertThat(updates[0].url)
+            .isEqualTo("https://update.rwfc.net/RetroRewind/zip/0017.zip")
+    }
+
+    @Test
+    fun `parseUpdatesText leaves https urls untouched`() {
+        val text = "3.2.5 https://example.com/updates/3.2.5.zip /path desc"
+        val updates = parseUpdatesText(text)
+        assertThat(updates[0].url).isEqualTo("https://example.com/updates/3.2.5.zip")
+    }
+
+    @Test
+    fun `parseUpdatesText upgrades scheme for http urls without port`() {
+        val text = "3.2.6 http://example.com/a.zip /path desc"
+        val updates = parseUpdatesText(text)
+        assertThat(updates[0].url).isEqualTo("https://example.com/a.zip")
+    }
+
+    @Test
+    fun `parseUpdatesText leaves non-http urls unchanged`() {
+        val text = "3.2.6 notaurl /path desc"
+        val updates = parseUpdatesText(text)
+        assertThat(updates).hasSize(1)
+        assertThat(updates[0].url).isEqualTo("notaurl")
+    }
+
+    @Test
     fun `parseDeletionsText parses valid deletion manifest`() {
         val text = """
             3.2.5 /riivolution/old/file.txt
