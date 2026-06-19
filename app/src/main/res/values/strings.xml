@@ -152,6 +152,8 @@
     <string name="settings_replace_save_sub">Replace current save with a backup</string>
     <string name="settings_shortcut_short">Quick Launch</string>
     <string name="settings_shortcut_long">Launch Retro Rewind</string>
+    <string name="shortcut_disabled_message">Quick Launch is unavailable right now</string>
+    <string name="shortcut_pin_unsupported">This launcher doesn\'t support pinned shortcuts. Long-press the Wheel Witch app icon on your home screen to add the Quick Launch shortcut.</string>
     <string name="settings_about_summary">%1$s \u2014 %2$s</string>
 
     <!-- online menu -->

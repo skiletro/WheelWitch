@@ -6,6 +6,7 @@ import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
 import android.graphics.drawable.Icon
 import android.os.Build
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -560,37 +561,48 @@ fun SettingsScreen(
                                 onClick = onSimulateQuickLaunch,
                                 shape = RoundedCornerShape(14.dp)
                             ) { Text(stringResource(R.string.settings_simulate)) }
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                val shortcutLabel = stringResource(R.string.settings_shortcut_short)
-                                val shortcutLongLabel = stringResource(R.string.settings_shortcut_long)
-                                val shortcutManager =
-                                    remember { context.getSystemService(Context.SHORTCUT_SERVICE) as? ShortcutManager }
-                                if (shortcutManager?.isRequestPinShortcutSupported == true) {
-                                    TextButton(
-                                        onClick = {
-                                            val intent =
-                                                Intent("com.skiletro.wheelwitch.action.QUICK_LAUNCH").apply {
-                                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                                                    `package` = context.packageName
-                                                }
-                                            val shortcut =
-                                                ShortcutInfo.Builder(context, "quick_launch")
-                                                    .setShortLabel(shortcutLabel)
-                                                    .setLongLabel(shortcutLongLabel)
-                                                    .setIcon(
-                                                        Icon.createWithResource(
-                                                            context,
-                                                            R.mipmap.ic_launcher
-                                                        )
-                                                    )
-                                                    .setIntent(intent)
-                                                    .build()
-                                            shortcutManager.requestPinShortcut(shortcut, null)
-                                        },
-                                        shape = RoundedCornerShape(14.dp)
-                                    ) { Text(stringResource(R.string.settings_shortcut)) }
+                            val shortcutManager =
+                                remember {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                        context.getSystemService(Context.SHORTCUT_SERVICE) as? ShortcutManager
+                                    } else {
+                                        null
+                                    }
                                 }
-                            }
+                            val canPinShortcut = shortcutManager?.isRequestPinShortcutSupported == true
+                            val shortcutLabel = stringResource(R.string.settings_shortcut_short)
+                            val shortcutLongLabel = stringResource(R.string.settings_shortcut_long)
+                            TextButton(
+                                onClick = {
+                                    if (canPinShortcut && shortcutManager != null) {
+                                        val intent =
+                                            Intent("com.skiletro.wheelwitch.action.QUICK_LAUNCH").apply {
+                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                                                `package` = context.packageName
+                                            }
+                                        val shortcut =
+                                            ShortcutInfo.Builder(context, "quick_launch")
+                                                .setShortLabel(shortcutLabel)
+                                                .setLongLabel(shortcutLongLabel)
+                                                .setIcon(
+                                                    Icon.createWithResource(
+                                                        context,
+                                                        R.mipmap.ic_launcher
+                                                    )
+                                                )
+                                                .setIntent(intent)
+                                                .build()
+                                        shortcutManager.requestPinShortcut(shortcut, null)
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            R.string.shortcut_pin_unsupported,
+                                            Toast.LENGTH_LONG,
+                                        ).show()
+                                    }
+                                },
+                                shape = RoundedCornerShape(14.dp)
+                            ) { Text(stringResource(R.string.settings_shortcut)) }
                         }
                     }
                 )
