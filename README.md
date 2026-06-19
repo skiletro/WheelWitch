@@ -50,7 +50,7 @@ It downloads and incrementally updates the pack from the RWFC server, then launc
 - Multiple themes including Material You dynamic colour, with dark, light, and system modes
 
 > [!NOTE]
-> Save backup/restore currently only supports the **PAL** version of Mario Kart Wii (`RMCP`). - see [TODO](##todo)
+> Save backup/restore currently only supports the **PAL** version of Mario Kart Wii (`RMCP`). - see [TODO](#todo)
 
 ## Download
 
@@ -61,7 +61,7 @@ To build from source or contribute, see [CONTRIBUTING.md](CONTRIBUTING.md#build)
 ## Requirements
 
 - Android 12+ (API 31)
-- [Dolphin Emulator](https://dolphinemu.com) installed
+- [Dolphin Emulator](https://dolphin-emu.org) installed
 - Mario Kart Wii ISO
 
 ## First Time Setup
@@ -119,13 +119,16 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for build instructions, signing setup, an
 
 ## Credits
 
-- **[Retro Rewind](https://wiki.tockdom.com/wiki/Retro_Rewind)** and the **Wheel Wizard** team for the pack format and update server
-- **[Dolphin Emulator](https://dolphinemu.org)** for the runtime
-- **[Tockdom wiki](https://wiki.tockdom.com)** for the changelog source
+- **[Retro Rewind](https://rwfc.net)** and the **[Wheel Wizard](https://github.com/TeamWheelWizard/WheelWizard)** team for the pack format and update server
+- **[Dolphin Emulator](https://dolphin-emu.org)**
+- **[Tockdom wiki](https://wiki.tockdom.com)**
+- **[Chadderz](https://chadsoft.co.uk/contact.html)** for her [Terrible Mario Kart Font](https://wiki.tockdom.com/wiki/CTMKF)
 - **[Jetpack Compose](https://developer.android.com/jetpack/compose)**, **[Material 3](https://m3.material.io)**, and **[OkHttp](https://square.github.io/okhttp/)** for the building blocks
 - **[Obtainium](https://github.com/ImranR98/Obtainium)** for making sideloaded auto-updates painless
+- **[Composables](https://composables.com/)** for the cool icons
 
-Nintendo owns Mario Kart Wii. This project is unofficial and not affiliated with Nintendo.
+This project is unaffiliated with Nintendo, Retro Rewind, or Wheel Wizard.
+Rights to Mario Kart Wii go to Nintendo, Retro Rewind to the Retro Rewind Team, and Wheel Wizard to the Wheel Wizard team.
 
 > [!IMPORTANT]
 > Parts of this codebase were written with assistance from [MiniMax M3](https://minimax.io) and [GLM-4.7](https://z.ai) as a way to get more familiar with AI tooling.
