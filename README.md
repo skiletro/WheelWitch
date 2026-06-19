@@ -78,32 +78,37 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for build instructions, signing setup, an
 
 ## TODO
 
-* Back up `wc24scr.vff` <details><summary>Details</summary>
+<details><summary>Back up `wc24scr.vff`</summary>
   Mario Kart Wii's Wiimmfi world rankings cache. Either copy the file or
   back up the whole `RMCP` folder, mirroring how `rksys.dat` is handled
   in `SaveManager`.
 </details>
-* Support other RMCx save types <details><summary>Details</summary>
+
+<details><summary>Support other RMCx save types</summary>
   Only `RMCP` (PAL) is currently supported. `RMCE` (USA), `RMCJ` (JPN),
   and `RMCK` (KOR) need the same treatment. Could detect by sniffing the
   first bytes of the save or by following the storage folder name.
 </details>
-* Disable license button when no licenses exist <details><summary>Details</summary>
+
+<details><summary>Disable license button when no licenses exist</summary>
   Gate the licenses shortcut on `SaveDataViewModel.hasSave.collectAsState()`.
   If false, render the button disabled with a "no save" subtitle rather
   than letting the user tap into a broken Licenses screen.
 </details>
-* Fix logo animation speed varying by device <details><summary>Details</summary>
+
+<details><summary>Fix logo animation speed varying by device</summary>
   Current animation is frame-driven so the rotation speed depends on
   display refresh rate. Use a time-based source (e.g. `Animatable` with a
   fixed duration) for frame-rate-independent motion.
 </details>
-* Smooth out the downloading/extract progress bar <details><summary>Details</summary>
+
+<details><summary>Smooth out the downloading/extract progress bar</summary>
   `ProgressInfo.Downloading` events fire at ~1% intervals, producing solid
   steps. Animate between values with `animateFloatAsState` inside the
   progress bar composable for a continuous feel.
 </details>
-* Fix static Quick Launch shortcut hardcoding the release applicationId <details><summary>Details</summary>
+
+<details><summary>Fix static Quick Launch shortcut hardcoding the release applicationId</summary>
   On debug builds (applicationId `com.skiletro.wheelwitch.debug`), the
   long-press-app-icon shortcut launches the release build instead. The
   dynamic pin in Settings works correctly. Drop `targetPackage` and
