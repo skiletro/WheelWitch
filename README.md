@@ -78,13 +78,39 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for build instructions, signing setup, an
 
 ## TODO
 
-- [ ] Back up `wc24scr.vff` - either the file itself or the entire `RMCP` folder
-- [ ] Generalise save backup/restore to support other `RMCx` save types (not just `RMCP` - see `SaveManager.kt:8`)
-- [ ] Disable license button if no licenses are created, or they cannot be found.
-- [ ] Fix Wheel Witch logo speed changing depending on device
-- [ ] Add animation to downloading and extracting bar (smooth rather than solid steps)
-- [x] Add logcat debugging information throughout program
-- [x] Add button to export logging so end users can report bugs easier
+* Back up `wc24scr.vff` <details><summary>Details</summary>
+  Mario Kart Wii's Wiimmfi world rankings cache. Either copy the file or
+  back up the whole `RMCP` folder, mirroring how `rksys.dat` is handled
+  in `SaveManager`.
+</details>
+* Support other RMCx save types <details><summary>Details</summary>
+  Only `RMCP` (PAL) is currently supported. `RMCE` (USA), `RMCJ` (JPN),
+  and `RMCK` (KOR) need the same treatment. Could detect by sniffing the
+  first bytes of the save or by following the storage folder name.
+</details>
+* Disable license button when no licenses exist <details><summary>Details</summary>
+  Gate the licenses shortcut on `SaveDataViewModel.hasSave.collectAsState()`.
+  If false, render the button disabled with a "no save" subtitle rather
+  than letting the user tap into a broken Licenses screen.
+</details>
+* Fix logo animation speed varying by device <details><summary>Details</summary>
+  Current animation is frame-driven so the rotation speed depends on
+  display refresh rate. Use a time-based source (e.g. `Animatable` with a
+  fixed duration) for frame-rate-independent motion.
+</details>
+* Smooth out the downloading/extract progress bar <details><summary>Details</summary>
+  `ProgressInfo.Downloading` events fire at ~1% intervals, producing solid
+  steps. Animate between values with `animateFloatAsState` inside the
+  progress bar composable for a continuous feel.
+</details>
+* Fix static Quick Launch shortcut hardcoding the release applicationId <details><summary>Details</summary>
+  On debug builds (applicationId `com.skiletro.wheelwitch.debug`), the
+  long-press-app-icon shortcut launches the release build instead. The
+  dynamic pin in Settings works correctly. Drop `targetPackage` and
+  `targetClass` from `shortcuts.xml` so the system resolves within the
+  declaring package. Note: `${applicationId}` does not work in `res/xml/`
+  so a string resource is needed for the static action.
+</details>
 
 ## Credits
 
