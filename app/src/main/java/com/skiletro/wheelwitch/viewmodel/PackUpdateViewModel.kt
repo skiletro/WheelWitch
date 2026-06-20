@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.data.GameTypeParser
+import com.skiletro.wheelwitch.data.IsoValidator
 import com.skiletro.wheelwitch.data.PackStorage
 import com.skiletro.wheelwitch.data.SaveManager
 import com.skiletro.wheelwitch.domain.RewindPackManager
@@ -277,23 +278,14 @@ class PackUpdateViewModel(application: Application) : AndroidViewModel(applicati
             return
         }
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val file = File(path)
-                if (!file.exists()) {
-                    _gameInfo.value = null
-                    return@launch
+            _gameInfo.value =
+                try {
+                    val info = IsoValidator.parseHeader(File(path))
+                    info?.takeIf { it.format != GameTypeParser.GameFormat.Invalid }
+                } catch (e: Exception) {
+                    Timber.tag("PackUpdate").w(e, "Failed to parse game info for %s", path)
+                    null
                 }
-                val header = file.inputStream().use { input ->
-                    val buf = ByteArray(4096)
-                    val bytesRead = input.read(buf)
-                    if (bytesRead <= 0) ByteArray(0) else buf.copyOf(bytesRead)
-                }
-                val info = GameTypeParser.parseGameInfo(file.name, header)
-                _gameInfo.value = info.takeIf { it.format != GameTypeParser.GameFormat.Invalid }
-            } catch (e: Exception) {
-                Timber.tag("PackUpdate").w(e, "Failed to parse game info for %s", path)
-                _gameInfo.value = null
-            }
         }
     }
 
