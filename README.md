@@ -78,10 +78,17 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for build instructions, signing setup, an
 
 ## TODO
 
+This section is for known issues, as well as other features that are on my radar that need doing.
+
 <details><summary>Back up `wc24scr.vff`</summary>
   Mario Kart Wii's Wiimmfi world rankings cache. Either copy the file or
   back up the whole `RMCP` folder, mirroring how `rksys.dat` is handled
   in `SaveManager`.
+
+  `wc24scr.vff` for friends lists and other WFC data
+
+  `(Dolphin Emulator)\Wii\shared2\Pulsar\RetroRewind6\RRRating.pul`
+  for RR VR data
 </details>
 
 <details><summary>Support other RMCx save types</summary>
@@ -115,6 +122,38 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for build instructions, signing setup, an
   `targetClass` from `shortcuts.xml` so the system resolves within the
   declaring package. Note: `${applicationId}` does not work in `res/xml/`
   so a string resource is needed for the static action.
+</details>
+
+<details><summary>Dedup ChangelogDetailScreen and VersionHistoryScreen</summary>
+  Both screens render `VersionHistoryState` (Loading/Error/Success) with
+  a `ChangelogCard` list using near-duplicate code. `VersionHistoryScreen.kt`
+  extracts `LoadingContent`/`ErrorContent`/`ChangelogList` private
+  helpers; `ChangelogDetailScreen.kt` inlines them and adds
+  `ScreenHeader` + `dpadScroll`. Extract the shared body into a
+  `VersionHistoryContent` composable in `ui/components/` and have both
+  screens delegate to it. Or, if one screen is unreachable, delete it.
+</details>
+
+<details><summary>Validate WBFS disc game ID</summary>
+  `GameTypeParser.checkIsValidWbfs` only validates the WBFS container
+  header (magic, sector shifts, WLBA reachability) and currently accepts
+  any structurally valid WBFS without checking the 6-byte disc ID.
+  Callers read only the first 4 KiB, but a real WBFS disc header
+  typically lives at `wlba[0] * wbfs_sector_size` (often hundreds of
+  KiB into the file) — a true game-ID check would need seekable I/O.
+  Until then, a disclaimer dialog warns the user that the disc ID
+  couldn't be verified. Add a `RandomAccessFile`-based overload of
+  `GameTypeParser.checkValidity` / `parseGameInfo` (or a `ByteSource`
+  abstraction) so WBFS validation can seek to the disc header and
+  confirm the game ID, switch the two callers to the new API, drop
+  the disclaimer, and add a unit test using a realistic layout
+  (`wbfs_sector_shift = 15`, `wlba[0] = 18`).
+
+  Will require reverting `3664914d6dcbde79c723a76cc24f56f332d4e5d7`
+  before doing proper solution.
+
+  Thank you DB33P for reporting this bug! I should've checked WBFS
+  support earlier :')
 </details>
 
 ## Credits
