@@ -1,13 +1,10 @@
 package com.skiletro.wheelwitch.viewmodel
 
 import android.app.Application
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.skiletro.wheelwitch.R
-import com.skiletro.wheelwitch.model.LeaderboardEntry
 import com.skiletro.wheelwitch.model.RaceStats
-import com.skiletro.wheelwitch.model.Room
 import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.model.ServerHealth
 import com.skiletro.wheelwitch.model.TimeTrialTrack
@@ -27,61 +24,6 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import timber.log.Timber
 import java.util.concurrent.TimeUnit
-
-/**
- * Top-level page in the Online Menu. [Hub] is the landing screen that
- * links to the others; the rest trigger a fetch when navigated to.
- */
-enum class OnlineMenuPage {
-    Hub, Rooms, Leaderboard, Health, RaceStats, TimeTrial
-}
-
-/**
- * Shared shape for the four sub-screen state machines in this VM.
- * Each sub-screen starts at [Idle], transitions to [Loading] on fetch,
- * and ends at [Success] or [Error].
- */
-@Immutable
-sealed class RoomsState {
-    data object Idle : RoomsState()
-    data object Loading : RoomsState()
-    data class Success(
-        val rooms: List<Room>,
-        val playerCount: Int?,
-        val serverConnectivity: ServerConnectivity
-    ) : RoomsState()
-
-    data class Error(val message: String) : RoomsState()
-}
-
-@Immutable
-sealed class LeaderboardState {
-    data object Idle : LeaderboardState()
-    data object Loading : LeaderboardState()
-    data class Success(
-        val entries: List<LeaderboardEntry>,
-        val hasMore: Boolean,
-        val page: Int
-    ) : LeaderboardState()
-
-    data class Error(val message: String) : LeaderboardState()
-}
-
-@Immutable
-sealed class HealthState {
-    data object Idle : HealthState()
-    data object Loading : HealthState()
-    data class Success(val health: ServerHealth) : HealthState()
-    data class Error(val message: String) : HealthState()
-}
-
-@Immutable
-sealed class RaceStatsState {
-    data object Idle : RaceStatsState()
-    data object Loading : RaceStatsState()
-    data class Success(val stats: RaceStats, val lastRefreshedAt: Long) : RaceStatsState()
-    data class Error(val message: String) : RaceStatsState()
-}
 
 /** Wrapper for a cached [RaceStats] payload and the wall-clock time it was cached at. */
 private data class RaceStatsCache(val stats: RaceStats, val cachedAt: Long)
