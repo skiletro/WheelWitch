@@ -13,6 +13,7 @@ import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.ProgressInfo
 import com.skiletro.wheelwitch.util.DolphinLauncher
 import com.skiletro.wheelwitch.util.MiiFaceCache
+import com.skiletro.wheelwitch.util.Prefs
 import com.skiletro.wheelwitch.util.PrefsKeys
 import com.skiletro.wheelwitch.viewmodel.PackUpdateViewModel.Companion.currentStorage
 import kotlinx.coroutines.Dispatchers
@@ -34,8 +35,7 @@ import java.io.File
  */
 class PackUpdateViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application
-    private val prefs =
-        application.getSharedPreferences(PrefsKeys.PREFS_NAME, Application.MODE_PRIVATE)
+    private val prefs = Prefs.main(application)
 
     private val _state = MutableStateFlow<UiState>(UiState.NoStorage)
     val state: StateFlow<UiState> = _state.asStateFlow()

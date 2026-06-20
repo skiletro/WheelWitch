@@ -11,6 +11,7 @@ import com.skiletro.wheelwitch.data.SaveManager
 import com.skiletro.wheelwitch.model.LicenseInfo
 import com.skiletro.wheelwitch.model.SaveFileInfo
 import com.skiletro.wheelwitch.network.VersionFileParser
+import com.skiletro.wheelwitch.util.Prefs
 import com.skiletro.wheelwitch.util.PrefsKeys
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -45,8 +46,7 @@ sealed class SaveInfoState {
  */
 class SaveDataViewModel(application: Application) : AndroidViewModel(application),
     SaveDataDelegate {
-    private val prefs =
-        application.getSharedPreferences(PrefsKeys.PREFS_NAME, Application.MODE_PRIVATE)
+    private val prefs = Prefs.main(application)
     private val app = application
 
     private val _hasSave = MutableStateFlow(false)

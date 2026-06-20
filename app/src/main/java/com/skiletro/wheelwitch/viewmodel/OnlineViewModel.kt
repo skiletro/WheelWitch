@@ -13,6 +13,7 @@ import com.skiletro.wheelwitch.model.ServerHealth
 import com.skiletro.wheelwitch.model.TimeTrialTrack
 import com.skiletro.wheelwitch.model.parseRaceStats
 import com.skiletro.wheelwitch.network.VersionFileParser
+import com.skiletro.wheelwitch.util.Prefs
 import com.skiletro.wheelwitch.util.PrefsKeys
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel.Companion.MAX_CACHE_AGE_MS
 import kotlinx.coroutines.Dispatchers
@@ -91,8 +92,7 @@ private data class RaceStatsCache(val stats: RaceStats, val cachedAt: Long)
  * for the leaderboard is race-free via a conflated channel.
  */
 class OnlineViewModel(application: Application) : AndroidViewModel(application) {
-    private val prefs =
-        application.getSharedPreferences(PrefsKeys.RACE_STATS_PREFS, Application.MODE_PRIVATE)
+    private val prefs = Prefs.raceStatsCache(application)
 
     private val _currentPage = MutableStateFlow(OnlineMenuPage.Hub)
     val currentPage: StateFlow<OnlineMenuPage> = _currentPage.asStateFlow()

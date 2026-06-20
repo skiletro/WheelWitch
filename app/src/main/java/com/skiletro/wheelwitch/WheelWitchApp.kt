@@ -1,11 +1,11 @@
 package com.skiletro.wheelwitch
 
 import android.app.Application
-import android.content.Context
 import android.util.Log
 import com.skiletro.wheelwitch.util.AppReleaseLogTree
 import com.skiletro.wheelwitch.util.MemoryBufferTree
 import com.skiletro.wheelwitch.util.OptionalFileTree
+import com.skiletro.wheelwitch.util.Prefs
 import com.skiletro.wheelwitch.util.PrefsKeys
 import java.io.File
 import timber.log.Timber
@@ -14,7 +14,7 @@ import timber.log.Timber
 class WheelWitchApp : Application() {
   override fun onCreate() {
     super.onCreate()
-    val prefs = getSharedPreferences(PrefsKeys.PREFS_NAME, Context.MODE_PRIVATE)
+    val prefs = Prefs.main(this)
     if (BuildConfig.DEBUG) {
       Timber.plant(Timber.DebugTree())
     } else {

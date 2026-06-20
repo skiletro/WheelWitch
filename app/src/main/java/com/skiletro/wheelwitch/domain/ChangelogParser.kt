@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import com.skiletro.wheelwitch.domain.ChangelogParser.PREFS_NAME
 import com.skiletro.wheelwitch.model.ChangelogEntry
 import com.skiletro.wheelwitch.util.HttpClientProvider
+import com.skiletro.wheelwitch.util.Prefs
 import com.skiletro.wheelwitch.util.PrefsKeys
 import okhttp3.Request
 import org.json.JSONArray
@@ -44,8 +45,7 @@ object ChangelogParser {
     fun fetchWithCache(context: Context): Result<List<ChangelogEntry>> {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val cachedVersion = prefs.getString(KEY_VERSION, null)
-        val serverVersion = context.getSharedPreferences(PrefsKeys.PREFS_NAME, Context.MODE_PRIVATE)
-            .getString(PrefsKeys.LAST_SERVER_VERSION_KEY, null)
+        val serverVersion = Prefs.main(context).getString(PrefsKeys.LAST_SERVER_VERSION_KEY, null)
 
         if (cachedVersion != null && cachedVersion == serverVersion) {
             val cached = readCache(prefs)

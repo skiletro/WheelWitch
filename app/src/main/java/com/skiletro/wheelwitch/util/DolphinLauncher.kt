@@ -64,16 +64,12 @@ object DolphinLauncher {
 
     /** Persists the selected Mario Kart Wii ISO path to SharedPreferences. */
     fun setGameIsoPath(context: Context, path: String) {
-        context.getSharedPreferences(PrefsKeys.PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putString(GAME_ISO_PREFS_KEY, path)
-            .apply()
+        Prefs.main(context).edit().putString(GAME_ISO_PREFS_KEY, path).apply()
     }
 
     /** Returns the saved ISO path, or null if none was set. */
     fun getGameIsoPath(context: Context): String? {
-        return context.getSharedPreferences(PrefsKeys.PREFS_NAME, Context.MODE_PRIVATE)
-            .getString(GAME_ISO_PREFS_KEY, null)
+        return Prefs.main(context).getString(GAME_ISO_PREFS_KEY, null)
     }
 
     /** Generates the Dolphin `RR.json` launch descriptor (kebab-case JSON fields: `base-file`, `display-name`, `riivolution`, etc.). */
