@@ -13,6 +13,7 @@
     <string name="action_retry">Retry</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_exit">Exit</string>
+    <string name="action_ok">OK</string>
 
     <!-- general status -->
     <string name="status_checking">Checking...</string>
@@ -57,6 +58,8 @@
     <string name="home_rom_not_found">Mario Kart Wii ROM not found. Please select it again.</string>
     <string name="home_rom_invalid">The selected file is not a valid Mario Kart Wii ROM.</string>
     <string name="home_rom_unreachable">Could not access the selected file.</string>
+    <string name="home_rom_wbfs_disclaimer">WBFS support is experimental. We verify the file is a valid WBFS container, but we can\'t always confirm the game inside. Make sure you selected a Mario Kart Wii WBFS, otherwise the game may not launch.</string>
+    <string name="home_rom_wbfs_dialog_title">WBFS file selected</string>
     <string name="home_no_iso_cant_launch">Cannot resolve storage path. Please pick a new storage folder.</string>
     <string name="home_launch_failed">Failed to launch Dolphin</string>
 

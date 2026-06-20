@@ -117,10 +117,10 @@ class GameTypeParserTest {
     // --- WBFS ---
 
     @Test
-    fun `parse WBFS with valid header and game ID`() {
+    fun `parse WBFS with valid header returns Wbfs without game ID`() {
         val info = GameTypeParser.parseGameInfo("game.wbfs", createWbfsBuffer("RMCP01"))
         assertThat(info.format).isEqualTo(GameFormat.Wbfs)
-        assertThat(info.gameId).isEqualTo("RMCP01")
+        assertThat(info.gameId).isNull()
     }
 
     @Test
@@ -134,10 +134,10 @@ class GameTypeParserTest {
     }
 
     @Test
-    fun `parse WBFS with wrong game ID returns Invalid`() {
+    fun `parse WBFS accepts any structurally valid header regardless of game ID`() {
         val info = GameTypeParser.parseGameInfo("game.wbfs", createWbfsBuffer("ABCDEF"))
-        assertThat(info.format).isEqualTo(GameFormat.Invalid)
-        assertThat(info.gameId).isEqualTo("ABCDEF")
+        assertThat(info.format).isEqualTo(GameFormat.Wbfs)
+        assertThat(info.gameId).isNull()
     }
 
     @Test
@@ -160,14 +160,22 @@ class GameTypeParserTest {
     }
 
     @Test
-    fun `parse WBFS when data offset out of bounds returns Invalid`() {
+    fun `parse WBFS when data offset out of bounds still returns Wbfs`() {
         val buf = ByteArray(770)
         buf[0] = 0x57.toByte(); buf[1] = 0x42.toByte(); buf[2] = 0x46.toByte(); buf[3] =
             0x53.toByte()
         buf[8] = 9; buf[9] = 2
         buf[768] = (1000 shr 8).toByte(); buf[769] = 1000.toByte()
         val info = GameTypeParser.parseGameInfo("game.wbfs", buf)
-        assertThat(info.format).isEqualTo(GameFormat.Invalid)
+        assertThat(info.format).isEqualTo(GameFormat.Wbfs)
+        assertThat(info.gameId).isNull()
+    }
+
+    @Test
+    fun `parse WBFS with realistic layout (data offset beyond 4 KiB) returns Wbfs`() {
+        val buf = createWbfsBuffer("RMCP01", hdSectorShift = 9, wbfsSectorShift = 15, wlbaEntry = 18)
+        val info = GameTypeParser.parseGameInfo("game.wbfs", buf)
+        assertThat(info.format).isEqualTo(GameFormat.Wbfs)
         assertThat(info.gameId).isNull()
     }
 
@@ -212,6 +220,11 @@ class GameTypeParserTest {
     @Test
     fun `checkValidity returns true for valid WAD`() {
         assertThat(GameTypeParser.checkValidity("file.wad", createWadBuffer())).isTrue()
+    }
+
+    @Test
+    fun `checkValidity returns true for valid WBFS header`() {
+        assertThat(GameTypeParser.checkValidity("game.wbfs", createWbfsBuffer("RMCP01"))).isTrue()
     }
 
     @Test

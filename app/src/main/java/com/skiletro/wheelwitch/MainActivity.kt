@@ -23,6 +23,9 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -144,6 +148,7 @@ private fun MainScreen(
     }
     var onboardingStorageSelected by remember { mutableStateOf(false) }
     var onboardingIsoSelected by remember { mutableStateOf(false) }
+    var showWbfsDisclaimer by remember { mutableStateOf(false) }
     var permissionGranted by remember { mutableStateOf(Environment.isExternalStorageManager()) }
 
     val storagePermissionLauncher = rememberLauncherForActivityResult(
@@ -192,23 +197,27 @@ private fun MainScreen(
             return@rememberLauncherForActivityResult
         }
 
-        val isValid = runCatching {
+        val info = runCatching {
             val header = file.inputStream().use { input ->
                 val buf = ByteArray(4096)
                 val bytesRead = input.read(buf)
                 if (bytesRead <= 0) ByteArray(0) else buf.copyOf(bytesRead)
             }
-            GameTypeParser.checkValidity(file.name, header)
-        }.getOrDefault(false)
+            GameTypeParser.parseGameInfo(file.name, header)
+        }.getOrDefault(GameTypeParser.GameInfo(GameTypeParser.GameFormat.Invalid, null))
 
         // if it isn't valid, we need to return
-        if (!isValid) {
+        if (info.format == GameTypeParser.GameFormat.Invalid) {
             Toast.makeText(context, R.string.home_rom_invalid, Toast.LENGTH_SHORT).show()
             return@rememberLauncherForActivityResult
         }
 
         packUpdate.setGameIsoPath(path)
         onboardingIsoSelected = true
+
+        if (info.format == GameTypeParser.GameFormat.Wbfs) {
+            showWbfsDisclaimer = true
+        }
     }
 
     val backupPicker = rememberLauncherForActivityResult(
@@ -231,6 +240,19 @@ private fun MainScreen(
 
     BackHandler(enabled = showSettings) {
         showSettings = false
+    }
+
+    if (showWbfsDisclaimer) {
+        AlertDialog(
+            onDismissRequest = { showWbfsDisclaimer = false },
+            title = { Text(stringResource(R.string.home_rom_wbfs_dialog_title)) },
+            text = { Text(stringResource(R.string.home_rom_wbfs_disclaimer)) },
+            confirmButton = {
+                TextButton(onClick = { showWbfsDisclaimer = false }) {
+                    Text(stringResource(R.string.action_ok))
+                }
+            }
+        )
     }
 
     Box(Modifier.fillMaxSize()) {
