@@ -53,6 +53,8 @@ android {
 
   signingConfigs {
     create("release") {
+      enableV3Signing = true
+      enableV4Signing = true
       val keystorePath = System.getenv("KEYSTORE_PATH")
       if (keystorePath != null) {
         storeFile = file(keystorePath)
