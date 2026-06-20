@@ -33,7 +33,7 @@
 
 | Race Stats | | |
 |------------|---|---|
-| ![Race Stats](.github/assets/screenshots/race_stats.webp) | | |
+| ![Race Stats](.github/assets/screenshots/race_stats.webp) | ![](.github/assets/filler.webp) | ![](.github/assets/filler.webp) |
 
 ## About
 
