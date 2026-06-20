@@ -324,6 +324,7 @@ private fun MainScreen(
                         isoSelected = onboardingIsoSelected,
                         storageConfigured = packUpdate.storageRootPath != null,
                         isoConfigured = DolphinLauncher.getGameIsoPath(context) != null,
+                        miiMaker = miiMaker,
                         onPickStorage = { storagePicker.launch(null) },
                         onPickIso = { isoPicker.launch(ISO_MIME_TYPES) },
                         onSkipIso = { onboardingIsoSelected = true },

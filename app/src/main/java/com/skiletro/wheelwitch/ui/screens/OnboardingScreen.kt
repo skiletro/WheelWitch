@@ -58,6 +58,7 @@ import com.skiletro.wheelwitch.ui.components.buttonShape
 import com.skiletro.wheelwitch.ui.components.sectionShape
 import com.skiletro.wheelwitch.util.DolphinLauncher
 import com.skiletro.wheelwitch.util.MiiWadInstaller
+import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -68,6 +69,7 @@ fun OnboardingScreen(
     isoSelected: Boolean,
     storageConfigured: Boolean,
     isoConfigured: Boolean,
+    miiMaker: MiiMakerViewModel,
     onPickStorage: () -> Unit,
     onPickIso: () -> Unit,
     onSkipIso: () -> Unit,
@@ -181,6 +183,7 @@ fun OnboardingScreen(
                                             MiiWadInstaller.downloadAndExtractWad(context)
                                         }
                                         miiWadState = MiiWadOnboarding.Installed
+                                        miiMaker.refreshHasWad()
                                     } catch (e: Exception) {
                                         miiWadState = MiiWadOnboarding.Error(
                                             e.message ?: miiInstallFailedMessage
