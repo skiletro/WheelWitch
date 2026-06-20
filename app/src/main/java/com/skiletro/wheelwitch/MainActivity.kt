@@ -45,6 +45,7 @@ import com.skiletro.wheelwitch.ui.screens.OnboardingScreen
 import com.skiletro.wheelwitch.ui.screens.QuickLaunchScreen
 import com.skiletro.wheelwitch.ui.screens.SettingsScreen
 import com.skiletro.wheelwitch.ui.theme.AppTheme
+import com.skiletro.wheelwitch.ui.theme.ThemeController
 import com.skiletro.wheelwitch.ui.theme.ThemeMode
 import com.skiletro.wheelwitch.ui.theme.WheelWitchTheme
 import com.skiletro.wheelwitch.util.DolphinLauncher
@@ -71,40 +72,18 @@ class MainActivity : ComponentActivity() {
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         controller.hide(WindowInsetsCompat.Type.systemBars())
         setContent {
-            val prefs = remember {
-                this@MainActivity.getSharedPreferences(
-                    PrefsKeys.SETTINGS_PREFS,
-                    Context.MODE_PRIVATE
-                )
-            }
-            var appTheme by remember {
-                val saved =
-                    prefs.getString(PrefsKeys.APP_THEME_KEY, AppTheme.Hex.name) ?: AppTheme.Hex.name
-                mutableStateOf(runCatching { AppTheme.valueOf(saved) }.getOrDefault(AppTheme.Hex))
-            }
-            var themeMode by remember {
-                val saved = prefs.getString(PrefsKeys.THEME_MODE_KEY, ThemeMode.System.name)
-                    ?: ThemeMode.System.name
-                mutableStateOf(runCatching { ThemeMode.valueOf(saved) }.getOrDefault(ThemeMode.System))
-            }
-
+            val theme = ThemeController.remember(this@MainActivity)
             WheelWitchTheme(
-                themeMode = themeMode,
-                appTheme = appTheme
+                themeMode = theme.themeMode,
+                appTheme = theme.appTheme
             ) {
                 val initialQuickLaunch = pendingQuickLaunch
                 MainScreen(
                     quickLaunchFromIntent = initialQuickLaunch,
-                    appTheme = appTheme,
-                    onChangeAppTheme = { theme ->
-                        appTheme = theme
-                        prefs.edit().putString(PrefsKeys.APP_THEME_KEY, theme.name).apply()
-                    },
-                    themeMode = themeMode,
-                    onChangeThemeMode = { mode ->
-                        themeMode = mode
-                        prefs.edit().putString(PrefsKeys.THEME_MODE_KEY, mode.name).apply()
-                    }
+                    appTheme = theme.appTheme,
+                    onChangeAppTheme = theme::setAppTheme,
+                    themeMode = theme.themeMode,
+                    onChangeThemeMode = theme::setThemeMode
                 )
             }
         }
