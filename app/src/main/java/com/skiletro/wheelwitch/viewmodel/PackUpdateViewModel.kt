@@ -10,7 +10,6 @@ import androidx.lifecycle.viewModelScope
 import com.skiletro.wheelwitch.data.DolphinTree
 import com.skiletro.wheelwitch.domain.RewindPackManager
 import com.skiletro.wheelwitch.model.PackStatus
-import com.skiletro.wheelwitch.util.io.DownloadProgress
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -61,6 +60,11 @@ class PackUpdateViewModel(
   fun checkStatus() {
     viewModelScope.launch {
       _state.value = UiState.Checking
+      if (manager == null) {
+        Timber.tag(TAG)
+          .w("checkStatus: manager is null — no persisted Dolphin tree; " +
+            "treating as NotInstalled (user needs to run onboarding)")
+      }
       val result =
         runCatching {
           manager?.checkStatus() ?: PackStatus.NotInstalled
@@ -73,7 +77,7 @@ class PackUpdateViewModel(
           },
           onFailure = { e ->
             Timber.tag(TAG).e(e, "checkStatus failed")
-            UiState.Error(e.message ?: e::class.simpleName.orEmpty())
+            UiState.Error(friendlyErrorMessage(e))
           },
         )
     }
@@ -90,12 +94,14 @@ class PackUpdateViewModel(
       installMutex.withLock {
         val mgr = manager
         if (mgr == null) {
+          Timber.tag(TAG)
+            .e("installLatest: manager is null — DolphinTree.fromPersisted returned null. " +
+              "User has no valid SAF grant; route to onboarding.")
           _state.value = UiState.Error(STORAGE_NOT_CONFIGURED)
           return@withLock
         }
-        _state.value = UiState.Installing(null)
-        val result =
-          mgr.installLatest { progress -> _state.value = UiState.Installing(progress) }
+        _state.value = UiState.Installing.Extracting(0, 1)
+        val result = mgr.installLatest { phase -> _state.value = phase.toUiState() }
         handleInstallResult(result)
       }
     }
@@ -113,15 +119,27 @@ class PackUpdateViewModel(
       installMutex.withLock {
         val mgr = manager
         if (mgr == null) {
+          Timber.tag(TAG)
+            .e("update: manager is null — DolphinTree.fromPersisted returned null. " +
+              "User has no valid SAF grant; route to onboarding.")
           _state.value = UiState.Error(STORAGE_NOT_CONFIGURED)
           return@withLock
         }
-        _state.value = UiState.Installing(null)
-        val result = mgr.update { progress -> _state.value = UiState.Installing(progress) }
+        _state.value = UiState.Installing.Extracting(0, 1)
+        val result = mgr.update { phase -> _state.value = phase.toUiState() }
         handleInstallResult(result)
       }
     }
   }
+
+  /** Maps a [RewindPackManager.InstallProgress] phase to the corresponding [UiState.Installing] phase. */
+  private fun RewindPackManager.InstallProgress.toUiState(): UiState.Installing =
+    when (this) {
+      is RewindPackManager.InstallProgress.Downloading ->
+        UiState.Installing.Downloading(progress)
+      is RewindPackManager.InstallProgress.Extracting ->
+        UiState.Installing.Extracting(filesDone, filesTotal)
+    }
 
   /** Clears an error state and re-checks status. No-op for non-error states. */
   fun clearError() {
@@ -138,9 +156,32 @@ class PackUpdateViewModel(
       },
       onFailure = { e ->
         Timber.tag(TAG).e(e, "install/update failed")
-        _state.value = UiState.Error(e.message ?: e::class.simpleName.orEmpty())
+        val friendly = friendlyErrorMessage(e)
+        _state.value = UiState.Error(friendly)
       },
     )
+  }
+
+  /**
+   * Maps a thrown exception to a user-facing message. Most app
+   * exceptions have decent `message` text, but a few (notably
+   * [android.os.NetworkOnMainThreadException] and the various
+   * [java.io.IOException] subclasses thrown by OkHttp/SAF) just dump
+   * the class name, which is meaningless in a toast. We surface the
+   * most common cases explicitly; everything else falls through to
+   * the exception's own message.
+   */
+  private fun friendlyErrorMessage(e: Throwable): String {
+    val raw = e.message?.takeIf { it.isNotBlank() } ?: e::class.simpleName.orEmpty()
+    return when {
+      e is android.os.NetworkOnMainThreadException ->
+        "Internal error: install ran on the main thread. Please file a bug."
+      e is java.net.UnknownHostException || e is java.net.SocketTimeoutException ->
+        "Network error. Check your connection and try again."
+      e is java.io.IOException && raw.contains("saf", ignoreCase = true) ->
+        "Storage error: $raw"
+      else -> raw
+    }
   }
 
   /**
@@ -152,7 +193,8 @@ class PackUpdateViewModel(
    * `managerFactory` parameter requires a custom factory.
    */
   companion object {
-    const val STORAGE_NOT_CONFIGURED = "Storage not configured"
+    const val STORAGE_NOT_CONFIGURED =
+      "Storage not configured. Open Settings → Re-run onboarding to pick your Dolphin folder."
     const val TAG = "PackUpdate"
 
     /** Default production factory: read the persisted SAF tree and wire up the manager. */

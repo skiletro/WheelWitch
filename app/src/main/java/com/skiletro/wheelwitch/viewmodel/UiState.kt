@@ -25,11 +25,31 @@ sealed class UiState {
   data class Ready(val status: PackStatus) : UiState()
 
   /**
-   * A pack install or update is in progress. [progress] is non-null
-   * during the download phase; it is null during extraction (which
-   * is fast and not surfaced as a fraction).
+   * A pack install or update is in progress. The phase is one of:
+   *
+   * - [Installing.Downloading] — fetching the zip from the server.
+   *   Carries the full [DownloadProgress] (fraction, rate, byte
+   *   counts) for a determinate UI bar.
+   * - [Installing.Extracting] — unpacking the zip into the SAF tree.
+   *   Carries a determinate `done / total` file count.
+   *
+   * Both phases live under the same `Installing` parent so the home
+   * screen's `isBusy = state is UiState.Installing` check still
+   * works without a per-phase guard.
    */
-  data class Installing(val progress: DownloadProgress?) : UiState()
+  @Immutable
+  sealed class Installing : UiState() {
+    /** Zip is being fetched from the update server. */
+    data class Downloading(val progress: DownloadProgress) : Installing()
+
+    /**
+     * Zip is being unpacked into the SAF tree. [filesDone] is the
+     * index of the file just written; [filesTotal] is the count of
+     * non-directory entries (computed by a quick pre-scan of the zip
+     * header so the bar can be determinate from the first frame).
+     */
+    data class Extracting(val filesDone: Int, val filesTotal: Int) : Installing()
+  }
 
   /**
    * An install just completed. The view-model auto-transitions to

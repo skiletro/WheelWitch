@@ -5,6 +5,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -39,6 +40,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,15 +56,21 @@ import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
+import com.skiletro.wheelwitch.ui.components.ProgressButton
 import com.skiletro.wheelwitch.ui.components.TopBar
 import com.skiletro.wheelwitch.ui.components.focusBorder
 import com.skiletro.wheelwitch.ui.theme.buttonShape
 import com.skiletro.wheelwitch.ui.theme.sectionShape
+import com.skiletro.wheelwitch.util.launcher.DolphinLauncher
 import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 import com.skiletro.wheelwitch.viewmodel.PackUpdateViewModel
 import com.skiletro.wheelwitch.viewmodel.RoomsState
+import com.skiletro.wheelwitch.viewmodel.SaveDataViewModel
 import com.skiletro.wheelwitch.viewmodel.UiState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Top-level home screen: top bar, version-history card, and the
@@ -74,6 +82,7 @@ fun HomeScreen(
   packUpdate: PackUpdateViewModel,
   miiMaker: MiiMakerViewModel,
   onlineViewModel: OnlineViewModel,
+  saveData: SaveDataViewModel,
   onOpenSettings: () -> Unit,
 ) {
   val state by packUpdate.state.collectAsState()
@@ -134,6 +143,13 @@ fun HomeScreen(
   }
 
   Box(modifier = Modifier.fillMaxSize()) {
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val launchDolphinNotInstalled = stringResource(R.string.home_launch_dolphin_not_installed)
+    val launchNoRom = stringResource(R.string.home_launch_no_rom)
+    val launchFallback = stringResource(R.string.home_launch_fallback)
+    val launchStorageNotConfigured = stringResource(R.string.error_storage_not_configured)
+
     if (!(showOnlineMenu || showSaveInfo || showChangelog)) {
       Scaffold(
         topBar = {
@@ -156,9 +172,33 @@ fun HomeScreen(
                 vrMultiplier = vrMultiplier,
                 playerCount = playerCount,
                 serverConnectivity = serverConnectivity,
-                isBusy = false,
+                isBusy = state is UiState.Installing,
                 onCheck = { packUpdate.checkStatus() },
                 onRetry = { packUpdate.clearError() },
+                onInstall = { packUpdate.installLatest() },
+                onUpdate = { packUpdate.update() },
+                onLaunch = {
+                  scope.launch {
+                    val result =
+                      withContext(Dispatchers.IO) {
+                        DolphinLauncher.launchRetroRewind(context)
+                      }
+                    val message =
+                      when (result) {
+                        is DolphinLauncher.LaunchResult.AutoStarted -> null
+                        is DolphinLauncher.LaunchResult.FallbackStarted ->
+                          launchFallback
+                        DolphinLauncher.LaunchResult.DolphinNotInstalled ->
+                          launchDolphinNotInstalled
+                        DolphinLauncher.LaunchResult.StorageNotConfigured ->
+                          launchStorageNotConfigured
+                        DolphinLauncher.LaunchResult.NoRom -> launchNoRom
+                      }
+                    if (message != null) {
+                      Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                    }
+                  }
+                },
               )
             }
           }
@@ -206,17 +246,18 @@ fun HomeScreen(
       enter = slideInVertically() + fadeIn(),
       exit = slideOutVertically() + fadeOut(),
     ) {
-      SaveInfoScreen(onClose = { showSaveInfo = false })
+      SaveInfoScreen(viewModel = saveData, onClose = { showSaveInfo = false })
     }
   }
 }
 
 /**
  * Bottom bar of the home screen: check-for-updates on the left,
- * status-dependent primary action on the right. The install / launch
- * actions are stubbed for now — they surface a Snackbar saying the
- * flow isn't implemented yet, while the check-for-updates path
- * remains fully functional.
+ * status-dependent primary action on the right. The install / update
+ * actions call into [PackUpdateViewModel]; the launch action calls
+ * [DolphinLauncher.launchRetroRewind] which handles the full
+ * pre-launch sequence (Dolphin.ini upsert + launch descriptor write
+ * + intent + fallback) and reports via [DolphinLauncher.LaunchResult].
  */
 @Composable
 private fun HomeBottomBar(
@@ -227,10 +268,10 @@ private fun HomeBottomBar(
   isBusy: Boolean,
   onCheck: () -> Unit,
   onRetry: () -> Unit,
+  onInstall: () -> Unit,
+  onUpdate: () -> Unit,
+  onLaunch: () -> Unit,
 ) {
-  val context = LocalContext.current
-  val installNotImplementedMessage = stringResource(R.string.home_install_not_implemented)
-  val launchNotImplementedMessage = stringResource(R.string.home_launch_not_implemented)
   var checkButtonFocused by remember { mutableStateOf(false) }
 
   Row(
@@ -251,18 +292,43 @@ private fun HomeBottomBar(
     ) { currentState ->
       when (currentState) {
         is UiState.Installing -> {
-          FilledTonalButton(
-            onClick = {},
-            enabled = false,
-            shape = buttonShape,
-            modifier = Modifier.height(56.dp),
-          ) {
-            Text(
-              text = stringResource(R.string.status_installing),
-              style = MaterialTheme.typography.titleMedium,
-              fontWeight = FontWeight.Medium,
+          // Determinate progress replaces the action button entirely
+          // during install/update. The fraction animates so the
+          // 1%-throttled progress events from the downloader look
+          // continuous instead of stepped.
+          val fraction =
+            when (currentState) {
+              is UiState.Installing.Downloading -> currentState.progress.progress
+              is UiState.Installing.Extracting ->
+                if (currentState.filesTotal <= 0) 0f
+                else currentState.filesDone.toFloat() / currentState.filesTotal.toFloat()
+            }
+          val animatedFraction by
+            animateFloatAsState(
+              targetValue = fraction.coerceIn(0f, 1f),
+              animationSpec = tween(durationMillis = 200),
+              label = "install_progress",
             )
-          }
+          val label =
+            when (currentState) {
+              is UiState.Installing.Downloading ->
+                stringResource(R.string.status_installing)
+              is UiState.Installing.Extracting ->
+                stringResource(R.string.status_extracting)
+            }
+          val bytesPerSecond =
+            (currentState as? UiState.Installing.Downloading)?.progress?.bytesPerSecond
+          val bytesDownloaded =
+            (currentState as? UiState.Installing.Downloading)?.progress?.bytesDownloaded ?: 0L
+          val totalBytes =
+            (currentState as? UiState.Installing.Downloading)?.progress?.totalBytes ?: 0L
+          ProgressButton(
+            progress = animatedFraction,
+            label = label,
+            bytesPerSecond = bytesPerSecond,
+            bytesDownloaded = bytesDownloaded,
+            totalBytes = totalBytes,
+          )
         }
         is UiState.Installed -> {
           // Brief flash before the VM auto-transitions to Checking.
@@ -351,16 +417,14 @@ private fun HomeBottomBar(
               is PackStatus.NotInstalled ->
                 PrimaryActionButton(
                   text = stringResource(R.string.action_install),
-                  onClick = {
-                    Toast.makeText(context, installNotImplementedMessage, Toast.LENGTH_SHORT).show()
-                  },
+                  onClick = onInstall,
+                  enabled = !isBusy,
                 )
               is PackStatus.UpdateAvailable ->
                 PrimaryActionButton(
                   text = stringResource(R.string.home_update_to, status.latestVersion),
-                  onClick = {
-                    Toast.makeText(context, installNotImplementedMessage, Toast.LENGTH_SHORT).show()
-                  },
+                  onClick = onUpdate,
+                  enabled = !isBusy,
                 )
               else -> {
                 val bullet = "\u2022 "
@@ -378,9 +442,8 @@ private fun HomeBottomBar(
                   }
                 PrimaryActionButton(
                   text = stringResource(R.string.home_launch_retro_rewind),
-                  onClick = {
-                    Toast.makeText(context, launchNotImplementedMessage, Toast.LENGTH_SHORT).show()
-                  },
+                  onClick = onLaunch,
+                  enabled = !isBusy,
                   subText = launchSubText,
                 )
               }

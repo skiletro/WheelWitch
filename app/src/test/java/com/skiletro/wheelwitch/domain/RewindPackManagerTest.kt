@@ -7,7 +7,6 @@ import com.skiletro.wheelwitch.model.SemVersion
 import com.skiletro.wheelwitch.model.ServerInfo
 import com.skiletro.wheelwitch.model.UpdateEntry
 import com.skiletro.wheelwitch.network.VersionFileParser
-import com.skiletro.wheelwitch.util.io.DownloadProgress
 import com.skiletro.wheelwitch.util.io.FileDownloader
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -125,7 +124,7 @@ class RewindPackManagerTest {
     val server = serverInfo()
     every { VersionFileParser.fetchServerInfo() } returns Result.success(server)
     every { VersionFileParser.getFullZipUrl() } returns "https://example.com/RetroRewind.zip"
-    val progressReports = mutableListOf<DownloadProgress>()
+    val progressReports = mutableListOf<RewindPackManager.InstallProgress>()
     // Simulate a download: just touch the target file.
     every { FileDownloader.downloadToFile(any(), any(), any(), any(), any(), any()) } answers
       {
@@ -134,6 +133,7 @@ class RewindPackManagerTest {
         target.writeBytes(byteArrayOf(0x50, 0x4B, 0x03, 0x04)) // ZIP magic
         target
       }
+    coEvery { tree.countZipFileEntries(any()) } returns 1
     coEvery { tree.extractZipToPack(any(), any()) } returns Unit
     coEvery { tree.writeVersion(server.latestVersion) } returns Unit
 
@@ -156,6 +156,50 @@ class RewindPackManagerTest {
   }
 
   @Test
+  fun `installLatest emits Downloading then Extracting phases in order`() = runBlocking {
+    val server = serverInfo()
+    every { VersionFileParser.fetchServerInfo() } returns Result.success(server)
+    every { VersionFileParser.getFullZipUrl() } returns "https://example.com/RetroRewind.zip"
+    every { FileDownloader.downloadToFile(any(), any(), any(), any(), any(), any()) } answers
+      {
+        val target = it.invocation.args[1] as File
+        target.parentFile?.mkdirs()
+        target.writeBytes(byteArrayOf(0x50, 0x4B, 0x03, 0x04))
+        target
+      }
+    val phases = mutableListOf<RewindPackManager.InstallProgress>()
+    coEvery { tree.countZipFileEntries(any()) } returns 3
+    coEvery { tree.extractZipToPack(any(), any()) } coAnswers
+      {
+        val cb = it.invocation.args[1] as (Int) -> Unit
+        cb(0)
+        cb(1)
+        cb(2)
+      }
+    coEvery { tree.writeVersion(server.latestVersion) } returns Unit
+
+    val result = manager().installLatest { phase -> phases.add(phase) }
+
+    assertThat(result.isSuccess).isTrue()
+    // 1. First three reports are Downloading (one from the downloader's
+    //    start-of-attempt hook, one at the end of the success path, plus
+    //    a third the throttled callback adds — we accept any Downloading
+    //    prefix and only assert the *eventual* transition to Extracting).
+    // 2. The Extracting phase reports 4 entries (1 start + 3 done).
+    assertThat(phases.filterIsInstance<RewindPackManager.InstallProgress.Extracting>())
+      .containsExactly(
+        RewindPackManager.InstallProgress.Extracting(filesDone = 0, filesTotal = 3),
+        RewindPackManager.InstallProgress.Extracting(filesDone = 1, filesTotal = 3),
+        RewindPackManager.InstallProgress.Extracting(filesDone = 2, filesTotal = 3),
+        RewindPackManager.InstallProgress.Extracting(filesDone = 3, filesTotal = 3),
+      )
+      .inOrder()
+    // The last phase is always Extracting, never Downloading.
+    assertThat(phases.last())
+      .isInstanceOf(RewindPackManager.InstallProgress.Extracting::class.java)
+  }
+
+  @Test
   fun `installLatest deletes the cached zip after the extract even on failure`() = runBlocking {
     val server = serverInfo()
     every { VersionFileParser.fetchServerInfo() } returns Result.success(server)
@@ -167,6 +211,7 @@ class RewindPackManagerTest {
         target.writeBytes(byteArrayOf(0x00))
         target
       }
+    coEvery { tree.countZipFileEntries(any()) } returns 1
     coEvery { tree.extractZipToPack(any(), any()) } throws IllegalStateException("extract boom")
 
     val result = manager().installLatest { /* no-op */ }
@@ -203,6 +248,7 @@ class RewindPackManagerTest {
         target.writeBytes(byteArrayOf(0x00))
         target
       }
+    coEvery { tree.countZipFileEntries(any()) } returns 1
     coEvery { tree.extractZipToPack(any(), any()) } returns Unit
     coEvery { tree.writeVersion(server.latestVersion) } returns Unit
 
@@ -235,6 +281,7 @@ class RewindPackManagerTest {
         target.writeBytes(byteArrayOf(0x00))
         target
       }
+    coEvery { tree.countZipFileEntries(any()) } returns 1
     coEvery { tree.extractZipToPack(any(), any()) } returns Unit
     coEvery { tree.writeVersion(server.latestVersion) } returns Unit
 
@@ -290,6 +337,7 @@ class RewindPackManagerTest {
         target.writeBytes(byteArrayOf(0x00))
         target
       }
+    coEvery { tree.countZipFileEntries(any()) } returns 1
     coEvery { tree.extractZipToPack(any(), any()) } returns Unit
     coEvery { tree.writeVersion(server.latestVersion) } returns Unit
 

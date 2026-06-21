@@ -118,8 +118,11 @@ fun OnboardingScreen(
     rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocumentTree()) { uri ->
       if (uri == null) {
         // User cancelled. Stay on the Storage step, no error.
+        Timber.tag("Onboarding").i("Storage picker cancelled")
         return@rememberLauncherForActivityResult
       }
+      Timber.tag("Onboarding")
+        .i("Storage picked: authority=%s", uri.authority)
       val validation = DolphinTree.validate(uri)
       validation
         .onSuccess {
@@ -131,6 +134,8 @@ fun OnboardingScreen(
             // exist before we move on to the ROM step. If this throws,
             // the user gets a re-promptable error.
             tree.wheelWitchDir // ensure lazy creation succeeds
+            Timber.tag("Onboarding")
+              .i("Onboarding storage step complete: tree persisted at %s", tree.wheelWitchDir.uri)
             storageError = null
             step = OnboardingStep.Rom
           } catch (e: Exception) {

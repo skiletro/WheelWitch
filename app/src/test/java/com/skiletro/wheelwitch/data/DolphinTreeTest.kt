@@ -383,6 +383,49 @@ class DolphinTreeTest {
     verify(exactly = 1) { subdirDir.createFile("application/octet-stream", "inside.txt") }
   }
 
+  // --- countZipFileEntries --------------------------------------------
+
+  @Test
+  fun `countZipFileEntries returns the number of non-directory file entries`(
+    @TempDir tempDir: Path
+  ) = runBlocking {
+    val zip = File(tempDir.toFile(), "pack.zip")
+    ZipOutputStream(zip.outputStream()).use { zos ->
+      zos.putNextEntry(ZipEntry("file1.txt"))
+      zos.write("a".encodeToByteArray())
+      zos.closeEntry()
+      zos.putNextEntry(ZipEntry("subdir/"))
+      zos.closeEntry()
+      zos.putNextEntry(ZipEntry("subdir/inside.txt"))
+      zos.write("b".encodeToByteArray())
+      zos.closeEntry()
+      zos.putNextEntry(ZipEntry("file2.bin"))
+      zos.write(byteArrayOf(1, 2, 3))
+      zos.closeEntry()
+    }
+    val tree = DolphinTree(context, treeUri)
+
+    val count = tree.countZipFileEntries(zip)
+
+    assertThat(count).isEqualTo(3)
+  }
+
+  @Test
+  fun `countZipFileEntries returns 0 for a zip with only directory entries`(
+    @TempDir tempDir: Path
+  ) = runBlocking {
+    val zip = File(tempDir.toFile(), "empty.zip")
+    ZipOutputStream(zip.outputStream()).use { zos ->
+      zos.putNextEntry(ZipEntry("a/"))
+      zos.closeEntry()
+      zos.putNextEntry(ZipEntry("a/b/"))
+      zos.closeEntry()
+    }
+    val tree = DolphinTree(context, treeUri)
+
+    assertThat(tree.countZipFileEntries(zip)).isEqualTo(0)
+  }
+
   // --- writeLaunchJson / readLaunchJson --------------------------------
 
   @Test
@@ -531,6 +574,93 @@ class DolphinTreeTest {
         Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
       )
     }
+  }
+
+  // --- readConfigIni / writeConfigIni ---------------------------------
+
+  @Test
+  fun `readConfigIni returns null when Config dir is missing`() {
+    every { root.findFile("Config") } returns null
+    every { root.createDirectory("Config") } returns null
+
+    val tree = DolphinTree(context, treeUri)
+
+    assertThat(tree.readConfigIni()).isNull()
+  }
+
+  @Test
+  fun `readConfigIni returns null when Dolphin ini is missing under Config`() {
+    val configDir = mockk<DocumentFile>(relaxed = true)
+    every { root.findFile("Config") } returns configDir
+    every { configDir.isDirectory } returns true
+    every { configDir.findFile(DolphinTree.CONFIG_INI_NAME) } returns null
+
+    val tree = DolphinTree(context, treeUri)
+
+    assertThat(tree.readConfigIni()).isNull()
+  }
+
+  @Test
+  fun `readConfigIni returns the file content as UTF-8`() {
+    val configDir = mockk<DocumentFile>(relaxed = true)
+    val file = mockk<DocumentFile>(relaxed = true)
+    every { root.findFile("Config") } returns configDir
+    every { configDir.isDirectory } returns true
+    every { configDir.findFile(DolphinTree.CONFIG_INI_NAME) } returns file
+    val fileUri = mockk<Uri>(relaxed = true)
+    every { file.uri } returns fileUri
+    every { resolver.openInputStream(fileUri) } returns
+      ByteArrayInputStream("[General]\nISOPaths = 0\n".encodeToByteArray())
+
+    val tree = DolphinTree(context, treeUri)
+
+    assertThat(tree.readConfigIni()).isEqualTo("[General]\nISOPaths = 0\n")
+  }
+
+  @Test
+  fun `writeConfigIni creates the Config dir and writes the file contents`() {
+    val configDir = mockk<DocumentFile>(relaxed = true)
+    val file = mockk<DocumentFile>(relaxed = true)
+    val fileUri = mockk<Uri>(relaxed = true)
+    every { file.uri } returns fileUri
+    every { root.findFile("Config") } returns null
+    every { root.createDirectory("Config") } returns configDir
+    every { configDir.findFile(DolphinTree.CONFIG_INI_NAME) } returns null
+    every {
+      configDir.createFile("text/plain", DolphinTree.CONFIG_INI_NAME)
+    } returns file
+    val output = ByteArrayOutputStream()
+    every { resolver.openOutputStream(fileUri) } returns output
+
+    val tree = DolphinTree(context, treeUri)
+    val result = tree.writeConfigIni("[General]\nISOPaths = 1\nISOPath0 = /x\n")
+
+    assertThat(result).isEqualTo(file)
+    assertThat(output.toString(Charsets.UTF_8))
+      .isEqualTo("[General]\nISOPaths = 1\nISOPath0 = /x\n")
+  }
+
+  @Test
+  fun `writeConfigIni deletes a pre-existing ini before creating`() {
+    val configDir = mockk<DocumentFile>(relaxed = true)
+    val existing = mockk<DocumentFile>(relaxed = true)
+    val file = mockk<DocumentFile>(relaxed = true)
+    val fileUri = mockk<Uri>(relaxed = true)
+    every { file.uri } returns fileUri
+    every { root.findFile("Config") } returns configDir
+    every { configDir.isDirectory } returns true
+    every { configDir.findFile(DolphinTree.CONFIG_INI_NAME) } returns existing
+    every {
+      configDir.createFile("text/plain", DolphinTree.CONFIG_INI_NAME)
+    } returns file
+    val output = ByteArrayOutputStream()
+    every { resolver.openOutputStream(fileUri) } returns output
+
+    val tree = DolphinTree(context, treeUri)
+    tree.writeConfigIni("payload")
+
+    verify { existing.delete() }
+    assertThat(output.toString(Charsets.UTF_8)).isEqualTo("payload")
   }
 
   // --- helpers ---------------------------------------------------------

@@ -73,13 +73,21 @@ class RewindPackManager(
    * Downloads the full pack zip and extracts it into the SAF tree.
    * Always overwrites the local install — use this for a fresh install
    * or to recover from a corrupted state.
+   *
+   * Wrapped in [withContext] [Dispatchers.IO] because the initial
+   * server-info call hits the network; without it, a [viewModelScope]
+   * caller (which defaults to `Dispatchers.Main.immediate`) trips
+   * Android's `NetworkOnMainThreadException` strict-mode check.
    */
-  suspend fun installLatest(onProgress: (DownloadProgress) -> Unit): Result<Unit> = runCatching {
-    val server = VersionFileParser.fetchServerInfo().getOrThrow()
-    Timber.tag(TAG).i("Starting full install of %s", server.latestVersion)
-    performInstall(VersionFileParser.getFullZipUrl(), onProgress)
-    tree.writeVersion(server.latestVersion)
-  }
+  suspend fun installLatest(onProgress: (InstallProgress) -> Unit): Result<Unit> =
+    withContext(Dispatchers.IO) {
+      runCatching {
+        val server = VersionFileParser.fetchServerInfo().getOrThrow()
+        Timber.tag(TAG).i("Starting full install of %s", server.latestVersion)
+        performInstall(VersionFileParser.getFullZipUrl(), onProgress)
+        tree.writeVersion(server.latestVersion)
+      }
+    }
 
   /**
    * Performs the smallest set of incremental updates that takes the
@@ -88,50 +96,85 @@ class RewindPackManager(
    * missing or older than [MIN_INCREMENTAL_VERSION] — the pack format
    * changed incompatibly around that point, so partial updates are
    * not safe (see PLAN §"Min reinstall version").
+   *
+   * Same `Dispatchers.IO` wrapper as [installLatest] — see the kdoc
+   * there for why.
    */
-  suspend fun update(onProgress: (DownloadProgress) -> Unit): Result<Unit> = runCatching {
-    val local = tree.readVersion()
-    val server = VersionFileParser.fetchServerInfo().getOrThrow()
-    val minVersion =
-      SemVersion.parse(MIN_INCREMENTAL_VERSION)
-        ?: error("Invalid MIN_INCREMENTAL_VERSION constant")
-    if (local == null || local < minVersion) {
-      Timber.tag(TAG)
-        .i("Local version %s is below %s; doing full reinstall", local, minVersion)
-      performInstall(VersionFileParser.getFullZipUrl(), onProgress)
-    } else {
-      val steps =
-        server.allUpdates
-          .filter { it.version > local && it.version <= server.latestVersion }
-          .sortedBy { it.version }
-      Timber.tag(TAG)
-        .i("Applying %d incremental update steps from %s to %s", steps.size, local, server.latestVersion)
-      for (step in steps) {
-        performInstall(step.url, onProgress)
+  suspend fun update(onProgress: (InstallProgress) -> Unit): Result<Unit> =
+    withContext(Dispatchers.IO) {
+      runCatching {
+        val local = tree.readVersion()
+        val server = VersionFileParser.fetchServerInfo().getOrThrow()
+        val minVersion =
+          SemVersion.parse(MIN_INCREMENTAL_VERSION)
+            ?: error("Invalid MIN_INCREMENTAL_VERSION constant")
+        if (local == null || local < minVersion) {
+          Timber.tag(TAG)
+            .i("Local version %s is below %s; doing full reinstall", local, minVersion)
+          performInstall(VersionFileParser.getFullZipUrl(), onProgress)
+        } else {
+          val steps =
+            server.allUpdates
+              .filter { it.version > local && it.version <= server.latestVersion }
+              .sortedBy { it.version }
+          Timber.tag(TAG)
+            .i(
+              "Applying %d incremental update steps from %s to %s",
+              steps.size,
+              local,
+              server.latestVersion,
+            )
+          for (step in steps) {
+            performInstall(step.url, onProgress)
+          }
+        }
+        tree.writeVersion(server.latestVersion)
       }
     }
-    tree.writeVersion(server.latestVersion)
+
+  /**
+   * Phased progress emitted by [performInstall]. Lets the caller
+   * distinguish between the network-bound download phase (which
+   * carries a [DownloadProgress] with byte counts) and the
+   * disk-bound extraction phase (which carries a file count).
+   */
+  sealed class InstallProgress {
+    /** Zip is being fetched from the update server. */
+    data class Downloading(val progress: DownloadProgress) : InstallProgress()
+
+    /**
+     * Zip is being unpacked into the SAF tree. [filesDone] is the
+     * index of the file just written; [filesTotal] is the count of
+     * non-directory entries discovered in a pre-scan so the bar
+     * starts at a determinate value.
+     */
+    data class Extracting(val filesDone: Int, val filesTotal: Int) : InstallProgress()
   }
 
   /**
    * Downloads a pack zip to [Context.getCacheDir], extracts it into
    * the SAF tree's pack directory, and deletes the temp file. The
-   * `onProgress` callback receives download progress only; extraction
-   * progress is not surfaced (extraction is fast relative to download).
+   * [onProgress] callback fires for both phases — first the
+   * per-byte download progress, then the per-file extraction
+   * progress.
    */
   private suspend fun performInstall(
     url: String,
-    onProgress: (DownloadProgress) -> Unit,
+    onProgress: (InstallProgress) -> Unit,
   ) {
     val zipFile = File(context.cacheDir, PACK_ZIP_NAME)
     FileDownloader.downloadToFile(
       url = url,
       targetFile = zipFile,
-      onProgress = onProgress,
+      onProgress = { dp -> onProgress(InstallProgress.Downloading(dp)) },
       client = HttpClientProvider.largeDownloadClient,
     )
+    val total = tree.countZipFileEntries(zipFile).coerceAtLeast(1)
     try {
-      tree.extractZipToPack(zipFile) { /* extraction progress not surfaced */ }
+      onProgress(InstallProgress.Extracting(0, total))
+      tree.extractZipToPack(zipFile) { done ->
+        onProgress(InstallProgress.Extracting(done + 1, total))
+      }
     } finally {
       zipFile.delete()
     }

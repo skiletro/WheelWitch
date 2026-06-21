@@ -46,7 +46,23 @@ class DolphinTree(context: Context, val treeUri: Uri) {
 
   val root: DocumentFile =
     DocumentFile.fromTreeUri(context, treeUri)
-      ?: error("Invalid tree URI: $treeUri")
+      ?: run {
+        // Diagnostic: log the URI scheme/authority (no auth tokens) so
+        // a bug report can show whether the picker returned an
+        // unexpected form. fromTreeUri returns null when the URI is
+        // malformed, the tree has been revoked, or the provider is
+        // unreachable — all "re-onboard" cases.
+        val docId =
+          runCatching { DocumentsContract.getTreeDocumentId(treeUri) }.getOrNull()
+        Timber.tag(TAG)
+          .e(
+            "DocumentFile.fromTreeUri returned null for uri=%s authority=%s docId=%s",
+            treeUri,
+            treeUri.authority,
+            docId,
+          )
+        error("Invalid tree URI: $treeUri")
+      }
 
   val wheelWitchDir: DocumentFile by lazy {
     val userDir =
@@ -123,6 +139,27 @@ class DolphinTree(context: Context, val treeUri: Uri) {
   }
 
   /**
+   * Returns the number of non-directory file entries in [zipFile].
+   * Used by the install UI to show a determinate extraction bar
+   * (`done / total`); the zip is scanned by walking the central
+   * directory but no entries are extracted, so this is cheap
+   * relative to the actual unpack.
+   */
+  suspend fun countZipFileEntries(zipFile: File): Int =
+    withContext(Dispatchers.IO) {
+      ZipInputStream(zipFile.inputStream()).use { zis ->
+        var count = 0
+        var entry = zis.nextEntry
+        while (entry != null) {
+          if (!entry.isDirectory) count++
+          zis.closeEntry()
+          entry = zis.nextEntry
+        }
+        count
+      }
+    }
+
+  /**
    * Writes [content] as [LAUNCH_JSON_NAME] at the WheelWitch root,
    * replacing any existing file. The returned [DocumentFile] is the
    * new launch descriptor.
@@ -161,7 +198,7 @@ class DolphinTree(context: Context, val treeUri: Uri) {
         ?: return null
     val parsed = SemVersion.parse(text.trim())
     if (parsed == null) {
-      Timber.tag("DolphinTree")
+      Timber.tag(TAG)
         .w("Could not parse version file contents: %s", text.trim())
     }
     return parsed
@@ -186,6 +223,41 @@ class DolphinTree(context: Context, val treeUri: Uri) {
           ?: error("Cannot open output stream for $VERSION_FILE_NAME")
       output.use { it.write(version.toString().encodeToByteArray()) }
     }
+
+  /**
+   * Reads `Config/Dolphin.ini` (the INI file Dolphin uses for its
+   * library paths) and returns its UTF-8 contents, or null if the
+   * file does not exist yet. Used by [com.skiletro.wheelwitch.util.launcher.DolphinLauncher]
+   * to upsert the WheelWitch `rom/` folder as an `ISOPathN` entry.
+   */
+  fun readConfigIni(): String? {
+    val configDir =
+      findOrCreateDir(root, "Config") ?: return null
+    val file = configDir.findFile(CONFIG_INI_NAME) ?: return null
+    return resolver.openInputStream(file.uri)?.use { it.readBytes().toString(Charsets.UTF_8) }
+  }
+
+  /**
+   * Writes [content] as `Config/Dolphin.ini`, creating the
+   * `Config/` directory and replacing any existing file. Returns the
+   * new INI [DocumentFile]. Used by the launch flow to register the
+   * WheelWitch `rom/` folder with Dolphin's library.
+   */
+  fun writeConfigIni(content: String): DocumentFile {
+    val configDir =
+      findOrCreateDir(root, "Config")
+        ?: error("Cannot create Config/ in Dolphin tree")
+    val existing = configDir.findFile(CONFIG_INI_NAME)
+    if (existing != null) existing.delete()
+    val file =
+      configDir.createFile("text/plain", CONFIG_INI_NAME)
+        ?: error("Cannot create $CONFIG_INI_NAME")
+    val output =
+      resolver.openOutputStream(file.uri)
+        ?: error("Cannot open output stream for $CONFIG_INI_NAME")
+    output.use { it.write(content.toByteArray(Charsets.UTF_8)) }
+    return file
+  }
 
   /** Persists the SAF grant for [treeUri] across process death. */
   fun persistUriPermission() {
@@ -241,6 +313,9 @@ class DolphinTree(context: Context, val treeUri: Uri) {
   }
 
   companion object {
+    /** Tag used by Timber in this file's log lines. */
+    const val TAG = "DolphinTree"
+
     /**
      * Filename of the launch descriptor at the WheelWitch root.
      * Re-exported from [com.skiletro.wheelwitch.util.launcher.DolphinLauncher.RR_JSON_NAME]
@@ -250,6 +325,9 @@ class DolphinTree(context: Context, val treeUri: Uri) {
 
     /** Filename of the pack version file at the root of the pack directory. */
     const val VERSION_FILE_NAME = "version.txt"
+
+    /** Filename of Dolphin's `Config/Dolphin.ini` library-paths config. */
+    const val CONFIG_INI_NAME = "Dolphin.ini"
 
     /**
      * Returns success if [treeUri] points to the Dolphin user folder.
@@ -309,13 +387,26 @@ class DolphinTree(context: Context, val treeUri: Uri) {
      */
     fun fromPersisted(context: Context): DolphinTree? {
       val prefs = Prefs.main(context)
-      val uriString = prefs.getString(PrefsKeys.WHEELWITCH_TREE_URI_KEY, null) ?: return null
-      val uri = Uri.parse(uriString)
+      val uriString = prefs.getString(PrefsKeys.WHEELWITCH_TREE_URI_KEY, null)
+      if (uriString == null) {
+        Timber.tag(TAG)
+          .i("fromPersisted: no tree URI under %s — user has not completed onboarding",
+            PrefsKeys.WHEELWITCH_TREE_URI_KEY)
+        return null
+      }
       return try {
-        DolphinTree(context, uri)
+        val uri = Uri.parse(uriString)
+        val docId = runCatching { DocumentsContract.getTreeDocumentId(uri) }.getOrNull()
+        Timber.tag(TAG)
+          .i("fromPersisted: rebuilding tree from authority=%s docId=%s",
+            uri?.authority, docId)
+        val tree = DolphinTree(context, uri)
+        Timber.tag(TAG)
+          .i("fromPersisted: tree built ok, wheelWitchDir=%s", tree.wheelWitchDir.uri)
+        tree
       } catch (e: Exception) {
-        Timber.tag("DolphinTree")
-          .w(e, "Persisted tree URI is no longer valid; clearing")
+        Timber.tag(TAG)
+          .e(e, "fromPersisted: rebuild failed for uriString=%s — clearing pref", uriString)
         prefs.edit().remove(PrefsKeys.WHEELWITCH_TREE_URI_KEY).apply()
         null
       }
@@ -327,6 +418,8 @@ class DolphinTree(context: Context, val treeUri: Uri) {
         .edit()
         .putString(PrefsKeys.WHEELWITCH_TREE_URI_KEY, tree.treeUri.toString())
         .apply()
+      Timber.tag(TAG)
+        .i("persist: stored tree URI authority=%s", tree.treeUri.authority)
     }
   }
 }
