@@ -17,8 +17,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
+import com.skiletro.wheelwitch.ui.theme.WheelWitchPreviewTheme
 
 /**
  * Indeterminate-style progress bar with a percent label, optional
@@ -84,4 +86,18 @@ fun ProgressButton(
       fontWeight = FontWeight.Medium,
     )
   }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ProgressButtonPreview() {
+    WheelWitchPreviewTheme {
+        ProgressButton(
+            progress = 0.67f,
+            label = "Downloading…",
+            bytesPerSecond = 1_234_567L,
+            bytesDownloaded = 67_000_000L,
+            totalBytes = 100_000_000L,
+        )
+    }
 }

@@ -42,10 +42,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.ui.components.buttonShape
 import com.skiletro.wheelwitch.ui.components.sectionShape
+import com.skiletro.wheelwitch.ui.theme.WheelWitchPreviewTheme
 
 /**
  * Reduced onboarding wizard: Welcome → Beta → Complete.
@@ -274,4 +276,12 @@ private fun StepDots(current: Int, total: Int, modifier: Modifier = Modifier) {
       Box(modifier = Modifier.size(size).clip(CircleShape).background(color))
     }
   }
+}
+
+@Preview(showBackground = true, widthDp = 600, heightDp = 400)
+@Composable
+private fun OnboardingScreenWelcomePreview() {
+    WheelWitchPreviewTheme {
+        OnboardingScreen(onComplete = {})
+    }
 }

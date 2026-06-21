@@ -18,8 +18,10 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
+import com.skiletro.wheelwitch.ui.theme.WheelWitchPreviewTheme
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -112,5 +114,13 @@ fun SparkleHat(
             tint = tint,
             modifier = Modifier.size(hatSize)
         )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun SparkleHatPreview() {
+    WheelWitchPreviewTheme {
+        SparkleHat(hatSize = 64.dp)
     }
 }

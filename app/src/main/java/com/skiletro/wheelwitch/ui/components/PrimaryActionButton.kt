@@ -17,7 +17,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.skiletro.wheelwitch.ui.theme.WheelWitchPreviewTheme
 
 private val PrimaryActionButtonHeight = 56.dp
 private const val SubTextAlpha = 0.7f
@@ -71,5 +73,13 @@ fun PrimaryActionButton(
                 )
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun PrimaryActionButtonPreview() {
+    WheelWitchPreviewTheme {
+        PrimaryActionButton(text = "Launch Retro Rewind", onClick = {})
     }
 }

@@ -17,8 +17,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.skiletro.wheelwitch.ui.theme.WheelWitchPreviewTheme
 
 /**
  * Animated status indicator dot.
@@ -62,4 +64,12 @@ fun PulsingDot(
             .clip(CircleShape)
             .background(color.copy(alpha = alpha))
     )
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun PulsingDotPreview() {
+    WheelWitchPreviewTheme {
+        PulsingDot(target = Color(0xFF22C55E), pulse = true)
+    }
 }

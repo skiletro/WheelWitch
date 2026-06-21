@@ -2,9 +2,11 @@ package com.skiletro.wheelwitch.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -14,6 +16,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.skiletro.wheelwitch.ui.theme.WheelWitchPreviewTheme
 
 /**
  * A focusable card that draws a focus border when focused and optionally
@@ -63,5 +68,23 @@ fun FocusableSurface(
             )
     ) {
         content()
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun FocusableSurfacePreview() {
+    WheelWitchPreviewTheme {
+        FocusableSurface(
+            modifier = Modifier.padding(16.dp),
+            onClick = {},
+        ) {
+            Text(
+                text = "Sample focusable card",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(16.dp),
+            )
+        }
     }
 }

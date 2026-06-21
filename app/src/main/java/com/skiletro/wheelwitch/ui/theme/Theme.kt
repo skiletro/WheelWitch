@@ -240,3 +240,13 @@ fun WheelWitchTheme(
         )
     }
 }
+
+/**
+ * Theme wrapper for `@Preview` composables. Pins previews to the
+ * default [AppTheme.Hex] palette in [ThemeMode.Dark] so they look
+ * the same on every contributor's machine.
+ */
+@Composable
+internal fun WheelWitchPreviewTheme(content: @Composable () -> Unit) {
+    WheelWitchTheme(appTheme = AppTheme.Hex, themeMode = ThemeMode.Dark, content = content)
+}
