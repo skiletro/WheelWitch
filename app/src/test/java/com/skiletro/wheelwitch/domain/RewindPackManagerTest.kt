@@ -1,52 +1,69 @@
 package com.skiletro.wheelwitch.domain
 
 import com.google.common.truth.Truth.assertThat
+import com.skiletro.wheelwitch.data.DolphinTree
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.SemVersion
 import com.skiletro.wheelwitch.model.ServerInfo
 import com.skiletro.wheelwitch.model.UpdateEntry
 import com.skiletro.wheelwitch.network.VersionFileParser
+import com.skiletro.wheelwitch.util.io.DownloadProgress
+import com.skiletro.wheelwitch.util.io.FileDownloader
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
+import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
+import io.mockk.verify
 import java.io.File
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
 
 class RewindPackManagerTest {
 
-  private lateinit var tempRoot: File
+  private lateinit var context: android.content.Context
+  private lateinit var tree: DolphinTree
+  private lateinit var cacheDir: File
 
   @BeforeEach
-  fun setUp() {
-    tempRoot = createTempDir()
+  fun setUp(@TempDir tempDir: File) {
+    context = mockk(relaxed = true)
+    tree = mockk(relaxed = true)
+    cacheDir = tempDir
+    every { context.cacheDir } returns cacheDir
     mockkObject(VersionFileParser)
+    mockkObject(FileDownloader)
   }
 
   @AfterEach
   fun tearDown() {
     unmockkObject(VersionFileParser)
-    tempRoot.deleteRecursively()
+    unmockkObject(FileDownloader)
   }
+
+  // --- checkStatus -----------------------------------------------------
 
   @Test
   fun `checkStatus returns NotInstalled when no local version and server reachable`() =
     runBlocking {
+      coEvery { tree.readVersion() } returns null
       every { VersionFileParser.fetchServerInfo() } returns Result.success(serverInfo())
 
-      val status = RewindPackManager.checkStatus(storageRoot = tempRoot.absolutePath)
+      val status = manager().checkStatus()
 
       assertThat(status).isEqualTo(PackStatus.NotInstalled)
     }
 
   @Test
   fun `checkStatus returns UpdateAvailable when local is behind server`() = runBlocking {
-    writeLocalVersion("3.2.5")
+    coEvery { tree.readVersion() } returns SemVersion(3, 2, 5)
     every { VersionFileParser.fetchServerInfo() } returns Result.success(serverInfo())
 
-    val status = RewindPackManager.checkStatus(storageRoot = tempRoot.absolutePath)
+    val status = manager().checkStatus()
 
     assertThat(status).isInstanceOf(PackStatus.UpdateAvailable::class.java)
     val ua = status as PackStatus.UpdateAvailable
@@ -56,22 +73,24 @@ class RewindPackManagerTest {
 
   @Test
   fun `checkStatus returns UpToDate when local matches server`() = runBlocking {
-    writeLocalVersion("3.2.6")
+    coEvery { tree.readVersion() } returns SemVersion(3, 2, 6)
     every { VersionFileParser.fetchServerInfo() } returns Result.success(serverInfo())
 
-    val status = RewindPackManager.checkStatus(storageRoot = tempRoot.absolutePath)
+    val status = manager().checkStatus()
 
-    assertThat(status)
-      .isEqualTo(PackStatus.UpToDate(SemVersion(3, 2, 6), SemVersion(3, 2, 6)))
+    assertThat(status).isEqualTo(
+      PackStatus.UpToDate(SemVersion(3, 2, 6), SemVersion(3, 2, 6))
+    )
   }
 
   @Test
   fun `checkStatus returns Installed when server unreachable and local version exists`() =
     runBlocking {
-      writeLocalVersion("3.2.5")
-      every { VersionFileParser.fetchServerInfo() } returns Result.failure(Exception("Network error"))
+      coEvery { tree.readVersion() } returns SemVersion(3, 2, 5)
+      every { VersionFileParser.fetchServerInfo() } returns
+        Result.failure(Exception("Network error"))
 
-      val status = RewindPackManager.checkStatus(storageRoot = tempRoot.absolutePath)
+      val status = manager().checkStatus()
 
       assertThat(status).isEqualTo(PackStatus.Installed(SemVersion(3, 2, 5)))
     }
@@ -79,52 +98,254 @@ class RewindPackManagerTest {
   @Test
   fun `checkStatus returns NotInstalled when server unreachable and no local version`() =
     runBlocking {
-      every { VersionFileParser.fetchServerInfo() } returns Result.failure(Exception("Network error"))
+      coEvery { tree.readVersion() } returns null
+      every { VersionFileParser.fetchServerInfo() } returns
+        Result.failure(Exception("Network error"))
 
-      val status = RewindPackManager.checkStatus(storageRoot = tempRoot.absolutePath)
+      val status = manager().checkStatus()
 
       assertThat(status).isEqualTo(PackStatus.NotInstalled)
     }
 
   @Test
-  fun `checkStatus returns NotInstalled when local version file is empty`() = runBlocking {
-    writeLocalVersion("")
-    every { VersionFileParser.fetchServerInfo() } returns Result.success(serverInfo())
+  fun `checkStatus surfaces exceptions as they bubble up`() = runBlocking {
+    // The view-model layer wraps checkStatus in runCatching; the
+    // manager itself lets exceptions propagate so the caller decides
+    // how to handle them.
+    coEvery { tree.readVersion() } throws IllegalStateException("SAF boom")
 
-    val status = RewindPackManager.checkStatus(storageRoot = tempRoot.absolutePath)
-
-    assertThat(status).isEqualTo(PackStatus.NotInstalled)
+    val ex = runCatching { manager().checkStatus() }.exceptionOrNull()
+    assertThat(ex).isInstanceOf(IllegalStateException::class.java)
   }
+
+  // --- installLatest ---------------------------------------------------
 
   @Test
-  fun `checkStatus returns NotInstalled when local version file is missing the RetroRewind6 folder`() =
-    runBlocking {
-      // No file written at all; root exists but version file does not.
-      every { VersionFileParser.fetchServerInfo() } returns Result.success(serverInfo())
+  fun `installLatest downloads the full zip, extracts, and writes the version`() = runBlocking {
+    val server = serverInfo()
+    every { VersionFileParser.fetchServerInfo() } returns Result.success(server)
+    every { VersionFileParser.getFullZipUrl() } returns "https://example.com/RetroRewind.zip"
+    val progressReports = mutableListOf<DownloadProgress>()
+    // Simulate a download: just touch the target file.
+    every { FileDownloader.downloadToFile(any(), any(), any(), any(), any(), any()) } answers
+      {
+        val target = it.invocation.args[1] as File
+        target.parentFile?.mkdirs()
+        target.writeBytes(byteArrayOf(0x50, 0x4B, 0x03, 0x04)) // ZIP magic
+        target
+      }
+    coEvery { tree.extractZipToPack(any(), any()) } returns Unit
+    coEvery { tree.writeVersion(server.latestVersion) } returns Unit
 
-      val status = RewindPackManager.checkStatus(storageRoot = tempRoot.absolutePath)
+    val result =
+      manager().installLatest { progress -> progressReports.add(progress) }
 
-      assertThat(status).isEqualTo(PackStatus.NotInstalled)
-    }
-
-  private fun writeLocalVersion(version: String) {
-    val file = File(tempRoot, "RetroRewind6/version.txt")
-    file.parentFile?.mkdirs()
-    file.writeText(version)
-  }
-
-  private fun serverInfo(): ServerInfo {
-    val updates =
-      listOf(
-        UpdateEntry(SemVersion(3, 2, 6), "https://example.com/3.2.6.zip", "/path", "Update")
+    assertThat(result.isSuccess).isTrue()
+    verify(exactly = 1) {
+      FileDownloader.downloadToFile(
+        url = "https://example.com/RetroRewind.zip",
+        targetFile = any(),
+        onProgress = any(),
+        client = any(),
+        maxRetries = any(),
+        initialBackoffMillis = any(),
       )
-    return ServerInfo(SemVersion(3, 2, 6), updates, emptyList())
+    }
+    coVerify(exactly = 1) { tree.extractZipToPack(any(), any()) }
+    coVerify(exactly = 1) { tree.writeVersion(server.latestVersion) }
   }
 
-  private fun createTempDir(): File {
-    val dir = File.createTempFile("rewind_test", "")
-    dir.delete()
-    dir.mkdirs()
-    return dir
+  @Test
+  fun `installLatest deletes the cached zip after the extract even on failure`() = runBlocking {
+    val server = serverInfo()
+    every { VersionFileParser.fetchServerInfo() } returns Result.success(server)
+    every { VersionFileParser.getFullZipUrl() } returns "https://example.com/RetroRewind.zip"
+    every { FileDownloader.downloadToFile(any(), any(), any(), any(), any(), any()) } answers
+      {
+        val target = it.invocation.args[1] as File
+        target.parentFile?.mkdirs()
+        target.writeBytes(byteArrayOf(0x00))
+        target
+      }
+    coEvery { tree.extractZipToPack(any(), any()) } throws IllegalStateException("extract boom")
+
+    val result = manager().installLatest { /* no-op */ }
+    assertThat(result.isFailure).isTrue()
+    // No leftover zip in the cache dir.
+    assertThat(cacheDir.listFiles()?.toList().orEmpty().any { it.name == "RetroRewind.zip" })
+      .isFalse()
+    // The version is NOT written because the extract failed.
+    coVerify(exactly = 0) { tree.writeVersion(any()) }
   }
+
+  @Test
+  fun `installLatest returns failure when the server is unreachable`() = runBlocking {
+    every { VersionFileParser.fetchServerInfo() } returns
+      Result.failure(Exception("Server boom"))
+
+    val result = manager().installLatest { /* no-op */ }
+    assertThat(result.isFailure).isTrue()
+    verify(exactly = 0) { FileDownloader.downloadToFile(any(), any(), any(), any(), any(), any()) }
+  }
+
+  // --- update ----------------------------------------------------------
+
+  @Test
+  fun `update falls back to full reinstall when no local version`() = runBlocking {
+    coEvery { tree.readVersion() } returns null
+    val server = serverInfo()
+    every { VersionFileParser.fetchServerInfo() } returns Result.success(server)
+    every { VersionFileParser.getFullZipUrl() } returns "https://example.com/full.zip"
+    every { FileDownloader.downloadToFile(any(), any(), any(), any(), any(), any()) } answers
+      {
+        val target = it.invocation.args[1] as File
+        target.parentFile?.mkdirs()
+        target.writeBytes(byteArrayOf(0x00))
+        target
+      }
+    coEvery { tree.extractZipToPack(any(), any()) } returns Unit
+    coEvery { tree.writeVersion(server.latestVersion) } returns Unit
+
+    val result = manager().update { /* no-op */ }
+
+    assertThat(result.isSuccess).isTrue()
+    // Full zip URL used, not an incremental step URL.
+    verify(exactly = 1) {
+      FileDownloader.downloadToFile(
+        url = "https://example.com/full.zip",
+        targetFile = any(),
+        onProgress = any(),
+        client = any(),
+        maxRetries = any(),
+        initialBackoffMillis = any(),
+      )
+    }
+  }
+
+  @Test
+  fun `update falls back to full reinstall when local version is below 3_2_6`() = runBlocking {
+    coEvery { tree.readVersion() } returns SemVersion(3, 2, 0)
+    val server = serverInfo()
+    every { VersionFileParser.fetchServerInfo() } returns Result.success(server)
+    every { VersionFileParser.getFullZipUrl() } returns "https://example.com/full.zip"
+    every { FileDownloader.downloadToFile(any(), any(), any(), any(), any(), any()) } answers
+      {
+        val target = it.invocation.args[1] as File
+        target.parentFile?.mkdirs()
+        target.writeBytes(byteArrayOf(0x00))
+        target
+      }
+    coEvery { tree.extractZipToPack(any(), any()) } returns Unit
+    coEvery { tree.writeVersion(server.latestVersion) } returns Unit
+
+    val result = manager().update { /* no-op */ }
+
+    assertThat(result.isSuccess).isTrue()
+    verify(exactly = 1) {
+      FileDownloader.downloadToFile(
+        url = "https://example.com/full.zip",
+        targetFile = any(),
+        onProgress = any(),
+        client = any(),
+        maxRetries = any(),
+        initialBackoffMillis = any(),
+      )
+    }
+  }
+
+  @Test
+  fun `update applies incremental steps when local is at or above 3_2_6`() = runBlocking {
+    coEvery { tree.readVersion() } returns SemVersion(3, 3, 0)
+    val server =
+      ServerInfo(
+        latestVersion = SemVersion(3, 3, 2),
+        allUpdates =
+          listOf(
+            UpdateEntry(
+              SemVersion(3, 3, 0),
+              "https://example.com/3.3.0.zip",
+              "/x",
+              "3.3.0",
+            ),
+            UpdateEntry(
+              SemVersion(3, 3, 1),
+              "https://example.com/3.3.1.zip",
+              "/x",
+              "3.3.1",
+            ),
+            UpdateEntry(
+              SemVersion(3, 3, 2),
+              "https://example.com/3.3.2.zip",
+              "/x",
+              "3.3.2",
+            ),
+          ),
+        deletions = emptyList(),
+      )
+    every { VersionFileParser.fetchServerInfo() } returns Result.success(server)
+    every { FileDownloader.downloadToFile(any(), any(), any(), any(), any(), any()) } answers
+      {
+        val target = it.invocation.args[1] as File
+        target.parentFile?.mkdirs()
+        target.writeBytes(byteArrayOf(0x00))
+        target
+      }
+    coEvery { tree.extractZipToPack(any(), any()) } returns Unit
+    coEvery { tree.writeVersion(server.latestVersion) } returns Unit
+
+    val result = manager().update { /* no-op */ }
+
+    assertThat(result.isSuccess).isTrue()
+    // Only 3.3.1 and 3.3.2 are downloaded — 3.3.0 is the current local.
+    verify(exactly = 1) {
+      FileDownloader.downloadToFile(
+        url = "https://example.com/3.3.1.zip",
+        targetFile = any(),
+        onProgress = any(),
+        client = any(),
+        maxRetries = any(),
+        initialBackoffMillis = any(),
+      )
+    }
+    verify(exactly = 1) {
+      FileDownloader.downloadToFile(
+        url = "https://example.com/3.3.2.zip",
+        targetFile = any(),
+        onProgress = any(),
+        client = any(),
+        maxRetries = any(),
+        initialBackoffMillis = any(),
+      )
+    }
+    // The full zip URL was NOT used.
+    verify(exactly = 0) {
+      FileDownloader.downloadToFile(
+        url = "https://example.com/RetroRewind.zip",
+        targetFile = any(),
+        onProgress = any(),
+        client = any(),
+        maxRetries = any(),
+        initialBackoffMillis = any(),
+      )
+    }
+  }
+
+  // --- helpers ---------------------------------------------------------
+
+  private fun manager() = RewindPackManager(context, tree)
+
+  private fun serverInfo(): ServerInfo =
+    ServerInfo(
+      latestVersion = SemVersion(3, 2, 6),
+      allUpdates =
+        listOf(
+          UpdateEntry(
+            SemVersion(3, 2, 6),
+            "https://example.com/3.2.6.zip",
+            "/x",
+            "3.2.6",
+          )
+        ),
+      deletions = emptyList(),
+    )
 }

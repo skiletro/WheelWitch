@@ -250,6 +250,36 @@ private fun HomeBottomBar(
       label = "primary_action",
     ) { currentState ->
       when (currentState) {
+        is UiState.Installing -> {
+          FilledTonalButton(
+            onClick = {},
+            enabled = false,
+            shape = buttonShape,
+            modifier = Modifier.height(56.dp),
+          ) {
+            Text(
+              text = stringResource(R.string.status_installing),
+              style = MaterialTheme.typography.titleMedium,
+              fontWeight = FontWeight.Medium,
+            )
+          }
+        }
+        is UiState.Installed -> {
+          // Brief flash before the VM auto-transitions to Checking.
+          // Show the same UI as UpToDate.
+          FilledTonalButton(
+            onClick = {},
+            enabled = false,
+            shape = buttonShape,
+            modifier = Modifier.height(56.dp),
+          ) {
+            Text(
+              text = stringResource(R.string.status_installed),
+              style = MaterialTheme.typography.titleMedium,
+              fontWeight = FontWeight.Medium,
+            )
+          }
+        }
         is UiState.Checking ->
           FilledTonalButton(
             onClick = {},

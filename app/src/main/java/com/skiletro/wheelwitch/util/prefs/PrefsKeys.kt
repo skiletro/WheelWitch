@@ -12,6 +12,7 @@ object PrefsKeys {
     const val RACE_STATS_PREFS = "race_stats_cache"
     const val RACE_STATS_KEY = "race_stats_json"
     const val STORAGE_URI_KEY = "storage_tree_uri"
+    const val WHEELWITCH_TREE_URI_KEY = "wheelwitch_tree_uri"
     const val SELECTED_SLOT_KEY = "selected_slot"
     const val LAST_SERVER_VERSION_KEY = "last_server_version"
     const val LAST_LEADERBOARD_VR_KEY = "last_leaderboard_vr"

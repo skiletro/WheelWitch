@@ -21,6 +21,7 @@
     <string name="status_installed">Installed</string>
     <string name="status_not_installed_format">%s is not installed</string>
     <string name="status_installed_format">%s is installed!</string>
+    <string name="status_installing">Installing...</string>
     <string name="status_extracting">Extracting files...</string>
     <string name="download_percent_format">%1$d%%</string>
     <string name="status_empty">Empty</string>
