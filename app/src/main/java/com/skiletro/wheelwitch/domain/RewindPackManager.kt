@@ -8,6 +8,7 @@ import com.skiletro.wheelwitch.model.SemVersion
 import com.skiletro.wheelwitch.network.VersionFileParser
 import com.skiletro.wheelwitch.util.io.DownloadProgress
 import com.skiletro.wheelwitch.util.io.FileDownloader
+import com.skiletro.wheelwitch.util.io.ParallelDownloadProgress
 import com.skiletro.wheelwitch.util.net.HttpClientProvider
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -172,16 +173,24 @@ class RewindPackManager(
    * [onProgress] callback fires for both phases — first the
    * per-byte download progress, then the per-file extraction
    * progress.
+   *
+   * Uses [FileDownloader.downloadInParallel] which issues a HEAD
+   * probe and falls back to single-stream if the server doesn't
+   * support byte ranges. The downloader accepts
+   * [com.skiletro.wheelwitch.util.io.ParallelDownloadProgress]
+   * (structurally identical to [DownloadProgress] with one extra
+   * `activeChunks` field) which we project to the UI's
+   * [DownloadProgress] shape so the consumer doesn't change.
    */
   private suspend fun performInstall(
     url: String,
     onProgress: (InstallProgress) -> Unit,
   ) {
     val zipFile = File(context.cacheDir, PACK_ZIP_NAME)
-    FileDownloader.downloadToFile(
+    FileDownloader.downloadInParallel(
       url = url,
       targetFile = zipFile,
-      onProgress = { dp -> onProgress(InstallProgress.Downloading(dp)) },
+      onProgress = { pp -> onProgress(InstallProgress.Downloading(pp.toDownloadProgress())) },
       client = HttpClientProvider.largeDownloadClient,
     )
     try {
@@ -201,6 +210,14 @@ class RewindPackManager(
       zipFile.delete()
     }
   }
+
+  private fun ParallelDownloadProgress.toDownloadProgress(): DownloadProgress =
+    DownloadProgress(
+      progress = progress,
+      bytesPerSecond = bytesPerSecond,
+      bytesDownloaded = bytesDownloaded,
+      totalBytes = totalBytes,
+    )
 
   private companion object {
     /** Local versions older than this get a full reinstall, not an incremental update. */

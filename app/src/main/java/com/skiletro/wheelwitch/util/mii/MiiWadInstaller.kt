@@ -42,10 +42,10 @@ object MiiWadInstaller {
         cacheDir.mkdirs()
 
         val zipFile = File(cacheDir, ZIP_FILE_NAME)
-        FileDownloader.downloadToFile(
-            MII_MAKER_ZIP_URL,
-            zipFile,
-            client = HttpClientProvider.largeDownloadClient
+        FileDownloader.downloadInParallel(
+            url = MII_MAKER_ZIP_URL,
+            targetFile = zipFile,
+            client = HttpClientProvider.largeDownloadClient,
         )
 
         val wadFile = extractWad(zipFile, cacheDir)
