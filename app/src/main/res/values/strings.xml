@@ -101,6 +101,12 @@
     <string name="onboarding_complete_title">You\'re all set!</string>
     <string name="onboarding_complete_body">Everything is ready. Let\'s get you into the main app.</string>
     <string name="onboarding_open_app">Open Wheel Witch</string>
+    <string name="onboarding_storage_wrong_folder">Wrong folder. Please pick Android/data/org.dolphinemu.dolphinemu/files.</string>
+    <string name="onboarding_storage_read_failed">Cannot read the selected folder.</string>
+    <string name="onboarding_iso_invalid">This doesn\'t look like a Mario Kart Wii ROM. Pick an .iso, .rvz, or .wbfs file.</string>
+    <string name="onboarding_iso_read_failed">Cannot read the selected ROM file.</string>
+    <string name="onboarding_iso_copy_failed">Couldn\'t copy the ROM into your Dolphin folder.</string>
+    <string name="onboarding_storage_required">Pick a storage folder first.</string>
 
     <!-- settings -->
     <string name="settings_title">Settings</string>
