@@ -23,6 +23,8 @@
     <string name="status_installed_format">%s is installed!</string>
     <string name="status_installing">Installing...</string>
     <string name="status_extracting">Extracting files...</string>
+    <string name="status_extracting_preparing_folders">Preparing folders…</string>
+    <string name="status_extracting_files_format">%1$d / %2$d files</string>
     <string name="download_percent_format">%1$d%%</string>
     <string name="status_empty">Empty</string>
     <string name="status_no_internet">No internet</string>

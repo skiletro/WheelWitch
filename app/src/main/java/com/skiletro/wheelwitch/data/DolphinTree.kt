@@ -10,11 +10,45 @@ import com.skiletro.wheelwitch.model.SemVersion
 import com.skiletro.wheelwitch.util.prefs.Prefs
 import com.skiletro.wheelwitch.util.prefs.PrefsKeys
 import java.io.File
+import java.io.FileOutputStream
+import java.io.InputStream
+import java.io.OutputStream
+import java.nio.channels.Channels
+import java.nio.channels.ReadableByteChannel
 import java.util.zip.ZipEntry
-import java.util.zip.ZipInputStream
+import java.util.zip.ZipFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
+
+/**
+ * Coarse phase of the pack extraction. Emitted via [ExtractProgress] so
+ * the UI can show a "Preparing folders…" line during the directory
+ * pre-pass (when the typical RPC cost of `findFile`/`createDirectory`
+ * is paid all at once) and a "Extracting files…" line with a live
+ * current-file name during the per-file write pass.
+ */
+enum class ExtractingPhase {
+  /** Directory pre-pass is running. */
+  PreparingFolders,
+
+  /** Files are being written. */
+  WritingFiles,
+}
+
+/**
+ * Per-file progress snapshot emitted by [DolphinTree.extractZipToPack].
+ * Replaces the previous bare `Int` (file index) callback so the UI can
+ * render a meaningful bar and a live file-name readout.
+ */
+data class ExtractProgress(
+  val phase: ExtractingPhase,
+  val filesDone: Int,
+  val filesTotal: Int,
+  val currentFile: String?,
+  val bytesDone: Long,
+  val bytesTotal: Long,
+)
 
 /**
  * SAF-backed wrapper around the Dolphin user folder WheelWitch writes to.
@@ -110,54 +144,136 @@ class DolphinTree(context: Context, val treeUri: Uri) {
     }
 
   /**
-   * Extracts a Retro Rewind pack zip into [packDir]. Each non-directory
-   * entry is written to the path implied by its name (nested
-   * directories are created on demand). The [onProgress] callback
-   * fires once per file entry, with the entry index in zip order.
+   * Extracts a Retro Rewind pack zip into [packDir]. Uses
+   * [java.util.zip.ZipFile] (central-directory-based iteration, one
+   * seek at the end of the file) instead of a streaming
+   * `ZipInputStream` (which re-parses each Local File Header
+   * sequentially).
    *
-   * [zipFile] is a [File] (rather than a `ByteArray`) so the zip is
-   * streamed from disk — the pack zip is multi-MB and the
-   * [RewindPackManager][com.skiletro.wheelwitch.domain.RewindPackManager]
-   * downloads it to `context.cacheDir` first.
+   * The flow is:
+   * 1. Enumerate the central directory once to get [ZipEntry] objects
+   *    with up-front size metadata.
+   * 2. Pre-create every unique parent directory with a single
+   *    `createDirectory` per dir, cache results in a
+   *    `Map<List<String>, DocumentFile>` so the per-file write loop
+   *    doesn't pay N `findFile` round-trips per path component.
+   * 3. Write each file via [FileChannel.transferFrom] when the
+   *    provider returns a [FileOutputStream] (most providers do),
+   *    otherwise via a buffered copy with a 256 KB buffer.
+   *
+   * The [onProgress] callback fires with an [ExtractProgress] snapshot
+   * at three points: once at the start of [ExtractingPhase.PreparingFolders],
+   * once per created directory (with `filesDone` / `filesTotal` still
+   * 0), and once per written file (with the new `currentFile` set).
    */
-  suspend fun extractZipToPack(zipFile: File, onProgress: (Int) -> Unit) {
+  suspend fun extractZipToPack(zipFile: File, onProgress: (ExtractProgress) -> Unit) {
     withContext(Dispatchers.IO) {
-      ZipInputStream(zipFile.inputStream()).use { zis ->
-        var entry = zis.nextEntry
+      ZipFile(zipFile).use { zip ->
+        val entries = zip.entries().toList()
+        val fileEntries = entries.filterNot { it.isDirectory }
+        val filesTotal = fileEntries.size
+        val bytesTotal = fileEntries.sumOf { it.size.coerceAtLeast(0L) }
+
+        val byPath: Map<List<String>, DocumentFile> =
+          precreateDirectories(fileEntries, onProgress, filesTotal, bytesTotal)
+
         var fileIndex = 0
-        while (entry != null) {
-          if (!entry.isDirectory) {
-            writeZipEntry(entry, zis)
-            onProgress(fileIndex)
-            fileIndex++
-          }
-          zis.closeEntry()
-          entry = zis.nextEntry
+        var bytesDone = 0L
+        for (entry in fileEntries) {
+          val currentFile = entry.name
+          onProgress(
+            ExtractProgress(
+              phase = ExtractingPhase.WritingFiles,
+              filesDone = fileIndex,
+              filesTotal = filesTotal,
+              currentFile = currentFile,
+              bytesDone = bytesDone,
+              bytesTotal = bytesTotal,
+            )
+          )
+          val entrySize = entry.size.coerceAtLeast(0L)
+          writeZipEntry(
+            entry = entry,
+            parent = byPath.getValue(parentParts(entry.name)),
+            fileName = entry.name.substringAfterLast('/'),
+            input = zip.getInputStream(entry),
+          )
+          bytesDone += entrySize
+          fileIndex++
+          onProgress(
+            ExtractProgress(
+              phase = ExtractingPhase.WritingFiles,
+              filesDone = fileIndex,
+              filesTotal = filesTotal,
+              currentFile = currentFile,
+              bytesDone = bytesDone,
+              bytesTotal = bytesTotal,
+            )
+          )
         }
       }
     }
   }
 
   /**
-   * Returns the number of non-directory file entries in [zipFile].
-   * Used by the install UI to show a determinate extraction bar
-   * (`done / total`); the zip is scanned by walking the central
-   * directory but no entries are extracted, so this is cheap
-   * relative to the actual unpack.
+   * Walks the file entries, collects the unique set of parent
+   * directory paths, creates them in depth order (parents first so
+   * each `createDirectory` only needs one IPC call), and returns a
+   * map from path parts to the resulting [DocumentFile]. The empty
+   * list is included as the key for `packDir` itself.
    */
-  suspend fun countZipFileEntries(zipFile: File): Int =
-    withContext(Dispatchers.IO) {
-      ZipInputStream(zipFile.inputStream()).use { zis ->
-        var count = 0
-        var entry = zis.nextEntry
-        while (entry != null) {
-          if (!entry.isDirectory) count++
-          zis.closeEntry()
-          entry = zis.nextEntry
-        }
-        count
+  private fun precreateDirectories(
+    fileEntries: List<ZipEntry>,
+    onProgress: (ExtractProgress) -> Unit,
+    filesTotal: Int,
+    bytesTotal: Long,
+  ): Map<List<String>, DocumentFile> {
+    // For every file, add every ancestor directory to the set, not just
+    // the direct parent. A file at a/b/c.bin contributes ["a"] and
+    // ["a", "b"]; the file itself is never a directory. Without this,
+    // a zip with files in sibling subtrees (e.g. apps/x/foo.bin and
+    // apps/y/bar.bin, no file directly under apps/) would crash the
+    // pre-pass with "Key [apps] is missing in the map".
+    val uniqueParents = fileEntries
+      .flatMap { file ->
+        val parts = file.name.split('/').filter { it.isNotEmpty() }
+        (1 until parts.size).map { parts.take(it) }
       }
+      .toSet()
+      .sortedBy { it.size }
+
+    onProgress(
+      ExtractProgress(
+        phase = ExtractingPhase.PreparingFolders,
+        filesDone = 0,
+        filesTotal = filesTotal,
+        currentFile = null,
+        bytesDone = 0L,
+        bytesTotal = bytesTotal,
+      )
+    )
+
+    val byPath = mutableMapOf<List<String>, DocumentFile>(emptyList<String>() to packDir)
+    for (parts in uniqueParents) {
+      if (parts.isEmpty()) continue
+      val parent = byPath.getValue(parts.dropLast(1))
+      val name = parts.last()
+      val existing = parent.findFile(name)
+      val dir =
+        if (existing != null && existing.isDirectory) {
+          existing
+        } else {
+          parent.createDirectory(name) ?: error("Cannot create $name in pack/")
+        }
+      byPath[parts] = dir
     }
+    return byPath
+  }
+
+  private fun parentParts(entryName: String): List<String> {
+    val parts = entryName.split('/').filter { it.isNotEmpty() }
+    return if (parts.size <= 1) emptyList() else parts.dropLast(1)
+  }
 
   /**
    * Writes [content] as [LAUNCH_JSON_NAME] at the WheelWitch root,
@@ -277,33 +393,42 @@ class DolphinTree(context: Context, val treeUri: Uri) {
 
   // --- internals --------------------------------------------------------
 
-  private fun writeZipEntry(entry: ZipEntry, zis: ZipInputStream) {
-    val parts = entry.name.split('/').filter { it.isNotEmpty() }
-    if (parts.isEmpty()) return
-    val fileName = parts.last()
-    val parent =
-      if (parts.size == 1) packDir
-      else navigateToDir(packDir, parts.dropLast(1))
+  private fun writeZipEntry(
+    entry: ZipEntry,
+    parent: DocumentFile,
+    fileName: String,
+    input: InputStream,
+  ) {
     val target =
       parent.createFile("application/octet-stream", fileName)
         ?: error("Cannot create ${entry.name} in pack/")
-    val output = resolver.openOutputStream(target.uri)
-      ?: error("Cannot open output stream for ${target.uri}")
-    output.use { o -> zis.copyTo(o) }
+    val output =
+      resolver.openOutputStream(target.uri)
+        ?: error("Cannot open output stream for ${target.uri}")
+    output.use { o ->
+      if (o is FileOutputStream) {
+        val size = entry.size.coerceAtLeast(0L)
+        val channel = o.channel
+        if (size > 0L) {
+          channel.transferFrom(input.toReadableByteChannel(), 0L, size)
+        } else {
+          input.copyToWithBuffer(o, COPY_BUFFER_SIZE)
+        }
+      } else {
+        input.copyToWithBuffer(o, COPY_BUFFER_SIZE)
+      }
+    }
   }
 
-  private fun navigateToDir(root: DocumentFile, parts: List<String>): DocumentFile {
-    var current = root
-    for (part in parts) {
-      val existing = current.findFile(part)
-      current =
-        if (existing != null && existing.isDirectory) {
-          existing
-        } else {
-          current.createDirectory(part) ?: error("Cannot create $part in pack/")
-        }
+  private fun InputStream.toReadableByteChannel(): ReadableByteChannel = Channels.newChannel(this)
+
+  private fun InputStream.copyToWithBuffer(out: OutputStream, bufferSize: Int) {
+    val buffer = ByteArray(bufferSize)
+    while (true) {
+      val read = read(buffer)
+      if (read == -1) break
+      out.write(buffer, 0, read)
     }
-    return current
   }
 
   private fun findOrCreateDir(parent: DocumentFile, name: String): DocumentFile? {
@@ -315,6 +440,9 @@ class DolphinTree(context: Context, val treeUri: Uri) {
   companion object {
     /** Tag used by Timber in this file's log lines. */
     const val TAG = "DolphinTree"
+
+    /** Buffered-copy buffer used when [FileChannel.transferFrom] is not available. */
+    const val COPY_BUFFER_SIZE: Int = 256 * 1024
 
     /**
      * Filename of the launch descriptor at the WheelWitch root.

@@ -1,6 +1,7 @@
 package com.skiletro.wheelwitch.viewmodel
 
 import androidx.compose.runtime.Immutable
+import com.skiletro.wheelwitch.data.ExtractingPhase
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.util.io.DownloadProgress
 
@@ -31,7 +32,8 @@ sealed class UiState {
    *   Carries the full [DownloadProgress] (fraction, rate, byte
    *   counts) for a determinate UI bar.
    * - [Installing.Extracting] — unpacking the zip into the SAF tree.
-   *   Carries a determinate `done / total` file count.
+   *   Carries a determinate file-count bar, the current file name,
+   *   and a byte-count basis for future use.
    *
    * Both phases live under the same `Installing` parent so the home
    * screen's `isBusy = state is UiState.Installing` check still
@@ -43,12 +45,19 @@ sealed class UiState {
     data class Downloading(val progress: DownloadProgress) : Installing()
 
     /**
-     * Zip is being unpacked into the SAF tree. [filesDone] is the
-     * index of the file just written; [filesTotal] is the count of
-     * non-directory entries (computed by a quick pre-scan of the zip
-     * header so the bar can be determinate from the first frame).
+     * Zip is being unpacked into the SAF tree. [phase] tells the UI
+     * whether the directory pre-pass is running or the per-file
+     * writes are live; [currentFile] is the entry currently being
+     * written, or null during the pre-pass and between files.
      */
-    data class Extracting(val filesDone: Int, val filesTotal: Int) : Installing()
+    data class Extracting(
+      val phase: ExtractingPhase,
+      val filesDone: Int,
+      val filesTotal: Int,
+      val currentFile: String?,
+      val bytesDone: Long,
+      val bytesTotal: Long,
+    ) : Installing()
   }
 
   /**

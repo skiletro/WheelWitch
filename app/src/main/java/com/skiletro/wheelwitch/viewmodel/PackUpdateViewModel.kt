@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.viewModelScope
 import com.skiletro.wheelwitch.data.DolphinTree
+import com.skiletro.wheelwitch.data.ExtractingPhase
 import com.skiletro.wheelwitch.domain.RewindPackManager
 import com.skiletro.wheelwitch.model.PackStatus
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -100,7 +101,14 @@ class PackUpdateViewModel(
           _state.value = UiState.Error(STORAGE_NOT_CONFIGURED)
           return@withLock
         }
-        _state.value = UiState.Installing.Extracting(0, 1)
+        _state.value = UiState.Installing.Extracting(
+          phase = ExtractingPhase.PreparingFolders,
+          filesDone = 0,
+          filesTotal = 1,
+          currentFile = null,
+          bytesDone = 0L,
+          bytesTotal = 0L,
+        )
         val result = mgr.installLatest { phase -> _state.value = phase.toUiState() }
         handleInstallResult(result)
       }
@@ -125,7 +133,14 @@ class PackUpdateViewModel(
           _state.value = UiState.Error(STORAGE_NOT_CONFIGURED)
           return@withLock
         }
-        _state.value = UiState.Installing.Extracting(0, 1)
+        _state.value = UiState.Installing.Extracting(
+          phase = ExtractingPhase.PreparingFolders,
+          filesDone = 0,
+          filesTotal = 1,
+          currentFile = null,
+          bytesDone = 0L,
+          bytesTotal = 0L,
+        )
         val result = mgr.update { phase -> _state.value = phase.toUiState() }
         handleInstallResult(result)
       }
@@ -138,7 +153,14 @@ class PackUpdateViewModel(
       is RewindPackManager.InstallProgress.Downloading ->
         UiState.Installing.Downloading(progress)
       is RewindPackManager.InstallProgress.Extracting ->
-        UiState.Installing.Extracting(filesDone, filesTotal)
+        UiState.Installing.Extracting(
+          phase = phase,
+          filesDone = filesDone,
+          filesTotal = filesTotal,
+          currentFile = currentFile,
+          bytesDone = bytesDone,
+          bytesTotal = bytesTotal,
+        )
     }
 
   /** Clears an error state and re-checks status. No-op for non-error states. */

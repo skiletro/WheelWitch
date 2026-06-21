@@ -2,6 +2,7 @@ package com.skiletro.wheelwitch.domain
 
 import android.content.Context
 import com.skiletro.wheelwitch.data.DolphinTree
+import com.skiletro.wheelwitch.data.ExtractingPhase
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.SemVersion
 import com.skiletro.wheelwitch.network.VersionFileParser
@@ -143,12 +144,26 @@ class RewindPackManager(
     data class Downloading(val progress: DownloadProgress) : InstallProgress()
 
     /**
-     * Zip is being unpacked into the SAF tree. [filesDone] is the
-     * index of the file just written; [filesTotal] is the count of
-     * non-directory entries discovered in a pre-scan so the bar
-     * starts at a determinate value.
+     * Zip is being unpacked into the SAF tree.
+     *
+     * - [phase] tells the caller whether the directory pre-pass
+     *   (the slow part) is running or the per-file writes have
+     *   started.
+     * - [filesDone] / [filesTotal] are the file count basis for the
+     *   determinate bar.
+     * - [currentFile] is the entry currently being written, or
+     *   null between files and during the pre-pass.
+     * - [bytesDone] / [bytesTotal] are the uncompressed byte counts
+     *   carried for future display / ETA use.
      */
-    data class Extracting(val filesDone: Int, val filesTotal: Int) : InstallProgress()
+    data class Extracting(
+      val phase: ExtractingPhase,
+      val filesDone: Int,
+      val filesTotal: Int,
+      val currentFile: String?,
+      val bytesDone: Long,
+      val bytesTotal: Long,
+    ) : InstallProgress()
   }
 
   /**
@@ -169,11 +184,18 @@ class RewindPackManager(
       onProgress = { dp -> onProgress(InstallProgress.Downloading(dp)) },
       client = HttpClientProvider.largeDownloadClient,
     )
-    val total = tree.countZipFileEntries(zipFile).coerceAtLeast(1)
     try {
-      onProgress(InstallProgress.Extracting(0, total))
-      tree.extractZipToPack(zipFile) { done ->
-        onProgress(InstallProgress.Extracting(done + 1, total))
+      tree.extractZipToPack(zipFile) { ep ->
+        onProgress(
+          InstallProgress.Extracting(
+            phase = ep.phase,
+            filesDone = ep.filesDone,
+            filesTotal = ep.filesTotal,
+            currentFile = ep.currentFile,
+            bytesDone = ep.bytesDone,
+            bytesTotal = ep.bytesTotal,
+          )
+        )
       }
     } finally {
       zipFile.delete()

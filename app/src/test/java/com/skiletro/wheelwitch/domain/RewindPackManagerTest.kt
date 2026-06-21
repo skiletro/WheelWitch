@@ -2,6 +2,8 @@ package com.skiletro.wheelwitch.domain
 
 import com.google.common.truth.Truth.assertThat
 import com.skiletro.wheelwitch.data.DolphinTree
+import com.skiletro.wheelwitch.data.ExtractProgress
+import com.skiletro.wheelwitch.data.ExtractingPhase
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.SemVersion
 import com.skiletro.wheelwitch.model.ServerInfo
@@ -133,7 +135,6 @@ class RewindPackManagerTest {
         target.writeBytes(byteArrayOf(0x50, 0x4B, 0x03, 0x04)) // ZIP magic
         target
       }
-    coEvery { tree.countZipFileEntries(any()) } returns 1
     coEvery { tree.extractZipToPack(any(), any()) } returns Unit
     coEvery { tree.writeVersion(server.latestVersion) } returns Unit
 
@@ -168,30 +169,42 @@ class RewindPackManagerTest {
         target
       }
     val phases = mutableListOf<RewindPackManager.InstallProgress>()
-    coEvery { tree.countZipFileEntries(any()) } returns 3
     coEvery { tree.extractZipToPack(any(), any()) } coAnswers
       {
-        val cb = it.invocation.args[1] as (Int) -> Unit
-        cb(0)
-        cb(1)
-        cb(2)
+        val cb = it.invocation.args[1] as (ExtractProgress) -> Unit
+        cb(ExtractProgress(ExtractingPhase.PreparingFolders, 0, 3, null, 0L, 100L))
+        cb(ExtractProgress(ExtractingPhase.WritingFiles, 0, 3, "f1", 0L, 100L))
+        cb(ExtractProgress(ExtractingPhase.WritingFiles, 1, 3, "f2", 33L, 100L))
+        cb(ExtractProgress(ExtractingPhase.WritingFiles, 2, 3, "f3", 66L, 100L))
+        cb(ExtractProgress(ExtractingPhase.WritingFiles, 3, 3, "f3", 100L, 100L))
       }
     coEvery { tree.writeVersion(server.latestVersion) } returns Unit
 
     val result = manager().installLatest { phase -> phases.add(phase) }
 
     assertThat(result.isSuccess).isTrue()
-    // 1. First three reports are Downloading (one from the downloader's
-    //    start-of-attempt hook, one at the end of the success path, plus
-    //    a third the throttled callback adds — we accept any Downloading
-    //    prefix and only assert the *eventual* transition to Extracting).
-    // 2. The Extracting phase reports 4 entries (1 start + 3 done).
+    // The first three reports are Downloading (one from the downloader's
+    // start-of-attempt hook, one at the end of the success path, plus
+    // a third the throttled callback adds — we accept any Downloading
+    // prefix and only assert the *eventual* transition to Extracting).
+    // The Extracting phase reports 5 entries (1 pre-pass + 4 writing).
     assertThat(phases.filterIsInstance<RewindPackManager.InstallProgress.Extracting>())
       .containsExactly(
-        RewindPackManager.InstallProgress.Extracting(filesDone = 0, filesTotal = 3),
-        RewindPackManager.InstallProgress.Extracting(filesDone = 1, filesTotal = 3),
-        RewindPackManager.InstallProgress.Extracting(filesDone = 2, filesTotal = 3),
-        RewindPackManager.InstallProgress.Extracting(filesDone = 3, filesTotal = 3),
+        RewindPackManager.InstallProgress.Extracting(
+          ExtractingPhase.PreparingFolders, 0, 3, null, 0L, 100L
+        ),
+        RewindPackManager.InstallProgress.Extracting(
+          ExtractingPhase.WritingFiles, 0, 3, "f1", 0L, 100L
+        ),
+        RewindPackManager.InstallProgress.Extracting(
+          ExtractingPhase.WritingFiles, 1, 3, "f2", 33L, 100L
+        ),
+        RewindPackManager.InstallProgress.Extracting(
+          ExtractingPhase.WritingFiles, 2, 3, "f3", 66L, 100L
+        ),
+        RewindPackManager.InstallProgress.Extracting(
+          ExtractingPhase.WritingFiles, 3, 3, "f3", 100L, 100L
+        ),
       )
       .inOrder()
     // The last phase is always Extracting, never Downloading.
@@ -211,7 +224,6 @@ class RewindPackManagerTest {
         target.writeBytes(byteArrayOf(0x00))
         target
       }
-    coEvery { tree.countZipFileEntries(any()) } returns 1
     coEvery { tree.extractZipToPack(any(), any()) } throws IllegalStateException("extract boom")
 
     val result = manager().installLatest { /* no-op */ }
@@ -248,7 +260,6 @@ class RewindPackManagerTest {
         target.writeBytes(byteArrayOf(0x00))
         target
       }
-    coEvery { tree.countZipFileEntries(any()) } returns 1
     coEvery { tree.extractZipToPack(any(), any()) } returns Unit
     coEvery { tree.writeVersion(server.latestVersion) } returns Unit
 
@@ -281,7 +292,6 @@ class RewindPackManagerTest {
         target.writeBytes(byteArrayOf(0x00))
         target
       }
-    coEvery { tree.countZipFileEntries(any()) } returns 1
     coEvery { tree.extractZipToPack(any(), any()) } returns Unit
     coEvery { tree.writeVersion(server.latestVersion) } returns Unit
 
@@ -337,7 +347,6 @@ class RewindPackManagerTest {
         target.writeBytes(byteArrayOf(0x00))
         target
       }
-    coEvery { tree.countZipFileEntries(any()) } returns 1
     coEvery { tree.extractZipToPack(any(), any()) } returns Unit
     coEvery { tree.writeVersion(server.latestVersion) } returns Unit
 

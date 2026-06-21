@@ -309,25 +309,36 @@ private fun HomeBottomBar(
               animationSpec = tween(durationMillis = 200),
               label = "install_progress",
             )
-          val label =
-            when (currentState) {
-              is UiState.Installing.Downloading ->
-                stringResource(R.string.status_installing)
-              is UiState.Installing.Extracting ->
-                stringResource(R.string.status_extracting)
-            }
           val bytesPerSecond =
             (currentState as? UiState.Installing.Downloading)?.progress?.bytesPerSecond
           val bytesDownloaded =
             (currentState as? UiState.Installing.Downloading)?.progress?.bytesDownloaded ?: 0L
           val totalBytes =
             (currentState as? UiState.Installing.Downloading)?.progress?.totalBytes ?: 0L
+          val filesDone = (currentState as? UiState.Installing.Extracting)?.filesDone ?: 0
+          val filesTotal = (currentState as? UiState.Installing.Extracting)?.filesTotal ?: 0
+          val currentFile = (currentState as? UiState.Installing.Extracting)?.currentFile
+          val label =
+            when (currentState) {
+              is UiState.Installing.Downloading ->
+                stringResource(R.string.status_installing)
+              is UiState.Installing.Extracting ->
+                when (currentState.phase) {
+                  com.skiletro.wheelwitch.data.ExtractingPhase.PreparingFolders ->
+                    stringResource(R.string.status_extracting_preparing_folders)
+                  com.skiletro.wheelwitch.data.ExtractingPhase.WritingFiles ->
+                    stringResource(R.string.status_extracting)
+                }
+            }
           ProgressButton(
             progress = animatedFraction,
             label = label,
             bytesPerSecond = bytesPerSecond,
             bytesDownloaded = bytesDownloaded,
             totalBytes = totalBytes,
+            filesDone = filesDone,
+            filesTotal = filesTotal,
+            currentFile = currentFile,
           )
         }
         is UiState.Installed -> {

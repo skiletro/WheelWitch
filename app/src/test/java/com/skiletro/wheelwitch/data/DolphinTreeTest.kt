@@ -314,10 +314,22 @@ class DolphinTreeTest {
     setupPackEntryWrite(packDir, "file2.bin", outputs)
 
     val tree = DolphinTree(context, treeUri)
-    val progress = mutableListOf<Int>()
+    val progress = mutableListOf<ExtractProgress>()
     tree.extractZipToPack(zip) { progress.add(it) }
 
-    assertThat(progress).containsExactly(0, 1).inOrder()
+    // Sequence: 1 PreparingFolders + 2 files × 2 callbacks (before/after).
+    // filesDone walks 0, 0, 1, 1, 2; phase walks PF, W, W, W, W.
+    assertThat(progress.map { it.filesDone }).containsExactly(0, 0, 1, 1, 2).inOrder()
+    assertThat(progress.map { it.filesTotal }).containsExactly(2, 2, 2, 2, 2).inOrder()
+    assertThat(progress.map { it.phase })
+      .containsExactly(
+        ExtractingPhase.PreparingFolders,
+        ExtractingPhase.WritingFiles,
+        ExtractingPhase.WritingFiles,
+        ExtractingPhase.WritingFiles,
+        ExtractingPhase.WritingFiles,
+      )
+      .inOrder()
     assertThat(outputs["file1.txt"]?.toString(Charsets.UTF_8)).isEqualTo("hello")
     assertThat(outputs["file2.bin"]?.toByteArray()?.toList())
       .isEqualTo(byteArrayOf(0x01, 0x02, 0x03).toList())
@@ -344,10 +356,19 @@ class DolphinTreeTest {
       every { resolver.openOutputStream(created.uri) } returns output
 
       val tree = DolphinTree(context, treeUri)
-      tree.extractZipToPack(zip) { /* no-op */ }
+      val progress = mutableListOf<ExtractProgress>()
+      tree.extractZipToPack(zip) { progress.add(it) }
 
       verify { packDir.createDirectory("riivolution") }
       assertThat(output.toString(Charsets.UTF_8)).isEqualTo("<xml/>")
+      // The directory pre-pass fires first.
+      assertThat(progress.first().phase).isEqualTo(ExtractingPhase.PreparingFolders)
+      assertThat(progress.first().currentFile).isNull()
+      // The file write phase follows, with the live entry name.
+      val writingEntries = progress.filter { it.phase == ExtractingPhase.WritingFiles }
+      assertThat(writingEntries.map { it.currentFile })
+        .containsExactly("riivolution/RetroRewind6.xml", "riivolution/RetroRewind6.xml")
+        .inOrder()
     }
 
   @Test
@@ -374,56 +395,88 @@ class DolphinTreeTest {
     every { resolver.openOutputStream(created.uri) } returns output
 
     val tree = DolphinTree(context, treeUri)
-    val progress = mutableListOf<Int>()
+    val progress = mutableListOf<ExtractProgress>()
     tree.extractZipToPack(zip) { progress.add(it) }
 
-    assertThat(progress).containsExactly(0)
+    // Only one file entry → one pair of WritingFiles callbacks.
+    val writingEntries = progress.filter { it.phase == ExtractingPhase.WritingFiles }
+    assertThat(writingEntries.map { it.filesDone }).containsExactly(0, 1).inOrder()
+    assertThat(writingEntries.first().currentFile).isEqualTo("subdir/inside.txt")
     // Only the file entry produces a write.
     verify(exactly = 0) { packDir.createFile(any<String>(), any<String>()) }
     verify(exactly = 1) { subdirDir.createFile("application/octet-stream", "inside.txt") }
   }
 
-  // --- countZipFileEntries --------------------------------------------
+  @Test
+  fun `extractZipToPack reports PreparingFolders then WritingFiles phases`(@TempDir tempDir: Path) =
+    runBlocking {
+      val (_, packDir, _) = setupDirChain()
+      val zip = File(tempDir.toFile(), "pack.zip")
+      ZipOutputStream(zip.outputStream()).use { zos ->
+        zos.putNextEntry(ZipEntry("a/"))
+        zos.closeEntry()
+        zos.putNextEntry(ZipEntry("a/b.txt"))
+        zos.write("x".encodeToByteArray())
+        zos.closeEntry()
+      }
+      val aDir = mockk<DocumentFile>(relaxed = true)
+      every { packDir.findFile("a") } returns null
+      every { packDir.createDirectory("a") } returns aDir
+      val created = mockk<DocumentFile>(relaxed = true)
+      every { created.uri } returns Uri.parse("content://tree/pack/a/b.txt")
+      every { aDir.createFile("application/octet-stream", "b.txt") } returns created
+      val output = ByteArrayOutputStream()
+      every { resolver.openOutputStream(created.uri) } returns output
+
+      val tree = DolphinTree(context, treeUri)
+      val progress = mutableListOf<ExtractProgress>()
+      tree.extractZipToPack(zip) { progress.add(it) }
+
+      assertThat(progress.first().phase).isEqualTo(ExtractingPhase.PreparingFolders)
+      assertThat(progress.first().filesTotal).isEqualTo(1)
+      assertThat(progress.first().currentFile).isNull()
+      // Every subsequent callback is in the writing phase.
+      assertThat(progress.drop(1).map { it.phase })
+        .containsExactly(ExtractingPhase.WritingFiles, ExtractingPhase.WritingFiles)
+    }
 
   @Test
-  fun `countZipFileEntries returns the number of non-directory file entries`(
+  fun `extractZipToPack creates every ancestor directory even when no file lives at intermediate levels`(
     @TempDir tempDir: Path
   ) = runBlocking {
+    // File at a/b/c/leaf.txt — no files directly under a/ or a/b/ on
+    // their own. The pre-pass must still create the full a -> a/b ->
+    // a/b/c chain, which it didn't before the ancestor-set fix
+    // (the direct-parent-only set missed "a" and "a/b" entirely).
+    val (_, packDir, _) = setupDirChain()
     val zip = File(tempDir.toFile(), "pack.zip")
     ZipOutputStream(zip.outputStream()).use { zos ->
-      zos.putNextEntry(ZipEntry("file1.txt"))
-      zos.write("a".encodeToByteArray())
-      zos.closeEntry()
-      zos.putNextEntry(ZipEntry("subdir/"))
-      zos.closeEntry()
-      zos.putNextEntry(ZipEntry("subdir/inside.txt"))
-      zos.write("b".encodeToByteArray())
-      zos.closeEntry()
-      zos.putNextEntry(ZipEntry("file2.bin"))
-      zos.write(byteArrayOf(1, 2, 3))
+      zos.putNextEntry(ZipEntry("a/b/c/leaf.txt"))
+      zos.write("deep".encodeToByteArray())
       zos.closeEntry()
     }
+    val aDir = mockk<DocumentFile>(relaxed = true)
+    val abDir = mockk<DocumentFile>(relaxed = true)
+    val abcDir = mockk<DocumentFile>(relaxed = true)
+    every { packDir.findFile("a") } returns null
+    every { packDir.createDirectory("a") } returns aDir
+    every { aDir.findFile("b") } returns null
+    every { aDir.createDirectory("b") } returns abDir
+    every { abDir.findFile("c") } returns null
+    every { abDir.createDirectory("c") } returns abcDir
+    val created = mockk<DocumentFile>(relaxed = true)
+    every { created.uri } returns Uri.parse("content://tree/pack/a/b/c/leaf.txt")
+    every { abcDir.createFile("application/octet-stream", "leaf.txt") } returns created
+    val output = ByteArrayOutputStream()
+    every { resolver.openOutputStream(created.uri) } returns output
+
     val tree = DolphinTree(context, treeUri)
+    tree.extractZipToPack(zip) { /* no-op */ }
 
-    val count = tree.countZipFileEntries(zip)
-
-    assertThat(count).isEqualTo(3)
-  }
-
-  @Test
-  fun `countZipFileEntries returns 0 for a zip with only directory entries`(
-    @TempDir tempDir: Path
-  ) = runBlocking {
-    val zip = File(tempDir.toFile(), "empty.zip")
-    ZipOutputStream(zip.outputStream()).use { zos ->
-      zos.putNextEntry(ZipEntry("a/"))
-      zos.closeEntry()
-      zos.putNextEntry(ZipEntry("a/b/"))
-      zos.closeEntry()
-    }
-    val tree = DolphinTree(context, treeUri)
-
-    assertThat(tree.countZipFileEntries(zip)).isEqualTo(0)
+    verify { packDir.createDirectory("a") }
+    verify { aDir.createDirectory("b") }
+    verify { abDir.createDirectory("c") }
+    assertThat(output.toString(Charsets.UTF_8)).isEqualTo("deep")
   }
 
   // --- writeLaunchJson / readLaunchJson --------------------------------
