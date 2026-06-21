@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.ui.theme.WheelWitchPreviewTheme
+import com.skiletro.wheelwitch.ui.theme.buttonShape
 
 private val PrimaryActionButtonHeight = 56.dp
 private const val SubTextAlpha = 0.7f

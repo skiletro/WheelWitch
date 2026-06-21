@@ -45,9 +45,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
-import com.skiletro.wheelwitch.ui.components.buttonShape
-import com.skiletro.wheelwitch.ui.components.sectionShape
 import com.skiletro.wheelwitch.ui.theme.WheelWitchPreviewTheme
+import com.skiletro.wheelwitch.ui.theme.buttonShape
+import com.skiletro.wheelwitch.ui.theme.sectionShape
 
 /**
  * Reduced onboarding wizard: Welcome → Beta → Complete.

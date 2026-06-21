@@ -43,7 +43,7 @@ import com.skiletro.wheelwitch.model.ChangelogEntry
 import com.skiletro.wheelwitch.ui.components.ChangelogCard
 import com.skiletro.wheelwitch.ui.components.ScreenHeader
 import com.skiletro.wheelwitch.ui.components.focusBorder
-import com.skiletro.wheelwitch.ui.components.sectionShape
+import com.skiletro.wheelwitch.ui.theme.sectionShape
 import com.skiletro.wheelwitch.viewmodel.VersionHistoryState
 import com.skiletro.wheelwitch.viewmodel.VersionHistoryViewModel
 import kotlinx.coroutines.CoroutineScope

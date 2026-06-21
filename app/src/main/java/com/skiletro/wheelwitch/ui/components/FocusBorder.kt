@@ -11,19 +11,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import com.skiletro.wheelwitch.ui.theme.buttonShape
 
 /** Color of the dark inner edge drawn inside the focus ring so it stays visible on primary-colored buttons. */
 private val InnerEdgeColor = Color.Black.copy(alpha = 0.25f)
-
-/**
- * Shared corner radius used by primary action buttons throughout the app.
- */
-val buttonShape = RoundedCornerShape(14.dp)
-
-/**
- * Shared corner radius used by content sections (cards, panels, etc).
- */
-val sectionShape = RoundedCornerShape(20.dp)
 
 /**
  * Modifier that draws a 3dp focus border in the given [color] (defaulting to the

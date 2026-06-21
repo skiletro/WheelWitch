@@ -55,9 +55,9 @@ import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
 import com.skiletro.wheelwitch.ui.components.TopBar
-import com.skiletro.wheelwitch.ui.components.buttonShape
 import com.skiletro.wheelwitch.ui.components.focusBorder
-import com.skiletro.wheelwitch.ui.components.sectionShape
+import com.skiletro.wheelwitch.ui.theme.buttonShape
+import com.skiletro.wheelwitch.ui.theme.sectionShape
 import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 import com.skiletro.wheelwitch.viewmodel.PackUpdateViewModel
