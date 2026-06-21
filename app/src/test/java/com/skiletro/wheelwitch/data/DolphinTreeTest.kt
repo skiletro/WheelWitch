@@ -126,20 +126,65 @@ class DolphinTreeTest {
   // --- validate --------------------------------------------------------
 
   @Test
-  fun `validate succeeds for the expected dolphin user folder tree id`() {
+  fun `validate succeeds for primary storage with the expected tree id and authority`() {
+    // The @BeforeEach sets Uri.parse to return the shared `treeUri`
+    // mock whose `authority` defaults to null. We stub it here to
+    // simulate what a real primary-storage URI would carry.
     mockkStatic(DocumentsContract::class)
     every { DocumentsContract.getTreeDocumentId(any()) } returns DolphinPaths.expectedTreeId()
+    every { treeUri.authority } returns "com.android.externalstorage.documents"
     val result = DolphinTree.validate(Uri.parse("content://x/tree/abc"))
     assertThat(result.isSuccess).isTrue()
+  }
+
+  @Test
+  fun `validate succeeds for the Dolphin provider root URI`() {
+    // The Dolphin app exposes its own SAF provider
+    // (org.dolphinemu.dolphinemu.user). The picker surfaces it on
+    // devices where Dolphin is installed; the document id is
+    // "root/". This URI is a valid alternative to the primary-storage
+    // form and does not require MANAGE_EXTERNAL_STORAGE.
+    mockkStatic(DocumentsContract::class)
+    every { DocumentsContract.getTreeDocumentId(any()) } returns "root/"
+    every { treeUri.authority } returns "org.dolphinemu.dolphinemu.user"
+    val result = DolphinTree.validate(Uri.parse("content://x/tree/abc"))
+    assertThat(result.isSuccess).isTrue()
+  }
+
+  @Test
+  fun `validate fails for a subfolder of the Dolphin provider`() {
+    // A subfolder of the Dolphin provider (e.g. root/GameSettings)
+    // is rejected — the WheelWitch subdirs must be created at the
+    // top of Dolphin's user folder, not inside some intermediate
+    // location.
+    mockkStatic(DocumentsContract::class)
+    every { DocumentsContract.getTreeDocumentId(any()) } returns "root/GameSettings"
+    every { treeUri.authority } returns "org.dolphinemu.dolphinemu.user"
+    val result = DolphinTree.validate(Uri.parse("content://x/tree/abc"))
+    assertThat(result.isFailure).isTrue()
+    assertThat(result.exceptionOrNull()).isInstanceOf(IllegalArgumentException::class.java)
   }
 
   @Test
   fun `validate fails for an unrelated tree id`() {
     mockkStatic(DocumentsContract::class)
     every { DocumentsContract.getTreeDocumentId(any()) } returns "primary:Documents"
+    every { treeUri.authority } returns "com.android.externalstorage.documents"
     val result = DolphinTree.validate(Uri.parse("content://x/tree/abc"))
     assertThat(result.isFailure).isTrue()
     assertThat(result.exceptionOrNull()).isInstanceOf(IllegalArgumentException::class.java)
+  }
+
+  @Test
+  fun `validate fails when the tree id matches but the authority is unknown`() {
+    // Defense against authority confusion: a primary-storage-shaped
+    // document id under a non-Dolphin authority (e.g. a different
+    // app's SAF provider or a content:// tree) is rejected.
+    mockkStatic(DocumentsContract::class)
+    every { DocumentsContract.getTreeDocumentId(any()) } returns DolphinPaths.expectedTreeId()
+    every { treeUri.authority } returns "com.example.otherapp"
+    val result = DolphinTree.validate(Uri.parse("content://x/tree/abc"))
+    assertThat(result.isFailure).isTrue()
   }
 
   @Test

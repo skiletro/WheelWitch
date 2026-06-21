@@ -252,25 +252,52 @@ class DolphinTree(context: Context, val treeUri: Uri) {
     const val VERSION_FILE_NAME = "version.txt"
 
     /**
-     * Returns success if [treeUri]'s document id matches the expected
-     * Dolphin user folder. The stock SAF picker cannot be restricted
-     * to a single folder, so the caller must validate the user's
-     * pick before persisting it.
+     * Returns success if [treeUri] points to the Dolphin user folder.
+     * Two URI forms are accepted:
+     *
+     * 1. **Primary external storage** — the stock SAF picker's default:
+     *    `content://com.android.externalstorage.documents/tree/primary%3AAndroid%2Fdata%2Forg.dolphinemu.dolphinemu%2Ffiles`.
+     *    Document id is `primary:Android/data/org.dolphinemu.dolphinemu/files`.
+     * 2. **Dolphin's own SAF provider** — surfaced by the picker on
+     *    devices where Dolphin is installed:
+     *    `content://org.dolphinemu.dolphinemu.user/tree/root%2F`.
+     *    Document id is `root/`. This provider maps to the same
+     *    physical folder and is the recommended path on modern
+     *    Android — it does not require the legacy
+     *    `MANAGE_EXTERNAL_STORAGE` permission.
+     *
+     * Subfolders of either root are rejected — the WheelWitch
+     * subdirectory must be created at the top of Dolphin's user
+     * folder, not inside some intermediate location.
      */
     fun validate(treeUri: Uri): Result<Unit> {
       val treeId =
         runCatching { DocumentsContract.getTreeDocumentId(treeUri) }.getOrNull()
           ?: return Result.failure(IllegalArgumentException("Not a tree URI: $treeUri"))
-      val expected = DolphinPaths.expectedTreeId()
-      return if (treeId == expected) {
-        Result.success(Unit)
-      } else {
-        Result.failure(
-          IllegalArgumentException(
-            "Tree $treeUri has document id '$treeId' but expected '$expected'"
-          )
-        )
+
+      // Primary external storage: primary:Android/data/<dolphin>/files
+      if (
+        treeUri.authority == "com.android.externalstorage.documents" &&
+          treeId == DolphinPaths.expectedTreeId()
+      ) {
+        return Result.success(Unit)
       }
+
+      // Dolphin's own SAF provider root, which maps to the same
+      // physical folder. The picker surfaces this on devices where
+      // Dolphin is installed; it lets apps write into Dolphin's
+      // folder without the legacy MANAGE_EXTERNAL_STORAGE permission.
+      if (treeUri.authority == "org.dolphinemu.dolphinemu.user" && treeId == "root/") {
+        return Result.success(Unit)
+      }
+
+      return Result.failure(
+        IllegalArgumentException(
+          "Tree $treeUri (authority='${treeUri.authority}', docId='$treeId') " +
+            "is not the Dolphin user folder. Expected either primary external storage " +
+            "(primary:Android/data/org.dolphinemu.dolphinemu/files) or the Dolphin app's own storage root."
+        )
+      )
     }
 
     /**
