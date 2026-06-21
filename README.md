@@ -50,7 +50,7 @@ It downloads and incrementally updates the pack from the RWFC server, then launc
 - Multiple themes including Material You dynamic colour, with dark, light, and system modes
 
 > [!NOTE]
-> Save backup/restore currently only supports the **PAL** version of Mario Kart Wii (`RMCP`). - see [TODO](#todo)
+> Save backup/restore supports the PAL (`RMCP`), USA (`RMCE`), and JPN (`RMCJ`) versions of Mario Kart Wii. The app shows one save tile per region the user has a ROM for. KOR (`RMCK`) is not yet supported — see [TODO](#todo).
 
 ## Download
 
@@ -91,16 +91,11 @@ This section is for known issues, as well as other features that are on my radar
   for RR VR data
 </details>
 
-<details><summary>Support other RMCx save types</summary>
-  Only `RMCP` (PAL) is currently supported. `RMCE` (USA), `RMCJ` (JPN),
-  and `RMCK` (KOR) need the same treatment. Could detect by sniffing the
-  first bytes of the save or by following the storage folder name.
-</details>
-
-<details><summary>Disable license button when no licenses exist</summary>
-  Gate the licenses shortcut on `SaveDataViewModel.hasSave.collectAsState()`.
-  If false, render the button disabled with a "no save" subtitle rather
-  than letting the user tap into a broken Licenses screen.
+<details><summary>Support RMCK (KOR) save type</summary>
+  PAL (`RMCP`), USA (`RMCE`), and JPN (`RMCJ`) are supported — the
+  Licenses screen shows one save tile per region the user has a ROM
+  for. KOR (`RMCK`) needs the same treatment. Could detect by sniffing
+  the first bytes of the save or by following the storage folder name.
 </details>
 
 <details><summary>Fix logo animation speed varying by device</summary>

@@ -72,16 +72,13 @@ Run `scripts/setup-signing.sh` to generate a keystore interactively.
 
 ```
 com.skiletro.wheelwitch
-├── model/          — data types (SemVersion, RoomStatus, etc.)
-├── data/           — storage, save parsing
-├── network/        — HTTP (version files, leaderboard, rooms APIs)
-├── domain/         — business logic (pack manager, changelog parser)
-├── util/           — launcher, downloader, Mii installer
-├── ui/
-│   ├── components/ — reusable composables
-│   ├── screens/    — screen composables
-│   └── theme/      — Material3 colours and typography
-└── viewmodel/      — Android ViewModels per screen
+├── model/         (data types: SemVersion, PackStatus, SaveFileInfo, etc.)
+├── data/          (storage: DolphinPaths, DolphinTree, DolphinConfig, SaveManager, RksysParser, GameTypeParser)
+├── network/       (HTTP + JSON parsers: VersionFileParser, RoomStatusParser, etc.)
+├── domain/        (business logic: RewindPackManager, ChangelogParser)
+├── util/{io,net,mii,launcher,log,json,prefs}/  (utilities grouped by concern)
+├── ui/{components,screens,theme}/
+└── viewmodel/     (Android ViewModels per screen)
 ```
 
 Strings go in `res/values/strings.xml`; Compose screens use `stringResource()`.
