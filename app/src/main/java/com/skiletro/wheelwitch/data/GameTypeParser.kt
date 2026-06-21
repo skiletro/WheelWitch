@@ -1,6 +1,6 @@
 package com.skiletro.wheelwitch.data
 
-import com.skiletro.wheelwitch.util.ByteReader
+import com.skiletro.wheelwitch.util.io.ByteReader
 import java.io.File
 import java.util.Locale
 

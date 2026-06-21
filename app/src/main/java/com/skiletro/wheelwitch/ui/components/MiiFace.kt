@@ -18,9 +18,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
-import com.skiletro.wheelwitch.util.HttpClientProvider
-import com.skiletro.wheelwitch.util.MII_IMAGE_BASE_URL
-import com.skiletro.wheelwitch.util.MiiFaceCache
+import com.skiletro.wheelwitch.util.mii.MII_IMAGE_BASE_URL
+import com.skiletro.wheelwitch.util.mii.MiiFaceCache
+import com.skiletro.wheelwitch.util.net.HttpClientProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Request

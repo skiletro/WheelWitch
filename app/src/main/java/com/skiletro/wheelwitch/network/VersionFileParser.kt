@@ -9,12 +9,7 @@ import com.skiletro.wheelwitch.model.ServerHealth
 import com.skiletro.wheelwitch.model.ServerInfo
 import com.skiletro.wheelwitch.model.TimeTrialTrack
 import com.skiletro.wheelwitch.model.UpdateEntry
-import com.skiletro.wheelwitch.model.parseHealthResponse
-import com.skiletro.wheelwitch.model.parseLeaderboardResponse
-import com.skiletro.wheelwitch.model.parseRaceStats
-import com.skiletro.wheelwitch.model.parseRooms
-import com.skiletro.wheelwitch.model.parseTracks
-import com.skiletro.wheelwitch.util.HttpClientProvider
+import com.skiletro.wheelwitch.util.net.HttpClientProvider
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Request
 import org.json.JSONObject

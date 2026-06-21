@@ -2,12 +2,12 @@ package com.skiletro.wheelwitch
 
 import android.app.Application
 import android.util.Log
-import com.skiletro.wheelwitch.util.AppReleaseLogTree
-import com.skiletro.wheelwitch.util.MemoryBufferTree
-import com.skiletro.wheelwitch.util.MiiFaceCache
-import com.skiletro.wheelwitch.util.OptionalFileTree
-import com.skiletro.wheelwitch.util.Prefs
-import com.skiletro.wheelwitch.util.PrefsKeys
+import com.skiletro.wheelwitch.util.log.AppReleaseLogTree
+import com.skiletro.wheelwitch.util.log.MemoryBufferTree
+import com.skiletro.wheelwitch.util.mii.MiiFaceCache
+import com.skiletro.wheelwitch.util.io.OptionalFileTree
+import com.skiletro.wheelwitch.util.prefs.Prefs
+import com.skiletro.wheelwitch.util.prefs.PrefsKeys
 import java.io.File
 import timber.log.Timber
 

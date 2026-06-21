@@ -4,8 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.skiletro.wheelwitch.R
-import com.skiletro.wheelwitch.util.MiiWadInstaller
-import com.skiletro.wheelwitch.util.isNetworkAvailable
+import com.skiletro.wheelwitch.util.mii.MiiWadInstaller
+import com.skiletro.wheelwitch.util.net.isNetworkAvailable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

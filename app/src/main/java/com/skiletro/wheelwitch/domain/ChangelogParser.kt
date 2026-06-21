@@ -4,9 +4,9 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.skiletro.wheelwitch.domain.ChangelogParser.PREFS_NAME
 import com.skiletro.wheelwitch.model.ChangelogEntry
-import com.skiletro.wheelwitch.util.HttpClientProvider
-import com.skiletro.wheelwitch.util.Prefs
-import com.skiletro.wheelwitch.util.PrefsKeys
+import com.skiletro.wheelwitch.util.net.HttpClientProvider
+import com.skiletro.wheelwitch.util.prefs.Prefs
+import com.skiletro.wheelwitch.util.prefs.PrefsKeys
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject

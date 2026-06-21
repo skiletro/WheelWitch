@@ -42,14 +42,14 @@ import com.skiletro.wheelwitch.BuildConfig
 import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.ui.components.SettingsCategoryHeader
 import com.skiletro.wheelwitch.ui.components.SettingsItem
-import com.skiletro.wheelwitch.ui.components.formatBytes
 import com.skiletro.wheelwitch.ui.theme.AppTheme
 import com.skiletro.wheelwitch.ui.theme.ThemeMode
-import com.skiletro.wheelwitch.util.BugReportLauncher
-import com.skiletro.wheelwitch.util.MiiFaceCache
-import com.skiletro.wheelwitch.util.Prefs
-import com.skiletro.wheelwitch.util.PrefsKeys
-import com.skiletro.wheelwitch.util.cacheSize
+import com.skiletro.wheelwitch.util.launcher.BugReportLauncher
+import com.skiletro.wheelwitch.util.mii.MiiFaceCache
+import com.skiletro.wheelwitch.util.prefs.Prefs
+import com.skiletro.wheelwitch.util.prefs.PrefsKeys
+import com.skiletro.wheelwitch.util.io.cacheSize
+import com.skiletro.wheelwitch.util.formatBytes
 import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
 
 /**
