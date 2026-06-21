@@ -4,6 +4,9 @@ import android.app.Application
 import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.viewModelScope
 import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.data.DolphinTree
@@ -283,9 +286,39 @@ class SaveDataViewModel(
     }.getOrElse { emptyMap() }
   }
 
-  private companion object {
+  /**
+   * Internal tag + default [DolphinTree] factory plus the public
+   * [factory] used by [androidx.lifecycle.viewmodel.compose.viewModel]
+   * in the composition root. The default [ViewModelProvider] for
+   * [AndroidViewModel] looks up a single-arg `(Application)`
+   * constructor, which doesn't exist anymore — the second
+   * `packStatusFlow` parameter requires a custom factory.
+   *
+   * The other constructor parameters (`treeFactory`, `parser`,
+   * `leaderboardFetcher`, `ioDispatcher`) use their production
+   * defaults — tests that need to swap them continue to construct
+   * the VM directly with explicit arguments.
+   */
+  companion object {
     const val TAG = "SaveData"
 
     fun defaultTreeFactory(context: Context): DolphinTree? = DolphinTree.fromPersisted(context)
+
+    /**
+     * [ViewModelProvider.Factory] that wires the production
+     * dependencies — the [Application] from [ViewModelProvider]'s
+     * CreationExtras, and the [packStatusFlow] from the
+     * already-constructed [PackUpdateViewModel]. The pack VM lives
+     * in the parent scope (`MainScreen`) so it can be passed in
+     * here without a circular construction.
+     */
+    fun factory(packUpdate: PackUpdateViewModel): ViewModelProvider.Factory =
+      viewModelFactory {
+        initializer {
+          val app =
+            this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as Application
+          SaveDataViewModel(application = app, packStatusFlow = packUpdate.state)
+        }
+      }
   }
 }

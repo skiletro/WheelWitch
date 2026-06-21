@@ -36,7 +36,7 @@ private const val ONBOARDING_TRANSITION_MS = 300
  */
 @Composable
 fun MainScreen(
-  packUpdate: PackUpdateViewModel = viewModel(),
+  packUpdate: PackUpdateViewModel = viewModel(factory = PackUpdateViewModel.Factory),
   miiMaker: MiiMakerViewModel = viewModel(),
   onlineViewModel: OnlineViewModel = viewModel(),
   appTheme: AppTheme = AppTheme.Hex,

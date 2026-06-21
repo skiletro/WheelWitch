@@ -3,6 +3,9 @@ package com.skiletro.wheelwitch.viewmodel
 import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.viewModelScope
 import com.skiletro.wheelwitch.data.DolphinTree
 import com.skiletro.wheelwitch.domain.RewindPackManager
@@ -140,7 +143,15 @@ class PackUpdateViewModel(
     )
   }
 
-  private companion object {
+  /**
+   * Internal constants + the default [RewindPackManager] factory plus
+   * the public [Factory] used by [androidx.lifecycle.viewmodel.compose.viewModel]
+   * in the composition root. The default [ViewModelProvider] for
+   * [AndroidViewModel] looks up a single-arg `(Application)`
+   * constructor, which doesn't exist anymore — the second
+   * `managerFactory` parameter requires a custom factory.
+   */
+  companion object {
     const val STORAGE_NOT_CONFIGURED = "Storage not configured"
     const val TAG = "PackUpdate"
 
@@ -149,5 +160,21 @@ class PackUpdateViewModel(
       val tree = DolphinTree.fromPersisted(context) ?: return null
       return RewindPackManager(context, tree)
     }
+
+    /**
+     * [ViewModelProvider.Factory] for the composition root. Resolves
+     * the [Application] from [ViewModelProvider]'s CreationExtras
+     * (set by [androidx.lifecycle.viewmodel.compose.viewModel] via
+     * the LocalViewModelStoreOwner) and constructs the VM with its
+     * default manager factory.
+     */
+    val Factory: ViewModelProvider.Factory = viewModelFactory {
+      initializer {
+        val app =
+          this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as Application
+        PackUpdateViewModel(app)
+      }
+    }
   }
 }
+
