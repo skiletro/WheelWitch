@@ -26,6 +26,7 @@ import com.skiletro.wheelwitch.util.prefs.PrefsKeys
 import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 import com.skiletro.wheelwitch.viewmodel.PackUpdateViewModel
+import com.skiletro.wheelwitch.viewmodel.SaveDataViewModel
 
 /** Duration of the onboarding fade-in/out crossfade. */
 private const val ONBOARDING_TRANSITION_MS = 300
@@ -39,6 +40,7 @@ fun MainScreen(
   packUpdate: PackUpdateViewModel = viewModel(factory = PackUpdateViewModel.Factory),
   miiMaker: MiiMakerViewModel = viewModel(),
   onlineViewModel: OnlineViewModel = viewModel(),
+  saveData: SaveDataViewModel = viewModel(factory = SaveDataViewModel.factory(packUpdate)),
   appTheme: AppTheme = AppTheme.Hex,
   onChangeAppTheme: (AppTheme) -> Unit = {},
   themeMode: ThemeMode = ThemeMode.System,
@@ -73,6 +75,7 @@ fun MainScreen(
             packUpdate = packUpdate,
             miiMaker = miiMaker,
             onlineViewModel = onlineViewModel,
+            saveData = saveData,
             onOpenSettings = { showSettings = true },
           )
         }

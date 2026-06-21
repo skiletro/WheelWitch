@@ -49,6 +49,9 @@
     <string name="home_up_to_date">Up to date (v%s)</string>
     <string name="home_version_installed">v%s installed</string>
     <string name="home_update_format">v%1$s \u2192 v%2$s</string>
+    <string name="home_launch_dolphin_not_installed">Dolphin Emulator is not installed.</string>
+    <string name="home_launch_no_rom">No Mario Kart Wii ROM found. Re-run onboarding to pick one.</string>
+    <string name="home_launch_fallback">Auto-launch failed. Opened Dolphin \u2014 launch Retro Rewind from the library.</string>
     <string name="player_default">Player</string>
     <string name="home_vr_active_suffix"> VR \u00b7 %1$sx active</string>
     <string name="home_vr_suffix"> VR</string>
@@ -63,8 +66,6 @@
     <string name="home_rom_wbfs_dialog_title">WBFS file selected</string>
     <string name="home_no_iso_cant_launch">Cannot resolve storage path. Please pick a new storage folder.</string>
     <string name="home_launch_failed">Failed to launch Dolphin</string>
-    <string name="home_install_not_implemented">Install flow not yet implemented</string>
-    <string name="home_launch_not_implemented">Launch flow not yet implemented</string>
 
     <!-- onboarding -->
     <string name="onboarding_beta_title">Heads up: this is beta software</string>
@@ -255,12 +256,25 @@
 
     <!-- save info -->
     <string name="save_info_title">Licenses</string>
-    <string name="licenses_coming_soon">Licenses — coming soon</string>
     <string name="save_info_race_format">Race: W %1$d / L %2$d</string>
     <string name="save_info_slot_format">Slot %1$d</string>
     <string name="save_info_vr_format">VR %1$d</string>
+    <string name="save_info_vr_leaderboard_format">VR %1$d \u00b7 leaderboard %2$d</string>
     <string name="save_info_no_licenses">No license slots in this save</string>
     <string name="save_info_loading">Loading save…</string>
+    <string name="save_info_empty_slot">Empty slot</string>
+    <string name="save_info_no_name">(no name)</string>
+    <string name="save_info_friend_code_format">Friend code: %s</string>
+    <string name="save_info_backup">Backup</string>
+    <string name="save_info_restore">Restore</string>
+    <string name="save_info_delete">Delete</string>
+    <string name="save_info_delete_confirm_title">Delete save?</string>
+    <string name="save_info_delete_confirm_message">This permanently deletes the %s save file. This cannot be undone.</string>
+    <string name="save_info_region_pal">PAL</string>
+    <string name="save_info_region_usa">USA</string>
+    <string name="save_info_region_jpn">JPN</string>
+    <string name="save_info_region_picker">Region</string>
+    <string name="save_info_slot_picker">Slot</string>
     <string name="vm_save_not_configured">No storage configured</string>
     <string name="vm_save_read_failed_backup">Cannot read current save</string>
 

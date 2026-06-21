@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import androidx.documentfile.provider.DocumentFile
+import com.skiletro.wheelwitch.data.DolphinConfig
 import com.skiletro.wheelwitch.data.DolphinPaths
 import com.skiletro.wheelwitch.data.DolphinTree
 import java.io.File
@@ -51,6 +52,12 @@ object DolphinLauncher {
 
   /** Default Riivolution XML path under the pack root. */
   const val DEFAULT_XML_REL_PATH = "riivolution/RetroRewind6.xml"
+
+  /** ROM file extensions that count as a valid launch ROM. */
+  private val ROM_EXTENSIONS = setOf("iso", "rvz", "wbfs")
+
+  /** Tag used by Timber in this object's log lines. */
+  private const val TAG = "DolphinLauncher"
 
   /** Returns true if the Dolphin package is installed on the device. */
   fun isDolphinInstalled(context: Context): Boolean =
@@ -160,6 +167,137 @@ object DolphinLauncher {
       putExtra(LAUNCH_EXTRA_NAME, jsonPath)
       addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
+
+  /**
+   * Outcome of [launchRetroRewind]. The auto-start path is the
+   * preferred UX — RR launches with the descriptor pre-loaded. The
+   * fallback path is fired when the auto-start attempt fails (e.g.
+   * the `AutoStartFile` extra throws "can't find content or path"
+   * inside Dolphin). We start Dolphin bare so the user can pick RR
+   * from the library; the WheelWitch-managed `ISOPathN` entry keeps
+   * RR in that library.
+   */
+  sealed class LaunchResult {
+    /** Auto-start path worked — RR is launching with the descriptor. */
+    data object AutoStarted : LaunchResult()
+
+    /**
+     * Auto-start failed but we started Dolphin without the extra so
+     * the user can launch RR from the library. [cause] carries the
+     * original failure for logging.
+     */
+    data class FallbackStarted(val cause: Throwable) : LaunchResult()
+
+    /** Dolphin is not installed; nothing was started. */
+    data object DolphinNotInstalled : LaunchResult()
+
+    /** Storage is not configured (no SAF tree). */
+    data object StorageNotConfigured : LaunchResult()
+
+    /** No ROM file is present in `rom/`. */
+    data object NoRom : LaunchResult()
+  }
+
+  /**
+   * High-level entry point used by the home screen launch button.
+   * Performs the full pre-launch sequence in order:
+   *
+   * 1. Validate Dolphin is installed.
+   * 2. Reconstruct the [DolphinTree] from the persisted SAF URI.
+   * 3. Pick the launch ROM (the first ISO/RVZ/WBFS in
+   *    `tree.romDir`, alphabetically by file name).
+   * 4. Upsert the rom directory into Dolphin's `Config/Dolphin.ini`
+   *    so RR shows up in the library.
+   * 5. Write the launch descriptor and fire the `AutoStartFile`
+   *    intent via [launch].
+   * 6. On any failure, fall back to starting Dolphin without the
+   *    extra and return [LaunchResult.FallbackStarted] — the user
+   *    can still launch RR from the library.
+   */
+  fun launchRetroRewind(context: Context): LaunchResult {
+    if (!isDolphinInstalled(context)) return LaunchResult.DolphinNotInstalled
+    val tree =
+      DolphinTree.fromPersisted(context) ?: return LaunchResult.StorageNotConfigured
+    return launchRetroRewind(context, tree)
+  }
+
+  /**
+   * Overload that takes an explicit [tree]. Useful for callers that
+   * already hold a tree (tests, composables that construct it
+   * inline) and want to skip the [DolphinTree.fromPersisted] lookup.
+   */
+  fun launchRetroRewind(context: Context, tree: DolphinTree): LaunchResult {
+    if (!isDolphinInstalled(context)) return LaunchResult.DolphinNotInstalled
+    val rom = pickRomFile(tree) ?: return LaunchResult.NoRom
+    val romName = rom.name ?: return LaunchResult.NoRom
+    return try {
+      registerRomPathInConfig(context, tree, romName)
+      launch(context, tree, rom).getOrThrow()
+      LaunchResult.AutoStarted
+    } catch (e: Throwable) {
+      Timber.tag(TAG).w(e, "Auto-start failed; falling back to bare Dolphin launch")
+      startDolphin(context)
+      LaunchResult.FallbackStarted(e)
+    }
+  }
+
+  /**
+   * Reads `Config/Dolphin.ini` from [tree], upserts the
+   * `content://org.dolphinemu.dolphinemu.user/tree/root%2FUser%2FWii%2FWheelWitch%2From`
+   * URI (the rom directory the user picked via SAF), and writes the
+   * file back. The URI is the one Dolphin's own SAF provider expects —
+   * see [DolphinConfig.dolphinUserTreeUri]. This is the bridge that
+   * makes "RR shows up in Dolphin's library" work.
+   */
+  fun registerRomPathInConfig(
+    context: Context,
+    tree: DolphinTree,
+    romFileName: String,
+  ) {
+    val ext = romFileName.substringAfterLast('.', missingDelimiterValue = "").lowercase()
+    if (ext !in ROM_EXTENSIONS) {
+      throw IllegalArgumentException("Unexpected ROM extension: $romFileName")
+    }
+    val relPath = "User/Wii/WheelWitch/rom"
+    val uri = DolphinConfig.dolphinUserTreeUri(relPath)
+    val existing = tree.readConfigIni().orEmpty()
+    val updated = DolphinConfig.upsert(existing, uri)
+    if (updated != existing) {
+      tree.writeConfigIni(updated)
+      Timber.tag(TAG)
+        .i("Registered %s in Dolphin.ini (added ISOPath entry)", uri)
+    } else {
+      Timber.tag(TAG).d("Dolphin.ini already contains %s; no edit needed", uri)
+    }
+  }
+
+  /**
+   * Picks the launch ROM. Returns the first ISO/RVZ/WBFS file in
+   * [DolphinTree.romDir] in iteration order, or null when no
+   * recognized ROM is present. Multi-region setups surface one ROM
+   * per region; this picks the first by name for the launch.
+   */
+  fun pickRomFile(tree: DolphinTree): DocumentFile? =
+    tree.romDir.listFiles()?.firstOrNull { file ->
+      val name = file.name ?: return@firstOrNull false
+      val ext = name.substringAfterLast('.', missingDelimiterValue = "").lowercase()
+      ext in ROM_EXTENSIONS
+    }
+
+  /**
+   * Bare Dolphin launch — no `AutoStartFile` extra. Used as the
+   * fallback when the auto-start path throws inside Dolphin. Returns
+   * true if the intent was started, false if Dolphin isn't installed.
+   */
+  fun startDolphin(context: Context): Boolean {
+    if (!isDolphinInstalled(context)) return false
+    val intent =
+      Intent().apply {
+        component = ComponentName(DOLPHIN_PACKAGE, DOLPHIN_MAIN_ACTIVITY)
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      }
+    return runCatching { context.startActivity(intent) }.isSuccess
+  }
 
   private fun optionObject(optionName: String, choice: Int): JSONObject =
     JSONObject()

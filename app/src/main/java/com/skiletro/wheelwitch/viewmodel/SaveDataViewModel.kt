@@ -74,7 +74,8 @@ class SaveDataViewModel(
   private val _hasSave = MutableStateFlow<Map<Region, Boolean>>(emptyMap())
   val hasSave: StateFlow<Map<Region, Boolean>> = _hasSave.asStateFlow()
 
-  private val _selectedRegion = MutableStateFlow<Region?>(null)
+  private val _selectedRegion =
+    MutableStateFlow(loadPersistedRegion(prefs.getString(PrefsKeys.SELECTED_REGION_KEY, null)))
   val selectedRegion: StateFlow<Region?> = _selectedRegion.asStateFlow()
 
   private val _selectedSlotIndex =
@@ -164,6 +165,7 @@ class SaveDataViewModel(
 
   /** Persists the selected region and refreshes the active license. */
   fun selectRegion(region: Region) {
+    prefs.edit().putString(PrefsKeys.SELECTED_REGION_KEY, region.code).apply()
     _selectedRegion.value = region
     viewModelScope.launch { refreshActiveLicense() }
   }
@@ -262,6 +264,10 @@ class SaveDataViewModel(
     val current = _selectedRegion.value
     return if (current != null && current in regions) current else regions.first()
   }
+
+  /** Maps a persisted region code (e.g. `RMCP`) back to its [Region] enum, or null. */
+  private fun loadPersistedRegion(code: String?): Region? =
+    code?.let { c -> Region.entries.firstOrNull { it.code == c } }
 
   private fun cacheAndPersistLeaderboardVr(slotIndex: Int, vr: Int) {
     val current = _cachedLeaderboardVrs.value

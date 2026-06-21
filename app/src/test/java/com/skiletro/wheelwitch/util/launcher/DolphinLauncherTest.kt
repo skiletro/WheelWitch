@@ -10,7 +10,9 @@ import com.google.common.truth.Truth.assertThat
 import com.skiletro.wheelwitch.data.DolphinTree
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
 import io.mockk.slot
+import io.mockk.unmockkStatic
 import io.mockk.verify
 import java.io.File
 import org.json.JSONObject
@@ -359,6 +361,224 @@ class DolphinLauncherTest {
     DolphinLauncher.launch(ctx, tree, romFile)
 
     verify(exactly = 0) { ctx.startActivity(any()) }
+  }
+
+  // --- registerRomPathInConfig ----------------------------------------
+
+  @Test
+  fun `registerRomPathInConfig writes the rom URI into the ini block`() {
+    val ctx = mockInstalledDolphin()
+    val tree = mockk<DolphinTree>(relaxed = true)
+    val existingIni =
+      """
+      [General]
+      SomeKey = value
+      """.trimIndent()
+    val written = slot<String>()
+    every { tree.readConfigIni() } returns existingIni
+    every { tree.writeConfigIni(capture(written)) } returns mockk(relaxed = true)
+
+    DolphinLauncher.registerRomPathInConfig(ctx, tree, "RMCP01.iso")
+
+    val ini = written.captured
+    assertThat(ini).contains("[General]")
+    assertThat(ini).contains("ISOPaths = 1")
+    assertThat(ini)
+      .contains(
+        "ISOPath0 = content://org.dolphinemu.dolphinemu.user/tree/root%2FUser%2FWii%2FWheelWitch%2From"
+      )
+    assertThat(ini).contains("SomeKey = value")
+  }
+
+  @Test
+  fun `registerRomPathInConfig is a no-op when the rom URI is already present`() {
+    val ctx = mockInstalledDolphin()
+    val tree = mockk<DolphinTree>(relaxed = true)
+    val existing =
+      """
+      [General]
+      ISOPaths = 1
+      ISOPath0 = content://org.dolphinemu.dolphinemu.user/tree/root%2FUser%2FWii%2FWheelWitch%2From
+      """.trimIndent()
+    every { tree.readConfigIni() } returns existing
+    every { tree.writeConfigIni(any()) } returns mockk(relaxed = true)
+
+    DolphinLauncher.registerRomPathInConfig(ctx, tree, "RMCP01.iso")
+
+    verify(exactly = 0) { tree.writeConfigIni(any()) }
+  }
+
+  @Test
+  fun `registerRomPathInConfig throws for an unknown ROM extension`() {
+    val ctx = mockInstalledDolphin()
+    val tree = mockk<DolphinTree>(relaxed = true)
+    val ex =
+      runCatching { DolphinLauncher.registerRomPathInConfig(ctx, tree, "ROM.bin") }
+        .exceptionOrNull()
+    assertThat(ex).isInstanceOf(IllegalArgumentException::class.java)
+  }
+
+  @Test
+  fun `registerRomPathInConfig works on an empty INI`() {
+    val ctx = mockInstalledDolphin()
+    val tree = mockk<DolphinTree>(relaxed = true)
+    val written = slot<String>()
+    every { tree.readConfigIni() } returns ""
+    every { tree.writeConfigIni(capture(written)) } returns mockk(relaxed = true)
+
+    DolphinLauncher.registerRomPathInConfig(ctx, tree, "RMCE01.rvz")
+
+    assertThat(written.captured)
+      .isEqualTo(
+        "ISOPaths = 1\nISOPath0 = content://org.dolphinemu.dolphinemu.user/tree/root%2FUser%2FWii%2FWheelWitch%2From"
+      )
+  }
+
+  // --- pickRomFile ----------------------------------------------------
+
+  @Test
+  fun `pickRomFile returns the first recognized ROM in the romDir`() {
+    val tree = mockk<DolphinTree>(relaxed = true)
+    val romDir = mockk<DocumentFile>(relaxed = true)
+    every { tree.romDir } returns romDir
+    val iso = mockRomFile("RMCP01.iso")
+    val rvz = mockRomFile("RMCE01.rvz")
+    every { romDir.listFiles() } returns arrayOf(iso, rvz)
+
+    val picked = DolphinLauncher.pickRomFile(tree)
+
+    assertThat(picked).isEqualTo(iso)
+  }
+
+  @Test
+  fun `pickRomFile ignores files with an unrecognized extension`() {
+    val tree = mockk<DolphinTree>(relaxed = true)
+    val romDir = mockk<DocumentFile>(relaxed = true)
+    every { tree.romDir } returns romDir
+    val readme = mockRomFile("README.txt")
+    val iso = mockRomFile("RMCP01.iso")
+    every { romDir.listFiles() } returns arrayOf(readme, iso)
+
+    val picked = DolphinLauncher.pickRomFile(tree)
+
+    assertThat(picked).isEqualTo(iso)
+  }
+
+  @Test
+  fun `pickRomFile returns null when no recognized ROM is present`() {
+    val tree = mockk<DolphinTree>(relaxed = true)
+    val romDir = mockk<DocumentFile>(relaxed = true)
+    every { tree.romDir } returns romDir
+    every { romDir.listFiles() } returns arrayOf(mockRomFile("notes.txt"))
+
+    val picked = DolphinLauncher.pickRomFile(tree)
+
+    assertThat(picked).isNull()
+  }
+
+  // --- startDolphin ---------------------------------------------------
+
+  @Test
+  fun `startDolphin fires a bare Dolphin intent`() {
+    val ctx = mockInstalledDolphin()
+
+    val started = DolphinLauncher.startDolphin(ctx)
+
+    assertThat(started).isTrue()
+    verify(exactly = 1) { ctx.startActivity(any<Intent>()) }
+  }
+
+  // --- launchRetroRewind ---------------------------------------------
+
+  @Test
+  fun `launchRetroRewind returns DolphinNotInstalled when Dolphin is absent`() {
+    val ctx = mockk<Context>(relaxed = true)
+    every {
+      ctx.packageManager.getPackageInfo(DolphinLauncher.DOLPHIN_PACKAGE, 0)
+    } throws PackageManager.NameNotFoundException()
+
+    val result = DolphinLauncher.launchRetroRewind(ctx)
+
+    assertThat(result).isInstanceOf(DolphinLauncher.LaunchResult.DolphinNotInstalled::class.java)
+  }
+
+  @Test
+  fun `launchRetroRewind returns NoRom when romDir is empty`() {
+    val ctx = mockInstalledDolphin()
+    val tree = mockk<DolphinTree>(relaxed = true)
+    val romDir = mockk<DocumentFile>(relaxed = true)
+    every { romDir.listFiles() } returns arrayOf()
+    every { tree.romDir } returns romDir
+
+    val result = DolphinLauncher.launchRetroRewind(ctx, tree)
+
+    assertThat(result).isInstanceOf(DolphinLauncher.LaunchResult.NoRom::class.java)
+  }
+
+  @Test
+  fun `launchRetroRewind returns StorageNotConfigured when no tree is persisted`() {
+    val ctx = mockInstalledDolphin()
+    mockkStatic("com.skiletro.wheelwitch.data.DolphinTree")
+    every { com.skiletro.wheelwitch.data.DolphinTree.fromPersisted(ctx) } returns null
+
+    val result = DolphinLauncher.launchRetroRewind(ctx)
+
+    assertThat(result)
+      .isInstanceOf(DolphinLauncher.LaunchResult.StorageNotConfigured::class.java)
+    unmockkStatic("com.skiletro.wheelwitch.data.DolphinTree")
+  }
+
+  @Test
+  fun `launchRetroRewind auto-starts when Dolphin is installed and ROM is present`() {
+    val ctx = mockInstalledDolphin()
+    val tree = mockk<DolphinTree>(relaxed = true)
+    val romDir = mockk<DocumentFile>(relaxed = true)
+    val rom = mockRomFile("RMCP01.iso")
+    every { tree.romDir } returns romDir
+    every { romDir.listFiles() } returns arrayOf(rom)
+    every { tree.readConfigIni() } returns null
+    every { tree.writeConfigIni(any()) } returns mockk(relaxed = true)
+    every { tree.writeLaunchJson(any()) } returns mockk(relaxed = true)
+
+    val result = DolphinLauncher.launchRetroRewind(ctx, tree)
+
+    assertThat(result).isInstanceOf(DolphinLauncher.LaunchResult.AutoStarted::class.java)
+    verify { tree.writeConfigIni(any()) }
+    verify { tree.writeLaunchJson(any()) }
+    verify { ctx.startActivity(any<Intent>()) }
+  }
+
+  @Test
+  fun `launchRetroRewind falls back to bare Dolphin when the descriptor write throws`() {
+    val ctx = mockInstalledDolphin()
+    val tree = mockk<DolphinTree>(relaxed = true)
+    val romDir = mockk<DocumentFile>(relaxed = true)
+    val rom = mockRomFile("RMCP01.iso")
+    every { tree.romDir } returns romDir
+    every { romDir.listFiles() } returns arrayOf(rom)
+    every { tree.readConfigIni() } returns null
+    every { tree.writeConfigIni(any()) } returns mockk(relaxed = true)
+    every { tree.writeLaunchJson(any()) } throws IllegalStateException("SAF boom")
+
+    val result = DolphinLauncher.launchRetroRewind(ctx, tree)
+
+    assertThat(result)
+      .isInstanceOf(DolphinLauncher.LaunchResult.FallbackStarted::class.java)
+    // writeLaunchJson threw before the auto-start intent was fired,
+    // so only the fallback bare intent reaches startActivity.
+    verify(exactly = 1) { ctx.startActivity(any<Intent>()) }
+  }
+
+  @Test
+  fun `startDolphin returns false when Dolphin is not installed`() {
+    val ctx = mockk<Context>(relaxed = true)
+    every {
+      ctx.packageManager.getPackageInfo(DolphinLauncher.DOLPHIN_PACKAGE, 0)
+    } throws PackageManager.NameNotFoundException()
+
+    val started = DolphinLauncher.startDolphin(ctx)
+
+    assertThat(started).isFalse()
   }
 
   // --- helpers --------------------------------------------------------
