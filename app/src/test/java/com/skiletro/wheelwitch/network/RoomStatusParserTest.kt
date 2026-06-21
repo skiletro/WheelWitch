@@ -1,9 +1,9 @@
-package com.skiletro.wheelwitch.model
+package com.skiletro.wheelwitch.network
 
 import com.google.common.truth.Truth.assertThat
 import org.junit.jupiter.api.Test
 
-class RoomStatusTest {
+class RoomStatusParserTest {
 
     private val fullRoomJson = """
         {

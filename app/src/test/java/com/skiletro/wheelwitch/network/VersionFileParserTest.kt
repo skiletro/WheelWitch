@@ -1,10 +1,10 @@
 package com.skiletro.wheelwitch.network
 
 import com.google.common.truth.Truth.assertThat
-import com.skiletro.wheelwitch.model.parseHealthResponse
-import com.skiletro.wheelwitch.model.parseLeaderboardResponse
-import com.skiletro.wheelwitch.model.parseRaceStats
-import com.skiletro.wheelwitch.model.parseTracks
+import com.skiletro.wheelwitch.network.parseHealthResponse
+import com.skiletro.wheelwitch.network.parseLeaderboardResponse
+import com.skiletro.wheelwitch.network.parseRaceStats
+import com.skiletro.wheelwitch.network.parseTracks
 import org.junit.jupiter.api.Test
 
 class VersionFileParserTest {
