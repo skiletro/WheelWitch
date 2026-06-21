@@ -241,8 +241,12 @@ class DolphinTree(context: Context, val treeUri: Uri) {
   }
 
   companion object {
-    /** Filename of the launch descriptor at the WheelWitch root. */
-    const val LAUNCH_JSON_NAME = "rr_autostartfile.json"
+    /**
+     * Filename of the launch descriptor at the WheelWitch root.
+     * Re-exported from [com.skiletro.wheelwitch.util.launcher.DolphinLauncher.RR_JSON_NAME]
+     * — single source of truth lives in the launcher.
+     */
+    const val LAUNCH_JSON_NAME = com.skiletro.wheelwitch.util.launcher.DolphinLauncher.RR_JSON_NAME
 
     /** Filename of the pack version file at the root of the pack directory. */
     const val VERSION_FILE_NAME = "version.txt"
