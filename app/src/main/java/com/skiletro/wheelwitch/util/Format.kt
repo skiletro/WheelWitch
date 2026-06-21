@@ -1,4 +1,4 @@
-package com.skiletro.wheelwitch.ui.components
+package com.skiletro.wheelwitch.util
 
 /**
  * Formats [bytes] as a human-readable size string.

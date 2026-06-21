@@ -21,6 +21,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.ui.theme.WheelWitchPreviewTheme
+import com.skiletro.wheelwitch.util.formatBytesPerSecond
+import com.skiletro.wheelwitch.util.formatDownloadProgress
 
 /**
  * Indeterminate-style progress bar with a percent label, optional

@@ -1,4 +1,4 @@
-package com.skiletro.wheelwitch.ui.components
+package com.skiletro.wheelwitch.util
 
 import com.google.common.truth.Truth.assertThat
 import org.junit.jupiter.api.Test
