@@ -107,6 +107,8 @@
     <string name="onboarding_iso_read_failed">Cannot read the selected ROM file.</string>
     <string name="onboarding_iso_copy_failed">Couldn\'t copy the ROM into your Dolphin folder.</string>
     <string name="onboarding_storage_required">Pick a storage folder first.</string>
+    <string name="onboarding_rom_verifying">Verifying ROM…</string>
+    <string name="onboarding_rom_copying">Copying to Dolphin folder…</string>
 
     <!-- settings -->
     <string name="settings_title">Settings</string>

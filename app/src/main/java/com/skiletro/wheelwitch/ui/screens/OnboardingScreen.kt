@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -95,6 +96,8 @@ fun OnboardingScreen(
   var step by remember { mutableStateOf(OnboardingStep.Welcome) }
   var storageError by remember { mutableStateOf<String?>(null) }
   var romError by remember { mutableStateOf<String?>(null) }
+  var isRomLoading by remember { mutableStateOf(false) }
+  var romStage by remember { mutableStateOf<String?>(null) }
 
   // Resolve every error string up here so the activity-result
   // callbacks (which run outside the composition) can use them
@@ -105,6 +108,8 @@ fun OnboardingScreen(
   val storageRequired = stringResource(R.string.onboarding_storage_required)
   val isoInvalid = stringResource(R.string.onboarding_iso_invalid)
   val isoCopyFailed = stringResource(R.string.onboarding_iso_copy_failed)
+  val romVerifying = stringResource(R.string.onboarding_rom_verifying)
+  val romCopying = stringResource(R.string.onboarding_rom_copying)
 
   // The tree picker. We deep-link to the Dolphin user folder so the
   // user lands at the right place immediately. The picked URI must
@@ -148,13 +153,15 @@ fun OnboardingScreen(
     rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri ->
       if (uri == null) return@rememberLauncherForActivityResult
       scope.launch {
-        val tree = DolphinTree.fromPersisted(context)
-        if (tree == null) {
-          romError = storageRequired
-          return@launch
-        }
-        romError = null
+        isRomLoading = true
         try {
+          romStage = romVerifying
+          val tree = DolphinTree.fromPersisted(context)
+          if (tree == null) {
+            romError = storageRequired
+            return@launch
+          }
+          romError = null
           val displayName = queryDisplayName(context, uri) ?: uri.lastPathSegment ?: "rom.iso"
           val bytes =
             withContext(Dispatchers.IO) {
@@ -170,13 +177,16 @@ fun OnboardingScreen(
           val info = GameTypeParser.parseGameInfo(displayName, bytes)
           val gameId = info.gameId ?: "RMCP01"
           val ext = File(displayName).extension.ifEmpty { "iso" }.lowercase()
-          withContext(Dispatchers.IO) {
-            tree.copyRomFromSource(uri, gameId, ext)
-          }
+
+          romStage = romCopying
+          withContext(Dispatchers.IO) { tree.copyRomFromSource(uri, gameId, ext) }
           step = OnboardingStep.Complete
         } catch (e: Exception) {
           Timber.tag("Onboarding").e(e, "ROM copy failed")
           romError = e.message ?: isoCopyFailed
+        } finally {
+          isRomLoading = false
+          romStage = null
         }
       }
     }
@@ -195,6 +205,8 @@ fun OnboardingScreen(
   BackHandler(enabled = step.previous() != null) {
     storageError = null
     romError = null
+    isRomLoading = false
+    romStage = null
     step = step.previous() ?: step
   }
 
@@ -240,6 +252,8 @@ fun OnboardingScreen(
                   romLauncher.launch(arrayOf("application/octet-stream", "*/*"))
                 },
                 error = romError,
+                isLoading = isRomLoading,
+                stage = romStage,
               )
             OnboardingStep.Complete -> CompleteStep(onDone = onComplete)
           }
@@ -314,13 +328,31 @@ private fun StorageStep(onPick: () -> Unit, error: String?) {
 
 /** Fourth onboarding step: SAF document picker for the MKW ROM. */
 @Composable
-private fun RomStep(onPick: () -> Unit, error: String?) {
+private fun RomStep(onPick: () -> Unit, error: String?, isLoading: Boolean, stage: String?) {
   StepCard(
     title = stringResource(R.string.onboarding_iso_title),
     titleStyle = MaterialTheme.typography.headlineSmall,
     body = stringResource(R.string.onboarding_iso_body),
   ) {
-    StepPrimaryButton(text = stringResource(R.string.onboarding_select_rom), onClick = onPick)
+    StepPrimaryButton(
+      text = stringResource(R.string.onboarding_select_rom),
+      onClick = onPick,
+      enabled = !isLoading,
+    )
+    if (isLoading) {
+      Spacer(modifier = Modifier.height(12.dp))
+      LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+      if (stage != null) {
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+          text = stage,
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          textAlign = TextAlign.Center,
+          modifier = Modifier.fillMaxWidth(),
+        )
+      }
+    }
     if (error != null) {
       Spacer(modifier = Modifier.height(12.dp))
       ErrorBanner(error)
@@ -391,10 +423,11 @@ private fun StepCard(
 }
 
 @Composable
-private fun StepPrimaryButton(text: String, onClick: () -> Unit) {
+private fun StepPrimaryButton(text: String, onClick: () -> Unit, enabled: Boolean = true) {
   Spacer(modifier = Modifier.height(16.dp))
   Button(
     onClick = onClick,
+    enabled = enabled,
     shape = buttonShape,
     modifier = Modifier.fillMaxWidth().height(56.dp),
     colors = ButtonDefaults.buttonColors(
