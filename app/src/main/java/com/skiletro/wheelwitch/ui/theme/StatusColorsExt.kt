@@ -1,10 +1,8 @@
-package com.skiletro.wheelwitch.ui.components
+package com.skiletro.wheelwitch.ui.theme
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
-import com.skiletro.wheelwitch.ui.theme.LocalStatusColors
-import com.skiletro.wheelwitch.ui.theme.StatusColors
 
 /**
  * Convenience accessor for the active [StatusColors] from [LocalStatusColors].

@@ -29,9 +29,9 @@ import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.Player
 import com.skiletro.wheelwitch.model.Room
 import com.skiletro.wheelwitch.ui.components.MiiFace
-import com.skiletro.wheelwitch.ui.components.statusColors
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
 import com.skiletro.wheelwitch.ui.theme.WheelWitchPreviewTheme
+import com.skiletro.wheelwitch.ui.theme.statusColors
 
 @Composable
 fun RoomDetail(room: Room) {

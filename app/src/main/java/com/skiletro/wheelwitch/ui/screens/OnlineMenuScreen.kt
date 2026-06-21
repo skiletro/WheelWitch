@@ -44,7 +44,7 @@ import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.ui.components.FocusableSurface
 import com.skiletro.wheelwitch.ui.components.ScreenHeader
-import com.skiletro.wheelwitch.ui.components.statusColors
+import com.skiletro.wheelwitch.ui.theme.statusColors
 import com.skiletro.wheelwitch.viewmodel.OnlineMenuPage
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 

@@ -43,8 +43,8 @@ import com.skiletro.wheelwitch.model.Room
 import com.skiletro.wheelwitch.ui.components.FocusableSurface
 import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
 import com.skiletro.wheelwitch.ui.components.ScreenHeader
-import com.skiletro.wheelwitch.ui.components.statusColors
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
+import com.skiletro.wheelwitch.ui.theme.statusColors
 import com.skiletro.wheelwitch.viewmodel.RoomsState
 
 private val sidebarShape = RoundedCornerShape(12.dp)
