@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import com.skiletro.wheelwitch.util.AppReleaseLogTree
 import com.skiletro.wheelwitch.util.MemoryBufferTree
+import com.skiletro.wheelwitch.util.MiiFaceCache
 import com.skiletro.wheelwitch.util.OptionalFileTree
 import com.skiletro.wheelwitch.util.Prefs
 import com.skiletro.wheelwitch.util.PrefsKeys
@@ -14,6 +15,7 @@ import timber.log.Timber
 class WheelWitchApp : Application() {
   override fun onCreate() {
     super.onCreate()
+    MiiFaceCache.init(this)
     val prefs = Prefs.main(this)
     if (BuildConfig.DEBUG) {
       Timber.plant(Timber.DebugTree())

@@ -11,13 +11,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,79 +34,46 @@ import com.skiletro.wheelwitch.ui.screens.settings.AdvancedSection
 import com.skiletro.wheelwitch.ui.screens.settings.AppearanceSection
 import com.skiletro.wheelwitch.ui.screens.settings.LoggingSection
 import com.skiletro.wheelwitch.ui.screens.settings.MiiMakerSection
-import com.skiletro.wheelwitch.ui.screens.settings.RetroRewindSection
-import com.skiletro.wheelwitch.ui.screens.settings.RiivolutionSection
-import com.skiletro.wheelwitch.ui.screens.settings.SaveDataSection
 import com.skiletro.wheelwitch.ui.theme.AppTheme
 import com.skiletro.wheelwitch.ui.theme.ThemeMode
 import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
-import com.skiletro.wheelwitch.viewmodel.PackUpdateViewModel
-import com.skiletro.wheelwitch.viewmodel.SaveDataViewModel
 
 /**
- * Top of the settings overlay. Owns the back button, the top bar, the
- * delete-confirmation dialogs, and the [LazyColumn] that lays out the
- * eight category sections. Each section lives in its own file under
- * `settings/` and exposes just the dependencies it needs.
+ * Top of the settings overlay. Save Data / Retro Rewind / Riivolution
+ * sections have been removed along with the install / launch / save
+ * data flow. Remaining sections: Appearance, Mii Maker, Logging,
+ * Advanced, About.
  */
 @Composable
 fun SettingsScreen(
-  packUpdate: PackUpdateViewModel,
-  saveData: SaveDataViewModel,
   miiMaker: MiiMakerViewModel,
-  onBackupSave: () -> Unit,
-  onRestoreSave: () -> Unit,
-  onDeleteSave: () -> Unit,
   onClose: () -> Unit,
   appTheme: AppTheme,
   onChangeAppTheme: (AppTheme) -> Unit,
   themeMode: ThemeMode,
   onChangeThemeMode: (ThemeMode) -> Unit,
-  onPickIso: () -> Unit,
-  onSimulateQuickLaunch: () -> Unit,
   onRelaunchOnboarding: () -> Unit,
 ) {
-  val hasSave by saveData.hasSave.collectAsState()
   val hasWad by miiMaker.hasWad.collectAsState()
   val isInstallingWad by miiMaker.isInstallingWad.collectAsState()
   val miiMakerError by miiMaker.miiMakerError.collectAsState()
-  val isoPath by packUpdate.currentIsoPath.collectAsState()
-  val gameInfo by packUpdate.gameInfo.collectAsState()
-  val myStuffMode by packUpdate.myStuffMode.collectAsState()
 
-  var showDeleteConfirm by remember { mutableStateOf(false) }
   var showWadDeleteConfirm by remember { mutableStateOf(false) }
 
-  if (showDeleteConfirm) {
-    AlertDialog(
-      onDismissRequest = { showDeleteConfirm = false },
-      title = { Text(stringResource(R.string.settings_delete_save_dialog_title)) },
-      text = { Text(stringResource(R.string.settings_delete_save_dialog_body)) },
-      confirmButton = {
-        Button(onClick = { onDeleteSave(); showDeleteConfirm = false }) {
-          Text(stringResource(R.string.settings_delete))
-        }
-      },
-      dismissButton = {
-        TextButton(onClick = { showDeleteConfirm = false }) {
-          Text(stringResource(R.string.action_cancel))
-        }
-      },
-    )
-  }
-
   if (showWadDeleteConfirm) {
-    AlertDialog(
+    androidx.compose.material3.AlertDialog(
       onDismissRequest = { showWadDeleteConfirm = false },
       title = { Text(stringResource(R.string.settings_delete_wad_dialog_title)) },
       text = { Text(stringResource(R.string.settings_delete_wad_dialog_body)) },
       confirmButton = {
-        Button(onClick = { miiMaker.deleteWad(); showWadDeleteConfirm = false }) {
+        androidx.compose.material3.Button(
+          onClick = { miiMaker.deleteWad(); showWadDeleteConfirm = false },
+        ) {
           Text(stringResource(R.string.settings_delete))
         }
       },
       dismissButton = {
-        TextButton(onClick = { showWadDeleteConfirm = false }) {
+        androidx.compose.material3.TextButton(onClick = { showWadDeleteConfirm = false }) {
           Text(stringResource(R.string.action_cancel))
         }
       },
@@ -142,34 +106,11 @@ fun SettingsScreen(
       verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
       item {
-        SaveDataSection(
-          hasSave = hasSave,
-          onBackupSave = onBackupSave,
-          onRestoreSave = onRestoreSave,
-          onRequestDelete = { showDeleteConfirm = true },
-        )
-      }
-      item {
         AppearanceSection(
           appTheme = appTheme,
           onChangeAppTheme = onChangeAppTheme,
           themeMode = themeMode,
           onChangeThemeMode = onChangeThemeMode,
-        )
-      }
-      item {
-        RetroRewindSection(
-          isoPath = isoPath,
-          gameInfo = gameInfo,
-          storageRootPath = packUpdate.storageRootPath,
-          onPickIso = onPickIso,
-          onClearIso = { packUpdate.clearIsoPath() },
-        )
-      }
-      item {
-        RiivolutionSection(
-          myStuffMode = myStuffMode,
-          onSetMode = packUpdate::setMyStuffMode,
         )
       }
       item {
@@ -184,7 +125,6 @@ fun SettingsScreen(
       item { LoggingSection() }
       item {
         AdvancedSection(
-          onSimulateQuickLaunch = onSimulateQuickLaunch,
           onRelaunchOnboarding = onRelaunchOnboarding,
         )
       }

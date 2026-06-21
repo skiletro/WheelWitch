@@ -62,6 +62,8 @@
     <string name="home_rom_wbfs_dialog_title">WBFS file selected</string>
     <string name="home_no_iso_cant_launch">Cannot resolve storage path. Please pick a new storage folder.</string>
     <string name="home_launch_failed">Failed to launch Dolphin</string>
+    <string name="home_install_not_implemented">Install flow not yet implemented</string>
+    <string name="home_launch_not_implemented">Launch flow not yet implemented</string>
 
     <!-- onboarding -->
     <string name="onboarding_beta_title">Heads up: this is beta software</string>
@@ -244,6 +246,7 @@
 
     <!-- save info -->
     <string name="save_info_title">Licenses</string>
+    <string name="licenses_coming_soon">Licenses — coming soon</string>
     <string name="save_info_race_format">Race: W %1$d / L %2$d</string>
 
     <!-- quick launch -->

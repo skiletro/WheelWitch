@@ -1,7 +1,5 @@
 package com.skiletro.wheelwitch.ui.screens
 
-import android.view.WindowManager
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibility
@@ -39,8 +37,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import android.widget.Toast
 import com.skiletro.wheelwitch.R
-import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.ui.components.TopBar
 import com.skiletro.wheelwitch.ui.components.focusBorder
@@ -50,35 +48,24 @@ import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 import com.skiletro.wheelwitch.viewmodel.PackUpdateViewModel
 import com.skiletro.wheelwitch.viewmodel.RoomsState
-import com.skiletro.wheelwitch.viewmodel.SaveDataViewModel
 import com.skiletro.wheelwitch.viewmodel.UiState
 
 /**
- * Top-level home screen: top bar, version-history card, optional
- * bottom bar with pack install state. The three overlay screens
- * (OnlineMenu, SaveInfo, Changelog) animate in on top via
- * [AnimatedVisibility].
+ * Top-level home screen: top bar, version-history card, and the
+ * check-for-updates / install / launch bottom bar. The save-data
+ * "Licenses" top-bar entry still routes to a stubbed [SaveInfoScreen].
  */
 @Composable
 fun HomeScreen(
   packUpdate: PackUpdateViewModel,
-  saveData: SaveDataViewModel,
   miiMaker: MiiMakerViewModel,
   onlineViewModel: OnlineViewModel,
-  onPickIso: () -> Unit,
   onOpenSettings: () -> Unit,
 ) {
   val state by packUpdate.state.collectAsState()
-  val successMessage by packUpdate.successMessage.collectAsState()
   val hasWad by miiMaker.hasWad.collectAsState()
   val roomsState by onlineViewModel.roomsState.collectAsState()
-  val saveInfoState by saveData.saveInfoState.collectAsState()
-  val selectedSlotIndex by saveData.selectedSlotIndex.collectAsState()
-  val activeLicenseInfo by saveData.activeLicenseInfo.collectAsState()
-  val cachedLeaderboardVrs by saveData.cachedLeaderboardVrs.collectAsState()
   val vrMultiplier by onlineViewModel.vrMultiplier.collectAsState()
-  val currentIsoPath by packUpdate.currentIsoPath.collectAsState()
-  val hasIso = currentIsoPath != null
 
   val playerCount = (roomsState as? RoomsState.Success)?.playerCount
   val serverConnectivity =
@@ -124,43 +111,13 @@ fun HomeScreen(
     )
   }
 
-  val isBusy =
-    state is UiState.Downloading || state is UiState.Extracting || state is UiState.ApplyingUpdate
-
   val context = LocalContext.current
-
-  LaunchedEffect(successMessage) {
-    if (successMessage != null) {
-      Toast.makeText(context, successMessage, Toast.LENGTH_SHORT).show()
-      packUpdate.dismissSuccess()
-    }
-  }
-
   LaunchedEffect(state) {
     if (state is UiState.Error) {
       val error = (state as UiState.Error).message
       Toast.makeText(context, error, Toast.LENGTH_LONG).show()
     }
   }
-
-  LaunchedEffect(isBusy) {
-    if (isBusy) {
-      (context as? android.app.Activity)?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-    } else {
-      (context as? android.app.Activity)?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-    }
-  }
-
-  val packStatus = (state as? UiState.Ready)?.status
-
-  val onInstallOrUpdate: (() -> Unit)? =
-    packStatus?.let { s ->
-      when (s) {
-        is PackStatus.NotInstalled -> ({ packUpdate.downloadOrUpdate(s) })
-        is PackStatus.UpdateAvailable -> ({ packUpdate.downloadOrUpdate(s) })
-        else -> null
-      }
-    }
 
   Box(modifier = Modifier.fillMaxSize()) {
     if (!(showOnlineMenu || showSaveInfo || showChangelog)) {
@@ -173,10 +130,7 @@ fun HomeScreen(
               miiMakerEnabled = hasWad,
               onOpenOnlineMenu = { showOnlineMenu = true },
               onlineMenuEnabled = serverConnectivity is ServerConnectivity.Online,
-              onOpenSaveInfo = {
-                saveData.refreshSaveFileInfo()
-                showSaveInfo = true
-              },
+              onOpenSaveInfo = { showSaveInfo = true },
             )
           }
         },
@@ -185,18 +139,12 @@ fun HomeScreen(
             Column(modifier = Modifier.padding(vertical = 12.dp)) {
               HomeBottomBar(
                 state = state,
-                activeLicense = activeLicenseInfo,
-                cachedLeaderboardVrs = cachedLeaderboardVrs,
                 vrMultiplier = vrMultiplier,
                 playerCount = playerCount,
                 serverConnectivity = serverConnectivity,
-                isBusy = isBusy,
-                hasIso = hasIso,
-                onLaunch = { packUpdate.launchDolphin() },
+                isBusy = false,
                 onCheck = { packUpdate.checkStatus() },
                 onRetry = { packUpdate.clearError() },
-                onInstallOrUpdate = onInstallOrUpdate,
-                onPickIso = onPickIso,
               )
             }
           }
@@ -244,14 +192,7 @@ fun HomeScreen(
       enter = slideInVertically() + fadeIn(),
       exit = slideOutVertically() + fadeOut(),
     ) {
-      SaveInfoScreen(
-        saveInfoState = saveInfoState,
-        selectedSlotIndex = selectedSlotIndex,
-        cachedLeaderboardVrs = cachedLeaderboardVrs,
-        onSelectSlot = { saveData.selectSlot(it) },
-        onRefresh = { saveData.refreshSaveFileInfo() },
-        onClose = { showSaveInfo = false },
-      )
+      SaveInfoScreen(onClose = { showSaveInfo = false })
     }
   }
 }

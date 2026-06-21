@@ -5,41 +5,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.skiletro.wheelwitch.model.LicenseInfo
 import com.skiletro.wheelwitch.model.Player
 import com.skiletro.wheelwitch.model.Room
-import com.skiletro.wheelwitch.model.SaveFileInfo
 import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
 import com.skiletro.wheelwitch.ui.components.ProgressButton
 import com.skiletro.wheelwitch.ui.components.TopBar
 import com.skiletro.wheelwitch.viewmodel.RoomsState
-import com.skiletro.wheelwitch.viewmodel.SaveInfoState
 
 // ── Sample data ──
-
-private val sampleLicenses = listOf(
-    LicenseInfo(
-        slotIndex = 0,
-        exists = true,
-        miiName = "Jamie",
-        friendCode = "1234-5678-9012",
-        vr = 5000,
-        raceWins = 120,
-        raceLosses = 45
-    ),
-    LicenseInfo(
-        slotIndex = 1,
-        exists = true,
-        miiName = "Guest",
-        friendCode = "9876-5432-1098",
-        vr = 7200,
-        raceWins = 200,
-        raceLosses = 60
-    ),
-    LicenseInfo(slotIndex = 2, exists = false),
-    LicenseInfo(slotIndex = 3, exists = false)
-)
 
 private val samplePlayer = Player(
     name = "Jamie",
@@ -189,44 +163,6 @@ private fun PrimaryActionButtonSubtextPreview() {
 @Composable
 private fun PrimaryActionButtonDisabledPreview() {
     PrimaryActionButton(text = "Launch Retro Rewind", onClick = {}, enabled = false)
-}
-
-// ── SaveInfo screen previews ──
-
-@Preview(showBackground = true, widthDp = 600, heightDp = 400)
-@Composable
-private fun SaveInfoScreenLoadingPreview() {
-    SaveInfoScreen(
-        saveInfoState = SaveInfoState.Loading,
-        selectedSlotIndex = 0,
-        cachedLeaderboardVrs = emptyMap(),
-        onSelectSlot = {},
-        onRefresh = {},
-        onClose = {})
-}
-
-@Preview(showBackground = true, widthDp = 600, heightDp = 400)
-@Composable
-private fun SaveInfoScreenErrorPreview() {
-    SaveInfoScreen(
-        saveInfoState = SaveInfoState.Error("Failed to load save data"),
-        selectedSlotIndex = 0,
-        cachedLeaderboardVrs = emptyMap(),
-        onSelectSlot = {},
-        onRefresh = {},
-        onClose = {})
-}
-
-@Preview(showBackground = true, widthDp = 600, heightDp = 500)
-@Composable
-private fun SaveInfoScreenSuccessPreview() {
-    SaveInfoScreen(
-        saveInfoState = SaveInfoState.Success(SaveFileInfo(sampleLicenses)),
-        selectedSlotIndex = 0,
-        cachedLeaderboardVrs = emptyMap(),
-        onSelectSlot = {},
-        onRefresh = {},
-        onClose = {})
 }
 
 // ── Room detail previews ──

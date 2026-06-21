@@ -1,5 +1,6 @@
 package com.skiletro.wheelwitch.ui.screens.home
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -17,7 +18,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,58 +26,44 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
-import com.skiletro.wheelwitch.model.LicenseInfo
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.ServerConnectivity
-import com.skiletro.wheelwitch.ui.components.ActivePlayerCard
 import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
-import com.skiletro.wheelwitch.ui.components.ProgressButton
 import com.skiletro.wheelwitch.ui.components.buttonShape
 import com.skiletro.wheelwitch.ui.components.focusBorder
 import com.skiletro.wheelwitch.viewmodel.UiState
 
 /**
- * Bottom bar of the home screen: optional active player card on the
- * left, animated primary action on the right. The action switches
- * across the [UiState] variants: progress buttons during download /
- * extract / apply-update, a tonal "Checking…" while checking, a
- * "Retry" tonal on error, and a check-for-updates + install/launch
- * pair when [UiState.Ready].
+ * Bottom bar of the home screen: check-for-updates on the left,
+ * status-dependent primary action on the right. The install / launch
+ * actions are stubbed for now — they surface a Snackbar saying the
+ * flow isn't implemented yet, while the check-for-updates path
+ * remains fully functional.
  */
 @Composable
 fun HomeBottomBar(
   state: UiState,
-  activeLicense: LicenseInfo?,
-  cachedLeaderboardVrs: Map<Int, Int>,
   vrMultiplier: Float?,
   playerCount: Int?,
   serverConnectivity: ServerConnectivity,
   isBusy: Boolean,
-  hasIso: Boolean,
-  onLaunch: () -> Unit,
   onCheck: () -> Unit,
   onRetry: () -> Unit,
-  onInstallOrUpdate: (() -> Unit)?,
-  onPickIso: () -> Unit,
 ) {
+  val context = LocalContext.current
+  val installNotImplementedMessage = stringResource(R.string.home_install_not_implemented)
+  val launchNotImplementedMessage = stringResource(R.string.home_launch_not_implemented)
   var checkButtonFocused by remember { mutableStateOf(false) }
 
   Row(
     modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    if (activeLicense != null) {
-      ActivePlayerCard(
-        license = activeLicense,
-        cachedLeaderboardVr = cachedLeaderboardVrs[activeLicense.slotIndex],
-        vrMultiplier = vrMultiplier,
-      )
-    }
-
     Spacer(modifier = Modifier.weight(1f))
 
     AnimatedContent(
@@ -91,26 +77,6 @@ fun HomeBottomBar(
       label = "primary_action",
     ) { currentState ->
       when (currentState) {
-        is UiState.Downloading ->
-          ProgressButton(
-            currentState.progress,
-            currentState.message,
-            currentState.bytesPerSecond,
-            currentState.bytesDownloaded,
-            currentState.totalBytes,
-          )
-        is UiState.Extracting ->
-          ProgressButton(currentState.progress, stringResource(R.string.status_extracting))
-        is UiState.ApplyingUpdate ->
-          ProgressButton(
-            currentState.progress,
-            stringResource(
-              R.string.home_update_step_format,
-              currentState.index,
-              currentState.total,
-              currentState.description,
-            ),
-          )
         is UiState.Checking ->
           FilledTonalButton(
             onClick = {},
@@ -182,12 +148,16 @@ fun HomeBottomBar(
               is PackStatus.NotInstalled ->
                 PrimaryActionButton(
                   text = stringResource(R.string.action_install),
-                  onClick = onInstallOrUpdate ?: {},
+                  onClick = {
+                    Toast.makeText(context, installNotImplementedMessage, Toast.LENGTH_SHORT).show()
+                  },
                 )
               is PackStatus.UpdateAvailable ->
                 PrimaryActionButton(
                   text = stringResource(R.string.home_update_to, status.latestVersion),
-                  onClick = onInstallOrUpdate ?: {},
+                  onClick = {
+                    Toast.makeText(context, installNotImplementedMessage, Toast.LENGTH_SHORT).show()
+                  },
                 )
               else -> {
                 val bullet = "\u2022 "
@@ -203,28 +173,30 @@ fun HomeBottomBar(
                       "$bullet${stringResource(R.string.status_no_internet)}"
                     ServerConnectivity.Unknown -> null
                   }
-                if (hasIso) {
-                  PrimaryActionButton(
-                    text = stringResource(R.string.home_launch_retro_rewind),
-                    onClick = onLaunch,
-                    subText = launchSubText,
-                  )
-                } else {
-                  PrimaryActionButton(
-                    text = stringResource(R.string.home_select_rom),
-                    onClick = onPickIso,
-                  )
-                }
+                PrimaryActionButton(
+                  text = stringResource(R.string.home_launch_retro_rewind),
+                  onClick = {
+                    Toast.makeText(context, launchNotImplementedMessage, Toast.LENGTH_SHORT).show()
+                  },
+                  subText = launchSubText,
+                )
               }
             }
           }
         }
-        is UiState.NoStorage -> {
-          Text(
-            text = stringResource(R.string.error_storage_not_configured),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-          )
+        is UiState.Idle -> {
+          FilledTonalButton(
+            onClick = onCheck,
+            enabled = !isBusy,
+            shape = buttonShape,
+            modifier = Modifier.height(56.dp),
+          ) {
+            Text(
+              text = stringResource(R.string.home_check_for_updates),
+              style = MaterialTheme.typography.titleMedium,
+              fontWeight = FontWeight.Medium,
+            )
+          }
         }
       }
     }
