@@ -56,8 +56,8 @@
     <string name="home_exit_title">Exit Wheel Witch?</string>
     <string name="home_exit_message">Wheel Witch will close. Continue?</string>
     <string name="player_default">Player</string>
-    <string name="home_vr_suffix"> VR</string>
-    <string name="home_vr_active_suffix"> VR \u00b7 %1$sx active</string>
+    <string name="home_vr_suffix">VR</string>
+    <string name="home_vr_active_suffix">VR \u00b7 %1$sx active</string>
 
     <!-- onboarding -->
     <string name="onboarding_beta_title">Heads up: this is beta software</string>
@@ -213,7 +213,6 @@
     <string name="save_info_title">Licenses</string>
     <string name="save_info_race_format">Race: W %1$d / L %2$d</string>
     <string name="save_info_vr_format">VR %1$d</string>
-    <string name="save_info_vr_leaderboard_format">VR %1$d \u00b7 leaderboard %2$d</string>
     <string name="save_info_no_licenses">No license slots in this save</string>
     <string name="save_info_loading">Loading save…</string>
     <string name="save_info_empty_slot">Empty slot</string>

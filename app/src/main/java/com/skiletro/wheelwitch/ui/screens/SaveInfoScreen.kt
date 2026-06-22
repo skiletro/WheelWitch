@@ -249,21 +249,12 @@ private fun PopulatedCell(license: LicenseInfo) {
         )
       }
       Spacer(modifier = Modifier.height(6.dp))
-      val vr = license.leaderboardVr ?: license.vr
-      if (vr != null) {
-        val text =
-          if (license.leaderboardVr != null && license.vr != null && license.leaderboardVr != license.vr
-          ) {
-            stringResource(R.string.save_info_vr_leaderboard_format, license.vr, license.leaderboardVr)
-          } else {
-            stringResource(R.string.save_info_vr_format, vr)
-          }
-        Text(
-          text = text,
-          style = MaterialTheme.typography.bodyMedium,
-          color = MaterialTheme.colorScheme.onSurface,
-        )
-      }
+      val vr = license.leaderboardVr ?: 0
+      Text(
+        text = stringResource(R.string.save_info_vr_format, vr),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurface,
+      )
       Spacer(modifier = Modifier.height(2.dp))
       val wins = license.raceWins ?: 0
       val losses = license.raceLosses ?: 0
