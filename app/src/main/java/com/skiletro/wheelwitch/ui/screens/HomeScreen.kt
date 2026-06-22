@@ -5,6 +5,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -272,6 +274,7 @@ private fun HomeBottomBar(
   onLaunch: () -> Unit,
 ) {
   var checkButtonFocused by remember { mutableStateOf(false) }
+  var skipInitialTransition by remember { mutableStateOf(true) }
 
   Row(
     modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
@@ -283,9 +286,13 @@ private fun HomeBottomBar(
       targetState = state,
       contentKey = { it::class },
       transitionSpec = {
-        (fadeIn(animationSpec = tween(250)) +
-            scaleIn(initialScale = 0.92f, animationSpec = tween(250))) togetherWith
-          fadeOut(animationSpec = tween(150))
+        if (skipInitialTransition) {
+          EnterTransition.None togetherWith ExitTransition.None
+        } else {
+          (fadeIn(animationSpec = tween(250)) +
+              scaleIn(initialScale = 0.92f, animationSpec = tween(250))) togetherWith
+            fadeOut(animationSpec = tween(150))
+        }
       },
       label = "primary_action",
     ) { currentState ->
@@ -477,4 +484,5 @@ private fun HomeBottomBar(
       }
     }
   }
+  LaunchedEffect(Unit) { skipInitialTransition = false }
 }
