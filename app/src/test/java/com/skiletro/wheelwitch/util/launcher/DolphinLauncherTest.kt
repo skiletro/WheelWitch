@@ -366,7 +366,7 @@ class DolphinLauncherTest {
   // --- registerRomPathInConfig ----------------------------------------
 
   @Test
-  fun `registerRomPathInConfig writes the rom URI and physical path into the ini block`() {
+  fun `registerRomPathInConfig writes the rom URI into the ini block`() {
     val ctx = mockInstalledDolphin()
     val tree = mockk<DolphinTree>(relaxed = true)
     val existingIni =
@@ -382,42 +382,16 @@ class DolphinLauncherTest {
 
     val ini = written.captured
     assertThat(ini).contains("[General]")
-    assertThat(ini).contains("ISOPaths = 2")
+    assertThat(ini).contains("ISOPaths = 1")
     assertThat(ini)
       .contains(
         "ISOPath0 = content://org.dolphinemu.dolphinemu.user/tree/root%2FWheelWitch%2From"
-      )
-    assertThat(ini)
-      .contains(
-        "ISOPath1 = /storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/WheelWitch/rom"
       )
     assertThat(ini).contains("SomeKey = value")
   }
 
   @Test
-  fun `registerRomPathInConfig is a no-op when both paths are already present`() {
-    val ctx = mockInstalledDolphin()
-    val tree = mockk<DolphinTree>(relaxed = true)
-    val existing =
-      """
-      [General]
-      ISOPaths = 2
-      ISOPath0 = content://org.dolphinemu.dolphinemu.user/tree/root%2FWheelWitch%2From
-      ISOPath1 = /storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/WheelWitch/rom
-      """.trimIndent()
-    every { tree.readConfigIni() } returns existing
-    every { tree.writeConfigIni(any()) } returns mockk(relaxed = true)
-
-    DolphinLauncher.registerRomPathInConfig(ctx, tree, "RMCP01.iso")
-
-    verify(exactly = 0) { tree.writeConfigIni(any()) }
-  }
-
-  @Test
-  fun `registerRomPathInConfig upserts the physical path when only the URI is present`() {
-    // Legacy installs may have an older `Dolphin.ini` with only the
-    // SAF URI from a prior app version. The new defensive registration
-    // adds the physical path without disturbing the existing entry.
+  fun `registerRomPathInConfig is a no-op when the rom URI is already present`() {
     val ctx = mockInstalledDolphin()
     val tree = mockk<DolphinTree>(relaxed = true)
     val existing =
@@ -426,22 +400,12 @@ class DolphinLauncherTest {
       ISOPaths = 1
       ISOPath0 = content://org.dolphinemu.dolphinemu.user/tree/root%2FWheelWitch%2From
       """.trimIndent()
-    val written = slot<String>()
     every { tree.readConfigIni() } returns existing
-    every { tree.writeConfigIni(capture(written)) } returns mockk(relaxed = true)
+    every { tree.writeConfigIni(any()) } returns mockk(relaxed = true)
 
     DolphinLauncher.registerRomPathInConfig(ctx, tree, "RMCP01.iso")
 
-    val ini = written.captured
-    assertThat(ini).contains("ISOPaths = 2")
-    assertThat(ini)
-      .contains(
-        "ISOPath0 = content://org.dolphinemu.dolphinemu.user/tree/root%2FWheelWitch%2From"
-      )
-    assertThat(ini)
-      .contains(
-        "ISOPath1 = /storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/WheelWitch/rom"
-      )
+    verify(exactly = 0) { tree.writeConfigIni(any()) }
   }
 
   @Test
@@ -467,9 +431,8 @@ class DolphinLauncherTest {
     assertThat(written.captured)
       .isEqualTo(
         "[General]\n\n" +
-          "ISOPaths = 2\n" +
-          "ISOPath0 = content://org.dolphinemu.dolphinemu.user/tree/root%2FWheelWitch%2From\n" +
-          "ISOPath1 = /storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/WheelWitch/rom"
+          "ISOPaths = 1\n" +
+          "ISOPath0 = content://org.dolphinemu.dolphinemu.user/tree/root%2FWheelWitch%2From"
       )
   }
 
