@@ -8,8 +8,8 @@ echo "You can use it both for local signing and for GitHub Actions CI."
 echo ""
 
 read -r -p "Keystore password: " -s STORE_PASS
-echo ""
-read -r -p "Key password (same as keystore or different): " -s KEY_PASS
+# Different key passwords are ignored
+KEY_PASS="$STORE_PASS"
 echo ""
 read -r -p "Key alias [wheelwitch]: " KEY_ALIAS
 KEY_ALIAS=${KEY_ALIAS:-wheelwitch}
@@ -27,9 +27,11 @@ C=${C:-US}
 
 keytool -genkey -v \
   -keystore "$OUTPUT" \
+  -storetype pkcs12 \
   -alias "$KEY_ALIAS" \
   -keyalg RSA \
-  -keysize 2048 \
+  -keysize 4096 \
+  -sigalg SHA512withRSA \
   -validity 10000 \
   -storepass "$STORE_PASS" \
   -keypass "$KEY_PASS" \
