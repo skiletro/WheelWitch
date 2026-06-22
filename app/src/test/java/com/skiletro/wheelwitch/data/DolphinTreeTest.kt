@@ -603,7 +603,7 @@ class DolphinTreeTest {
     assertThat(output.toString(Charsets.UTF_8)).isEqualTo("3.2.6")
   }
 
-  // --- persistUriPermission / releaseUriPermission --------------------
+  // --- persistUriPermission -------------------------------------------
 
   @Test
   fun `persistUriPermission takes read and write flags`() {
@@ -611,18 +611,6 @@ class DolphinTreeTest {
     tree.persistUriPermission()
     verify {
       resolver.takePersistableUriPermission(
-        treeUri,
-        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-      )
-    }
-  }
-
-  @Test
-  fun `releaseUriPermission releases read and write flags`() {
-    val tree = DolphinTree(context, treeUri)
-    tree.releaseUriPermission()
-    verify {
-      resolver.releasePersistableUriPermission(
         treeUri,
         Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
       )

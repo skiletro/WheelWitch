@@ -144,7 +144,6 @@ fun HomeScreen(
 
   Box(modifier = Modifier.fillMaxSize()) {
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
     val launchDolphinNotInstalled = stringResource(R.string.home_launch_dolphin_not_installed)
     val launchNoRom = stringResource(R.string.home_launch_no_rom)
     val launchFallback = stringResource(R.string.home_launch_fallback)

@@ -48,11 +48,6 @@ class MiiMakerViewModel(application: Application) : AndroidViewModel(application
         _hasWad.value = MiiWadInstaller.getCachedWadFile(app) != null
     }
 
-    /** Clears the last error message shown to the user. */
-    fun clearError() {
-        _miiMakerError.value = null
-    }
-
     /** Launches Dolphin with the cached Mii Channel WAD, if one is present. */
     fun launchMiiMaker() {
         viewModelScope.launch {

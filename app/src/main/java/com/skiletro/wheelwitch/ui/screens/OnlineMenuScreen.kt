@@ -195,59 +195,6 @@ private fun HubPage(
     }
 }
 
-@Composable
-private fun HealthIndicator(
-    connectivity: com.skiletro.wheelwitch.model.ServerConnectivity?
-) {
-    val dotColor: Color
-    val label: String
-
-    when (connectivity) {
-        com.skiletro.wheelwitch.model.ServerConnectivity.Online -> {
-            dotColor = statusColors().ok
-            label = stringResource(R.string.health_indicator_online)
-        }
-
-        com.skiletro.wheelwitch.model.ServerConnectivity.Offline -> {
-            dotColor = MaterialTheme.colorScheme.error
-            label = stringResource(R.string.health_indicator_offline)
-        }
-
-        com.skiletro.wheelwitch.model.ServerConnectivity.NoInternet -> {
-            dotColor = MaterialTheme.colorScheme.onSurfaceVariant
-            label = stringResource(R.string.status_no_internet)
-        }
-
-        else -> {
-            dotColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-            label = stringResource(R.string.status_checking)
-        }
-    }
-
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            com.skiletro.wheelwitch.ui.components.PulsingDot(
-                target = dotColor,
-                pulse = connectivity == com.skiletro.wheelwitch.model.ServerConnectivity.Online
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun HubOption(

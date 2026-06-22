@@ -19,6 +19,5 @@ object PrefsKeys {
     const val THEME_MODE_KEY = "theme_mode"
     const val APP_THEME_KEY = "app_theme"
     const val ONBOARDING_COMPLETED_KEY = "onboarding_completed"
-    const val RIIVOLUTION_MY_STUFF_MODE_KEY = "riivolution_my_stuff_mode"
     const val LOGGING_TO_FILE_KEY = "logging_to_file"
 }

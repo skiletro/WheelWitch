@@ -383,14 +383,6 @@ class DolphinTree(context: Context, val treeUri: Uri) {
     )
   }
 
-  /** Releases the persisted SAF grant for [treeUri]. */
-  fun releaseUriPermission() {
-    resolver.releasePersistableUriPermission(
-      treeUri,
-      Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-    )
-  }
-
   // --- internals --------------------------------------------------------
 
   private fun writeZipEntry(

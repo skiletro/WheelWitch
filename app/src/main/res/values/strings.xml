@@ -172,8 +172,6 @@
     <string name="health_postgresql">PostgreSQL</string>
     <string name="health_retro_wfc_api">Retro WFC API</string>
     <string name="health_memory">Memory</string>
-    <string name="health_indicator_online">Server online</string>
-    <string name="health_indicator_offline">Server offline</string>
     <string name="health_usage_format">Usage: %.1f%%</string>
     <string name="health_usage_with_total_format">Usage: %1$.1f%% (%2$s / %3$s)</string>
     <string name="health_usage_with_used_format">Usage: %1$.1f%% (%2$s)</string>

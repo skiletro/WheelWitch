@@ -30,7 +30,7 @@ import com.skiletro.wheelwitch.util.formatDownloadProgress
  * Indeterminate-style progress bar with a percent label, optional
  * "X / Y bytes" size label, and optional bytes-per-second readout.
  * Used by [com.skiletro.wheelwitch.ui.screens.HomeScreen]'s
- * bottom bar and by [com.skiletro.wheelwitch.ui.screens.QuickLaunchScreen].
+ * bottom bar.
  *
  * During the extraction phase the caller also passes
  * [filesDone]/[filesTotal] (rendered as "X / Y files" next to the
