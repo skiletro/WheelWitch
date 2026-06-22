@@ -249,14 +249,26 @@ fun OnboardingScreen(
     }
 
   // Pre-warm the deep-link URI for the tree picker. The picker
-  // opens at the primary volume's Android/data/org.dolphinemu.dolphinemu/files
-  // folder so the user doesn't have to navigate there manually.
+  // surfaces different providers depending on whether Dolphin is
+  // installed, so we deep-link to the matching one. If Dolphin is
+  // installed, the picker shows the Dolphin provider (no
+  // MANAGE_EXTERNAL_STORAGE needed) and we land at `root/`. If not,
+  // we land on primary external storage. Re-keyed on `dolphinInstalled`
+  // so a user who installs Dolphin between the Dolphin step and the
+  // Storage step gets the new deep link.
   val treeDeepLink =
-    remember {
-      DocumentsContract.buildTreeDocumentUri(
-        "primary",
-        "Android/data/${DolphinLauncher.DOLPHIN_PACKAGE}/files",
-      )
+    remember(dolphinInstalled) {
+      if (dolphinInstalled) {
+        DocumentsContract.buildTreeDocumentUri(
+          "org.dolphinemu.dolphinemu.user",
+          "root",
+        )
+      } else {
+        DocumentsContract.buildTreeDocumentUri(
+          "primary",
+          "Android/data/${DolphinLauncher.DOLPHIN_PACKAGE}/files",
+        )
+      }
     }
 
   BackHandler(enabled = step.previous() != null) {

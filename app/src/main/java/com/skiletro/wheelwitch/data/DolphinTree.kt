@@ -535,11 +535,28 @@ class DolphinTree(context: Context, val treeUri: Uri) {
         return Result.success(Unit)
       }
 
+      val baseMessage =
+        "Tree $treeUri (authority='${treeUri.authority}', docId='$treeId') " +
+          "is not the Dolphin user folder. Expected either primary external storage " +
+          "(primary:Android/data/org.dolphinemu.dolphinemu/files) or the Dolphin app's own storage root."
+      // Subfolder of an accepted root: give the user a specific hint
+      // about which parent to pick, so they don't have to guess.
+      // Common case is "root/Dump" or "root/GameSettings" on the
+      // Dolphin provider, or "<dolphin>/files/SomeApp" on primary.
+      val parentHint =
+        when {
+          treeUri.authority == "com.android.externalstorage.documents" &&
+            treeId.startsWith("${DolphinPaths.expectedTreeId()}/") ->
+            "You picked a subfolder of the Dolphin user folder. To use WheelWitch, pick the parent: ${DolphinPaths.expectedTreeId()}"
+          treeUri.authority == "org.dolphinemu.dolphinemu.user" &&
+            treeId.startsWith("root/") ->
+            "You picked a subfolder of Dolphin's storage. To use WheelWitch, pick the root folder (root/)."
+          else -> null
+        }
+
       return Result.failure(
         IllegalArgumentException(
-          "Tree $treeUri (authority='${treeUri.authority}', docId='$treeId') " +
-            "is not the Dolphin user folder. Expected either primary external storage " +
-            "(primary:Android/data/org.dolphinemu.dolphinemu/files) or the Dolphin app's own storage root."
+          if (parentHint != null) "$baseMessage $parentHint" else baseMessage
         )
       )
     }

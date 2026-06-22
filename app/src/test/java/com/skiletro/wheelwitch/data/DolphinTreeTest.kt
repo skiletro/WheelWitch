@@ -182,6 +182,50 @@ class DolphinTreeTest {
     assertThat(result.exceptionOrNull()).isInstanceOf(IllegalArgumentException::class.java)
   }
 
+  @Test
+  fun `validate error message hints at the parent for a subfolder of the Dolphin provider`() {
+    // The user picked root/Dump from the Dolphin provider picker. The
+    // base "wrong folder" message alone is unhelpful; the user has to
+    // guess what to pick instead. The hint tells them the parent.
+    mockkStatic(DocumentsContract::class)
+    every { DocumentsContract.getTreeDocumentId(any()) } returns "root/Dump"
+    every { treeUri.authority } returns "org.dolphinemu.dolphinemu.user"
+    val result = DolphinTree.validate(Uri.parse("content://x/tree/abc"))
+    assertThat(result.isFailure).isTrue()
+    val msg = result.exceptionOrNull()!!.message!!
+    assertThat(msg).contains("subfolder")
+    assertThat(msg).contains("root/")
+  }
+
+  @Test
+  fun `validate error message hints at the parent for a subfolder of the primary storage root`() {
+    // Same hint, but for the primary external storage case: the user
+    // picked the dolphin's files dir + a subdir instead of the files
+    // dir itself.
+    mockkStatic(DocumentsContract::class)
+    val subfolderId = "${DolphinPaths.expectedTreeId()}/Dump"
+    every { DocumentsContract.getTreeDocumentId(any()) } returns subfolderId
+    every { treeUri.authority } returns "com.android.externalstorage.documents"
+    val result = DolphinTree.validate(Uri.parse("content://x/tree/abc"))
+    assertThat(result.isFailure).isTrue()
+    val msg = result.exceptionOrNull()!!.message!!
+    assertThat(msg).contains("subfolder")
+    assertThat(msg).contains(DolphinPaths.expectedTreeId())
+  }
+
+  @Test
+  fun `validate error message has no parent hint for an unrelated tree id`() {
+    // When the picked tree is unrelated to both accepted roots, the
+    // base "wrong folder" message is the best we can do. No parent
+    // hint should be appended.
+    mockkStatic(DocumentsContract::class)
+    every { DocumentsContract.getTreeDocumentId(any()) } returns "primary:Documents"
+    every { treeUri.authority } returns "com.android.externalstorage.documents"
+    val result = DolphinTree.validate(Uri.parse("content://x/tree/abc"))
+    val msg = result.exceptionOrNull()!!.message!!
+    assertThat(msg).doesNotContain("subfolder")
+  }
+
   // --- fromPersisted / persist ----------------------------------------
 
   @Test
