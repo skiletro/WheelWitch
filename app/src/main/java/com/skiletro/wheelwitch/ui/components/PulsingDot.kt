@@ -1,6 +1,7 @@
 package com.skiletro.wheelwitch.ui.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -39,7 +40,7 @@ fun PulsingDot(
 ) {
     val color by animateColorAsState(
         targetValue = target,
-        animationSpec = tween(durationMillis = transitionMs, easing = LinearEasing),
+        animationSpec = tween(durationMillis = transitionMs, easing = FastOutSlowInEasing),
         label = "dot_color"
     )
 
