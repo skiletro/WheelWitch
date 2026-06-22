@@ -63,10 +63,12 @@ For a **signed release APK**, set these environment variables and run `./gradlew
 export KEYSTORE_PATH=./release.keystore
 export KEYSTORE_PASSWORD=your-store-pass
 export KEY_ALIAS=wheelwitch
-export KEY_PASSWORD=your-key-pass
+# KEY_PASSWORD is unified with KEYSTORE_PASSWORD (set it to the same value, or omit it)
 ```
 
-Run `scripts/setup-signing.sh` to generate a keystore interactively.
+The keystore is resolved relative to the project root. Defaults: PKCS12, RSA-4096,
+SHA512withRSA, 10000-day validity. Run `scripts/setup-signing.sh` to generate one
+interactively.
 
 ## Project structure
 
