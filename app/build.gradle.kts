@@ -34,8 +34,6 @@ android {
         } catch (_: Exception) {
           1
         }
-    versionCode = commitCount
-    versionName = "0.$commitCount.0"
     val gitHash =
         try {
           Runtime.getRuntime()
@@ -44,9 +42,12 @@ android {
               .readBytes()
               .decodeToString()
               .trim()
+              .take(7)
         } catch (_: Exception) {
           "unknown"
         }
+    versionCode = commitCount
+    versionName = "0.$commitCount.0+$gitHash"
     buildConfigField("String", "GIT_HASH", "\"$gitHash\"")
     buildConfigField("String", "LOGS_EMAIL", "\"wheelwitch@skilet.ro\"")
   }
@@ -128,6 +129,6 @@ tasks.withType<Test> {
 
 tasks.register("printVersionName") {
   group = "versioning"
-  description = "Prints the versionName for CI consumption"
-  doLast { println(android.defaultConfig.versionName) }
+  description = "Prints the versionName for CI consumption (strips build metadata)"
+  doLast { println(android.defaultConfig.versionName?.substringBefore("+") ?: "unknown") }
 }
