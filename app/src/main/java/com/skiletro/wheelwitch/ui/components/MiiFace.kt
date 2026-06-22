@@ -34,15 +34,12 @@ import timber.log.Timber
 import java.net.URLEncoder
 import java.util.Base64
 
-/** Pixel width requested from the Mii image service; matches typical display size. */
-private const val MII_FACE_FETCH_WIDTH = 96
-
 /** Corner radius applied to rendered Mii face bitmaps. */
 private val MiiFaceCorner = 10.dp
 
 /** Default Mii RFL data shown when the real Mii fetch fails. */
 private const val DEFAULT_MII_DATA_BASE64 =
-  "AwAIMK89McaWg1Qak3k3LDSvLMdoMwAAIgBNAGkAaQAAAAAAAAAAAAAAAAAAAEBAAAAhAQJoRBgmNEYUgRIXaA0AACkAUkhQVAAgAEIAbwBmAGkAYgBlAHIAAAAAAAACHC"
+  "AwAIMK89McaWg1Qak3k3LDSvLMdoMwAAIgBNAGkAaQAAAAAAAAAAAAAAAAAAAEBAAAAhAQJoRBgmNEYUgRIXaA0AACkAUkhQVAAgAEIAbwBtAGIAZQByAAAAAAAAACHC"
 
 /**
  * Renders a Mii face from either an already-rendered PNG (base64) or raw
@@ -161,7 +158,7 @@ private suspend fun fetchMiiBitmap(data: String): Bitmap? =
         try {
             val url =
                 "$MII_IMAGE_BASE_URL?data=${URLEncoder.encode(data, "UTF-8")}" +
-                    "&width=$MII_FACE_FETCH_WIDTH&type=face"
+                    "&width=300&type=face&shaderType=switch"
             val request = Request.Builder().url(url).build()
             HttpClientProvider.client.newCall(request).execute().use { response ->
                 val bytes = response.body?.bytes()
