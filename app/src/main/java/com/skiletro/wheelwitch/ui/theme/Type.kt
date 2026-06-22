@@ -5,6 +5,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.unit.sp
 import com.skiletro.wheelwitch.R
 
@@ -17,17 +18,38 @@ import com.skiletro.wheelwitch.R
  */
 val CtmkfFontFamily = FontFamily(Font(R.font.ctmkf))
 
+private fun tnum(style: TextStyle): TextStyle =
+    style.copy(fontFeatureSettings = "tnum")
+
+private fun heading(style: TextStyle): TextStyle =
+    tnum(style).copy(lineBreak = LineBreak.Heading)
+
+private fun paragraph(style: TextStyle): TextStyle =
+    tnum(style).copy(lineBreak = LineBreak.Paragraph)
+
+private val wheelWitchBaseTypography: Typography = Typography()
+
 /**
- * App typography. Only [Typography.bodyLarge] is overridden (to match
- * the Material 3 default explicitly); all other styles use Material 3
- * defaults.
+ * App typography. Built from the Material 3 baseline (via the no-arg
+ * [Typography] constructor) and then opt-in to `fontFeatureSettings =
+ * "tnum"` for stable-width digits and to [LineBreak.Heading] /
+ * [LineBreak.Paragraph] for balanced heading wraps and body copy
+ * without orphan lines.
  */
-val Typography = Typography(
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
-    )
+val Typography: Typography = wheelWitchBaseTypography.copy(
+    displayLarge = heading(wheelWitchBaseTypography.displayLarge),
+    displayMedium = heading(wheelWitchBaseTypography.displayMedium),
+    displaySmall = heading(wheelWitchBaseTypography.displaySmall),
+    headlineLarge = heading(wheelWitchBaseTypography.headlineLarge),
+    headlineMedium = heading(wheelWitchBaseTypography.headlineMedium),
+    headlineSmall = heading(wheelWitchBaseTypography.headlineSmall),
+    titleLarge = heading(wheelWitchBaseTypography.titleLarge),
+    titleMedium = heading(wheelWitchBaseTypography.titleMedium),
+    titleSmall = heading(wheelWitchBaseTypography.titleSmall),
+    bodyLarge = paragraph(wheelWitchBaseTypography.bodyLarge),
+    bodyMedium = paragraph(wheelWitchBaseTypography.bodyMedium),
+    bodySmall = paragraph(wheelWitchBaseTypography.bodySmall),
+    labelLarge = paragraph(wheelWitchBaseTypography.labelLarge),
+    labelMedium = paragraph(wheelWitchBaseTypography.labelMedium),
+    labelSmall = paragraph(wheelWitchBaseTypography.labelSmall),
 )
