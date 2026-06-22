@@ -48,6 +48,12 @@ jobs:
           java-version: 17
           distribution: temurin
 
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          android-version: '36'
+          build-tools-version: '36.0.0'
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
@@ -89,6 +95,19 @@ jobs:
           VERSION: ${{ steps.appversion.outputs.version }}
           SHORT_HASH: ${{ steps.appversion.outputs.short_hash }}
 
+      - name: Verify APK signatures and compute hash
+        id: verify
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/release/wheelwitch-${VERSION}-${SHORT_HASH}.apk"
+          APKSIGNER="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
+          SHA256=$(sha256sum "$APK" | awk '{print $1}')
+          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+        env:
+          VERSION: ${{ steps.appversion.outputs.version }}
+          SHORT_HASH: ${{ steps.appversion.outputs.short_hash }}
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
@@ -111,4 +130,10 @@ jobs:
           artifacts: |
             app/build/outputs/apk/release/wheelwitch-${{ steps.appversion.outputs.version }}-${{ steps.appversion.outputs.short_hash }}.apk
             app/build/outputs/apk/release/wheelwitch-${{ steps.appversion.outputs.version }}-${{ steps.appversion.outputs.short_hash }}.apk.idsig
+          body: |
+            ## WheelWitch ${{ steps.appversion.outputs.version }} (${{ steps.appversion.outputs.short_hash }})
+
+            - **Signing certificate SHA-256:** `75:96:8A:48:2B:75:E9:F1:72:36:3E:7D:37:5F:82:C3:BA:47:9A:84:6D:26:79:AC:C1:B7:9C:2F:11:63:70:00`
+            - **APK SHA-256:** `${{ steps.verify.outputs.sha256 }}`
+            - [Verify with AppVerifier](https://github.com/soupslurpr/AppVerifier)
           token: ${{ secrets.GITHUB_TOKEN }}
