@@ -58,6 +58,19 @@ The latest signed release APK is built automatically on every push to `master` a
 
 To build from source or contribute, see [CONTRIBUTING.md](CONTRIBUTING.md#build).
 
+## Verifying your install
+
+You can verify the APK signature with [AppVerifier](https://github.com/soupslurpr/AppVerifier).
+The signing certificate is embedded in the APK and matches the values below, so an
+unmodified build will always verify the same way across releases.
+
+- **SHA-256 fingerprint:** `75:96:8A:48:2B:75:E9:F1:72:36:3E:7D:37:5F:82:C3:BA:47:9A:84:6D:26:79:AC:C1:B7:9C:2F:11:63:70:00`
+- **SHA-1 fingerprint:** `68:53:04:D6:F2:36:5F:34:98:E2:FA:DE:6A:67:7B:80:B8:70:4A:C3`
+
+The V4 signature is also distributed as `wheelwitch-<version>-<hash>.apk.idsig`
+alongside the APK in the [CI release](https://github.com/skiletro/WheelWitch/releases/tag/ci)
+for offline verification.
+
 ## Requirements
 
 - Android 12+ (API 31)
