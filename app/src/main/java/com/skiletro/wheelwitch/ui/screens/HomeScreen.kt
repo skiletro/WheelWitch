@@ -62,6 +62,7 @@ import com.skiletro.wheelwitch.ui.components.ActivePlayerCard
 import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
 import com.skiletro.wheelwitch.ui.components.ProgressButton
 import com.skiletro.wheelwitch.ui.components.TopBar
+import com.skiletro.wheelwitch.ui.components.VersionHistoryContent
 import com.skiletro.wheelwitch.ui.components.focusBorder
 import com.skiletro.wheelwitch.ui.theme.buttonShape
 import com.skiletro.wheelwitch.ui.theme.sectionShape
