@@ -177,6 +177,44 @@ class PackUpdateViewModelTest {
     coVerify(exactly = 1) { manager.checkStatus() }
   }
 
+  // --- refreshManager ------------------------------------------------
+
+  @Test
+  fun `refreshManager re-creates the manager and re-runs checkStatus`() = runTest {
+    // Simulate the fresh-install / cleared-pref state: the first
+    // factory call returns null (manager is null), then onboarding
+    // completes and the composition root calls refreshManager(),
+    // which runs the factory a second time and gets a real manager.
+    val firstManager: RewindPackManager? = null
+    val secondManager: RewindPackManager = mockk(relaxed = true)
+    coEvery { secondManager.checkStatus() } returns
+      PackStatus.UpToDate(SemVersion(3, 2, 6), SemVersion(3, 2, 6))
+
+    var factoryCalls = 0
+    val factory: (android.content.Context) -> RewindPackManager? = {
+      factoryCalls++
+      if (factoryCalls == 1) firstManager else secondManager
+    }
+    val vm =
+      PackUpdateViewModel(
+        application = context,
+        managerFactory = factory,
+      )
+
+    // The first init { checkStatus() } ran with the null manager.
+    assertThat(vm.state.value).isEqualTo(UiState.Ready(PackStatus.NotInstalled))
+    coVerify(exactly = 0) { secondManager.checkStatus() }
+
+    vm.refreshManager()
+
+    // After refresh, the cached manager is the new one and a
+    // fresh checkStatus has run against it.
+    assertThat(factoryCalls).isEqualTo(2)
+    coVerify(exactly = 1) { secondManager.checkStatus() }
+    assertThat(vm.state.value)
+      .isEqualTo(UiState.Ready(PackStatus.UpToDate(SemVersion(3, 2, 6), SemVersion(3, 2, 6))))
+  }
+
   private fun serverInfo() =
     ServerInfo(
       latestVersion = SemVersion(3, 2, 6),

@@ -110,6 +110,11 @@ fun MainScreen(
               .putBoolean(PrefsKeys.ONBOARDING_COMPLETED_KEY, true)
               .apply()
             onboardingComplete = true
+            // The VM was constructed before any tree URI was
+            // persisted, so its cached manager is null. Now that
+            // onboarding has written a valid URI to prefs, ask
+            // the VM to re-evaluate and run a fresh checkStatus.
+            packUpdate.refreshManager()
           },
         )
       }

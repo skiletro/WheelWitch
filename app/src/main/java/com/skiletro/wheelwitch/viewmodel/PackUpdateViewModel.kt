@@ -38,15 +38,35 @@ import timber.log.Timber
  */
 class PackUpdateViewModel(
   application: Application,
-  managerFactory: (Context) -> RewindPackManager? = ::defaultManagerFactory,
+  private val managerFactory: (Context) -> RewindPackManager? = ::defaultManagerFactory,
 ) : AndroidViewModel(application) {
-  private val manager: RewindPackManager? = managerFactory(application)
+  // Cached at construction, replaced by [refreshManager] after the
+  // composition root re-runs onboarding. The var swap is intentional:
+  // the manager depends on a persisted SAF tree URI which can be
+  // written after the VM is created.
+  private var manager: RewindPackManager? = managerFactory(application)
   private val installMutex = Mutex()
 
   private val _state = MutableStateFlow<UiState>(UiState.Idle)
   val state: StateFlow<UiState> = _state.asStateFlow()
 
   init {
+    checkStatus()
+  }
+
+  /** Single read-through so the `var` swap is intentional. */
+  private fun currentManager(): RewindPackManager? = manager
+
+  /**
+   * Re-creates the manager from the current persisted tree URI and
+   * re-runs [checkStatus]. Call from the composition root after a
+   * successful onboarding flow so the cached (possibly null) manager
+   * is replaced with the new tree URI. No-op if the factory still
+   * returns null (the user cancelled the SAF picker or the URI was
+   * cleared by a previous fromPersisted failure).
+   */
+  fun refreshManager() {
+    manager = managerFactory(getApplication())
     checkStatus()
   }
 
@@ -61,14 +81,14 @@ class PackUpdateViewModel(
   fun checkStatus() {
     viewModelScope.launch {
       _state.value = UiState.Checking
-      if (manager == null) {
+      if (currentManager() == null) {
         Timber.tag(TAG)
           .w("checkStatus: manager is null — no persisted Dolphin tree; " +
             "treating as NotInstalled (user needs to run onboarding)")
       }
       val result =
         runCatching {
-          manager?.checkStatus() ?: PackStatus.NotInstalled
+          currentManager()?.checkStatus() ?: PackStatus.NotInstalled
         }
       _state.value =
         result.fold(
@@ -93,7 +113,7 @@ class PackUpdateViewModel(
   fun installLatest() {
     viewModelScope.launch {
       installMutex.withLock {
-        val mgr = manager
+        val mgr = currentManager()
         if (mgr == null) {
           Timber.tag(TAG)
             .e("installLatest: manager is null — DolphinTree.fromPersisted returned null. " +
@@ -125,7 +145,7 @@ class PackUpdateViewModel(
   fun update() {
     viewModelScope.launch {
       installMutex.withLock {
-        val mgr = manager
+        val mgr = currentManager()
         if (mgr == null) {
           Timber.tag(TAG)
             .e("update: manager is null — DolphinTree.fromPersisted returned null. " +
