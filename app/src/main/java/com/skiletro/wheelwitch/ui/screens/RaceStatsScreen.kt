@@ -46,6 +46,7 @@ import com.skiletro.wheelwitch.model.WinRateStat
 import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
 import com.skiletro.wheelwitch.ui.components.ScreenHeader
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
+import com.skiletro.wheelwitch.ui.theme.surfaceShape
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 import com.skiletro.wheelwitch.viewmodel.RaceStatsState
 
@@ -398,7 +399,7 @@ private fun StatsCard(
     content: @Composable () -> Unit
 ) {
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = surfaceShape,
         color = MaterialTheme.colorScheme.surfaceVariant,
         modifier = modifier.fillMaxWidth()
     ) {
@@ -411,7 +412,7 @@ private fun StatsCard(
 @Composable
 private fun MiniStatCard(label: String, value: String, modifier: Modifier = Modifier) {
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = surfaceShape,
         color = MaterialTheme.colorScheme.surfaceVariant,
         modifier = modifier
     ) {

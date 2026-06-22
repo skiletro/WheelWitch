@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -45,6 +44,7 @@ import com.skiletro.wheelwitch.ui.components.MiiFace
 import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
 import com.skiletro.wheelwitch.ui.components.ScreenHeader
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
+import com.skiletro.wheelwitch.ui.theme.chipShape
 import com.skiletro.wheelwitch.viewmodel.LeaderboardState
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 
@@ -197,7 +197,7 @@ private fun LeaderboardList(
 
 @Composable
 private fun LeaderboardRow(entry: LeaderboardEntry, modifier: Modifier = Modifier) {
-    val shape = RoundedCornerShape(8.dp)
+    val shape = chipShape
     FocusableSurface(
         modifier = modifier.fillMaxWidth(),
         onClick = { },

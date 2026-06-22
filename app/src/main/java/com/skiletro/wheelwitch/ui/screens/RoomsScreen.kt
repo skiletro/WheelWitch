@@ -44,10 +44,9 @@ import com.skiletro.wheelwitch.ui.components.FocusableSurface
 import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
 import com.skiletro.wheelwitch.ui.components.ScreenHeader
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
+import com.skiletro.wheelwitch.ui.theme.chipShape
 import com.skiletro.wheelwitch.ui.theme.statusColors
 import com.skiletro.wheelwitch.viewmodel.RoomsState
-
-private val sidebarShape = RoundedCornerShape(12.dp)
 
 @OptIn(androidx.compose.animation.ExperimentalSharedTransitionApi::class)
 @Composable
@@ -220,7 +219,7 @@ fun RoomListItem(
             modifier = Modifier.weight(1f),
             onClick = onClick,
             selected = isSelected,
-            shape = sidebarShape
+            shape = chipShape
         ) {
             Row(
                 modifier = Modifier.padding(12.dp),

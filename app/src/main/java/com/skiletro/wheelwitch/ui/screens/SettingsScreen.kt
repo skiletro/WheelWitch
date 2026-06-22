@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -44,6 +43,7 @@ import com.skiletro.wheelwitch.ui.components.SettingsCategoryHeader
 import com.skiletro.wheelwitch.ui.components.SettingsItem
 import com.skiletro.wheelwitch.ui.theme.AppTheme
 import com.skiletro.wheelwitch.ui.theme.ThemeMode
+import com.skiletro.wheelwitch.ui.theme.buttonShape
 import com.skiletro.wheelwitch.util.launcher.BugReportLauncher
 import com.skiletro.wheelwitch.util.mii.MiiFaceCache
 import com.skiletro.wheelwitch.util.prefs.Prefs
@@ -168,7 +168,7 @@ private fun AppearanceSection(
       Box {
         TextButton(
           onClick = { showAppThemeDropdown = true },
-          shape = RoundedCornerShape(14.dp),
+          shape = buttonShape,
         ) {
           Text(text = appThemeLabel)
         }
@@ -203,7 +203,7 @@ private fun AppearanceSection(
       Box {
         TextButton(
           onClick = { showThemeDropdown = true },
-          shape = RoundedCornerShape(14.dp),
+          shape = buttonShape,
         ) {
           Text(
             text =
@@ -280,7 +280,7 @@ private fun MiiMakerSection(
         else -> {
           Button(
             onClick = onInstall,
-            shape = RoundedCornerShape(14.dp),
+            shape = buttonShape,
             contentPadding = ButtonDefaults.TextButtonContentPadding,
           ) {
             Text(stringResource(R.string.action_install))
@@ -321,7 +321,7 @@ private fun LoggingSection() {
     trailing = {
       Button(
         onClick = { BugReportLauncher.launch(context) },
-        shape = RoundedCornerShape(14.dp),
+        shape = buttonShape,
         contentPadding = ButtonDefaults.TextButtonContentPadding,
         colors = ButtonDefaults.filledTonalButtonColors(
           containerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -358,7 +358,7 @@ private fun MiiCacheRow() {
           miiCacheSizeBytes = 0
         },
         enabled = miiCacheSizeBytes > 0,
-        shape = RoundedCornerShape(14.dp),
+        shape = buttonShape,
       ) {
         Text(
           text = stringResource(R.string.settings_clear),
@@ -377,7 +377,7 @@ private fun RelaunchOnboardingRow(onRelaunch: () -> Unit) {
     title = stringResource(R.string.settings_onboarding),
     summary = stringResource(R.string.settings_relaunch_onboarding),
     trailing = {
-      TextButton(onClick = onRelaunch, shape = RoundedCornerShape(14.dp)) {
+      TextButton(onClick = onRelaunch, shape = buttonShape) {
         Text(stringResource(R.string.settings_relaunch))
       }
     },

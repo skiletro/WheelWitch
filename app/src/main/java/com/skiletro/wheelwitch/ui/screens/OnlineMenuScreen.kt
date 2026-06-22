@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -45,6 +44,7 @@ import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.ui.components.FocusableSurface
 import com.skiletro.wheelwitch.ui.components.ScreenHeader
 import com.skiletro.wheelwitch.ui.theme.statusColors
+import com.skiletro.wheelwitch.ui.theme.surfaceShape
 import com.skiletro.wheelwitch.viewmodel.OnlineMenuPage
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 
@@ -207,7 +207,7 @@ private fun HubOption(
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedContentScope: AnimatedVisibilityScope? = null,
 ) {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = surfaceShape
     val baseColor = if (enabled) MaterialTheme.colorScheme.surfaceVariant
     else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
     FocusableSurface(

@@ -31,6 +31,7 @@ import com.skiletro.wheelwitch.model.Room
 import com.skiletro.wheelwitch.ui.components.MiiFace
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
 import com.skiletro.wheelwitch.ui.theme.WheelWitchPreviewTheme
+import com.skiletro.wheelwitch.ui.theme.chipShape
 import com.skiletro.wheelwitch.ui.theme.statusColors
 
 @Composable
@@ -117,10 +118,9 @@ fun RoomDetail(room: Room) {
 
 @Composable
 fun MiiPlayerCard(player: Player) {
-    val cardShape = RoundedCornerShape(10.dp)
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = cardShape,
+        shape = chipShape,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(

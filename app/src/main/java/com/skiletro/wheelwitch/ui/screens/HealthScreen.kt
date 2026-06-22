@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -34,9 +33,11 @@ import com.skiletro.wheelwitch.model.MemoryInfo
 import com.skiletro.wheelwitch.model.ServerHealth
 import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
 import com.skiletro.wheelwitch.ui.components.ScreenHeader
+import com.skiletro.wheelwitch.ui.theme.chipShape
 import com.skiletro.wheelwitch.ui.theme.container
 import com.skiletro.wheelwitch.ui.theme.indicator
 import com.skiletro.wheelwitch.ui.theme.statusColors
+import com.skiletro.wheelwitch.ui.theme.surfaceShape
 import com.skiletro.wheelwitch.viewmodel.HealthState
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 
@@ -142,7 +143,7 @@ private fun HealthStatusCard(title: String, status: String, isOk: Boolean) {
     val colors = statusColors()
     val (container, onContainer) = colors.container(isOk)
     Surface(
-        shape = RoundedCornerShape(16.dp),
+        shape = surfaceShape,
         color = container
     ) {
         Row(
@@ -181,7 +182,7 @@ private fun HealthCheckRow(label: String, item: HealthCheckItem) {
     val isOk = item.status == "ok"
     val colors = statusColors()
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = chipShape,
         color = MaterialTheme.colorScheme.surfaceVariant,
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -226,7 +227,7 @@ private fun MemoryRow(memory: MemoryInfo) {
     val isOk = memory.status == "ok"
     val colors = statusColors()
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = chipShape,
         color = MaterialTheme.colorScheme.surfaceVariant,
         modifier = Modifier.fillMaxWidth()
     ) {

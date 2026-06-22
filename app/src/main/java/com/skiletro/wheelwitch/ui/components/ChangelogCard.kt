@@ -18,7 +18,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.model.ChangelogEntry
 import com.skiletro.wheelwitch.ui.theme.WheelWitchPreviewTheme
-import com.skiletro.wheelwitch.ui.theme.sectionShape
+import com.skiletro.wheelwitch.ui.theme.surfaceShape
 
 private const val Bullet = "\u2022"
 
@@ -32,10 +32,8 @@ fun ChangelogCard(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp),
-        shape = sectionShape,
+        modifier = modifier.fillMaxWidth(),
+        shape = surfaceShape,
         color = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
