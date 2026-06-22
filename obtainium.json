@@ -1,0 +1,12 @@
+{
+  "id": "com.skiletro.wheelwitch",
+  "url": "https://github.com/skiletro/WheelWitch",
+  "author": "skiletro",
+  "name": "WheelWitch",
+  "additionalSettings": {
+    "includePrereleases": true,
+    "apkFilterRegEx": "wheelwitch-.+\\.apk",
+    "versionExtractionRegEx": "(\\d+\\.\\d+\\.\\d+)",
+    "releaseTitleAsVersion": true
+  }
+}
