@@ -71,41 +71,25 @@ class DolphinTreeTest {
   }
 
   @Test
-  fun `wheelWitchDir returns existing User Wii WheelWitch path without creating`() {
-    val userDir = mockk<DocumentFile>(relaxed = true)
-    val wiiDir = mockk<DocumentFile>(relaxed = true)
+  fun `wheelWitchDir returns the existing WheelWitch path without creating`() {
     val wheelWitchDir = mockk<DocumentFile>(relaxed = true)
-    every { root.findFile("User") } returns userDir
-    every { userDir.isDirectory } returns true
-    every { userDir.findFile("Wii") } returns wiiDir
-    every { wiiDir.isDirectory } returns true
-    every { wiiDir.findFile("WheelWitch") } returns wheelWitchDir
+    every { root.findFile("WheelWitch") } returns wheelWitchDir
     every { wheelWitchDir.isDirectory } returns true
 
     val tree = DolphinTree(context, treeUri)
     assertThat(tree.wheelWitchDir).isEqualTo(wheelWitchDir)
     verify(exactly = 0) { root.createDirectory(any<String>()) }
-    verify(exactly = 0) { userDir.createDirectory(any<String>()) }
-    verify(exactly = 0) { wiiDir.createDirectory(any<String>()) }
   }
 
   @Test
-  fun `wheelWitchDir creates missing User Wii WheelWitch subdirectories`() {
-    val userDir = mockk<DocumentFile>(relaxed = true)
-    val wiiDir = mockk<DocumentFile>(relaxed = true)
+  fun `wheelWitchDir creates the missing WheelWitch directory`() {
     val wheelWitchDir = mockk<DocumentFile>(relaxed = true)
-    every { root.findFile("User") } returns null
-    every { root.createDirectory("User") } returns userDir
-    every { userDir.findFile("Wii") } returns null
-    every { userDir.createDirectory("Wii") } returns wiiDir
-    every { wiiDir.findFile("WheelWitch") } returns null
-    every { wiiDir.createDirectory("WheelWitch") } returns wheelWitchDir
+    every { root.findFile("WheelWitch") } returns null
+    every { root.createDirectory("WheelWitch") } returns wheelWitchDir
 
     val tree = DolphinTree(context, treeUri)
     assertThat(tree.wheelWitchDir).isEqualTo(wheelWitchDir)
-    verify(exactly = 1) { root.createDirectory("User") }
-    verify(exactly = 1) { userDir.createDirectory("Wii") }
-    verify(exactly = 1) { wiiDir.createDirectory("WheelWitch") }
+    verify(exactly = 1) { root.createDirectory("WheelWitch") }
   }
 
   @Test
@@ -483,12 +467,12 @@ class DolphinTreeTest {
 
   @Test
   fun `writeLaunchJson writes content as rr_autostartfile json`() {
-    val (_, _, wheelWitchDir) = setupDirChain()
+    val (romDir, _, _) = setupDirChain()
     val file = mockk<DocumentFile>(relaxed = true)
     every { file.uri } returns Uri.parse("content://tree/rr_autostartfile.json")
-    every { wheelWitchDir.findFile(DolphinTree.LAUNCH_JSON_NAME) } returns null
+    every { romDir.findFile(DolphinTree.LAUNCH_JSON_NAME) } returns null
     every {
-      wheelWitchDir.createFile("application/json", DolphinTree.LAUNCH_JSON_NAME)
+      romDir.createFile("application/json", DolphinTree.LAUNCH_JSON_NAME)
     } returns file
     val output = ByteArrayOutputStream()
     every { resolver.openOutputStream(file.uri) } returns output
@@ -502,13 +486,13 @@ class DolphinTreeTest {
 
   @Test
   fun `writeLaunchJson replaces an existing file with the same name`() {
-    val (_, _, wheelWitchDir) = setupDirChain()
+    val (romDir, _, _) = setupDirChain()
     val existing = mockk<DocumentFile>(relaxed = true)
     val file = mockk<DocumentFile>(relaxed = true)
     every { file.uri } returns Uri.parse("content://tree/rr_autostartfile.json")
-    every { wheelWitchDir.findFile(DolphinTree.LAUNCH_JSON_NAME) } returns existing
+    every { romDir.findFile(DolphinTree.LAUNCH_JSON_NAME) } returns existing
     every {
-      wheelWitchDir.createFile("application/json", DolphinTree.LAUNCH_JSON_NAME)
+      romDir.createFile("application/json", DolphinTree.LAUNCH_JSON_NAME)
     } returns file
     val output = ByteArrayOutputStream()
     every { resolver.openOutputStream(file.uri) } returns output
@@ -521,8 +505,8 @@ class DolphinTreeTest {
 
   @Test
   fun `readLaunchJson returns null when the file does not exist`() {
-    val (_, _, wheelWitchDir) = setupDirChain()
-    every { wheelWitchDir.findFile(DolphinTree.LAUNCH_JSON_NAME) } returns null
+    val (romDir, _, _) = setupDirChain()
+    every { romDir.findFile(DolphinTree.LAUNCH_JSON_NAME) } returns null
 
     val tree = DolphinTree(context, treeUri)
     assertThat(tree.readLaunchJson()).isNull()
@@ -530,10 +514,10 @@ class DolphinTreeTest {
 
   @Test
   fun `readLaunchJson returns the file content as UTF-8`() {
-    val (_, _, wheelWitchDir) = setupDirChain()
+    val (romDir, _, _) = setupDirChain()
     val file = mockk<DocumentFile>(relaxed = true)
     every { file.uri } returns Uri.parse("content://tree/rr_autostartfile.json")
-    every { wheelWitchDir.findFile(DolphinTree.LAUNCH_JSON_NAME) } returns file
+    every { romDir.findFile(DolphinTree.LAUNCH_JSON_NAME) } returns file
     every { resolver.openInputStream(file.uri) } returns
       ByteArrayInputStream("payload".encodeToByteArray())
 
@@ -707,21 +691,15 @@ class DolphinTreeTest {
   // --- helpers ---------------------------------------------------------
 
   /**
-   * Stubs the lazy subdirectory chain so the full User/Wii/WheelWitch
-   * path resolves to fresh [DocumentFile] mocks. Returns
+   * Stubs the lazy subdirectory chain so the full WheelWitch path
+   * resolves to fresh [DocumentFile] mocks. Returns
    * `(romDir, packDir, wheelWitchDir)`.
    */
   private fun setupDirChain(): Triple<DocumentFile, DocumentFile, DocumentFile> {
-    val userDir = mockk<DocumentFile>(relaxed = true)
-    val wiiDir = mockk<DocumentFile>(relaxed = true)
     val wheelWitchDir = mockk<DocumentFile>(relaxed = true)
     val romDir = mockk<DocumentFile>(relaxed = true)
     val packDir = mockk<DocumentFile>(relaxed = true)
-    every { root.findFile("User") } returns userDir
-    every { userDir.isDirectory } returns true
-    every { userDir.findFile("Wii") } returns wiiDir
-    every { wiiDir.isDirectory } returns true
-    every { wiiDir.findFile("WheelWitch") } returns wheelWitchDir
+    every { root.findFile("WheelWitch") } returns wheelWitchDir
     every { wheelWitchDir.isDirectory } returns true
     every { wheelWitchDir.findFile("rom") } returns romDir
     every { wheelWitchDir.findFile("pack") } returns packDir

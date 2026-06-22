@@ -89,7 +89,7 @@ class DolphinPathsTest {
   }
 
   @Test
-  fun `wheelWitchDir appends the User Wii WheelWitch subpath to the physical root`() {
+  fun `wheelWitchDir appends the WheelWitch subpath to the physical root`() {
     val ctx =
       mockWheelWitchContext(
         externalFilesDir = File("/storage/emulated/0/Android/data/com.skiletro.wheelwitch/files")
@@ -98,7 +98,7 @@ class DolphinPathsTest {
     val dir = DolphinPaths.wheelWitchDir(ctx)
 
     assertThat(dir.absolutePath)
-      .isEqualTo("/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/User/Wii/WheelWitch")
+      .isEqualTo("/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/WheelWitch")
   }
 
   @Test
@@ -109,7 +109,7 @@ class DolphinPathsTest {
 
     assertThat(dir.absolutePath)
       .isEqualTo(
-        "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/User/Wii/WheelWitch/pack"
+        "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/WheelWitch/pack"
       )
   }
 
@@ -121,12 +121,12 @@ class DolphinPathsTest {
 
     assertThat(dir.absolutePath)
       .isEqualTo(
-        "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/User/Wii/WheelWitch/rom"
+        "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/WheelWitch/rom"
       )
   }
 
   @Test
-  fun `rrJsonFile lives at the WheelWitch root with the rr_autostartfile json filename`() {
+  fun `rrJsonFile lives in the rom dir with the rr_autostartfile json filename`() {
     val ctx = mockWheelWitchContext()
 
     val file = DolphinPaths.rrJsonFile(ctx)
@@ -134,7 +134,7 @@ class DolphinPathsTest {
     assertThat(file.name).isEqualTo("rr_autostartfile.json")
     assertThat(file.parentFile?.absolutePath)
       .isEqualTo(
-        "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/User/Wii/WheelWitch"
+        "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/WheelWitch/rom"
       )
     assertThat(file.absolutePath).doesNotContain("pack/")
   }
@@ -147,7 +147,7 @@ class DolphinPathsTest {
 
     assertThat(file.absolutePath)
       .isEqualTo(
-        "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/User/Wii/WheelWitch/pack/version.txt"
+        "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/WheelWitch/pack/version.txt"
       )
   }
 
@@ -173,8 +173,8 @@ class DolphinPathsTest {
   }
 
   @Test
-  fun `WHEELWITCH_SUBPATH is the User Wii WheelWitch segment`() {
-    assertThat(DolphinPaths.WHEELWITCH_SUBPATH).isEqualTo("User/Wii/WheelWitch")
+  fun `WHEELWITCH_SUBPATH is the WheelWitch segment`() {
+    assertThat(DolphinPaths.WHEELWITCH_SUBPATH).isEqualTo("WheelWitch")
   }
 
   private fun mockWheelWitchContext(

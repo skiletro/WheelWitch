@@ -8,7 +8,7 @@ import android.net.Uri
  *
  * The Dolphin emulator reads the `[General] ISOPathN` keys when
  * building its game library. WheelWitch edits this file so the
- * `User/Wii/WheelWitch/rom/` folder shows up as a library entry,
+ * `WheelWitch/rom/` folder shows up as a library entry,
  * this is the bridge that makes "RR shows up in Dolphin's library"
  * work even though `rr_autostartfile.json` itself uses physical
  * paths (Riivolution is native code and cannot resolve `content://`

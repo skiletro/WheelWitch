@@ -243,7 +243,7 @@ object DolphinLauncher {
 
   /**
    * Reads `Config/Dolphin.ini` from [tree], upserts the
-   * `content://org.dolphinemu.dolphinemu.user/tree/root%2FUser%2FWii%2FWheelWitch%2From`
+   * `content://org.dolphinemu.dolphinemu.user/tree/root%2FWheelWitch%2From`
    * URI (the rom directory the user picked via SAF), and writes the
    * file back. The URI is the one Dolphin's own SAF provider expects.
    * See [DolphinConfig.dolphinUserTreeUri]. This is the bridge that
@@ -258,7 +258,7 @@ object DolphinLauncher {
     if (ext !in ROM_EXTENSIONS) {
       throw IllegalArgumentException("Unexpected ROM extension: $romFileName")
     }
-    val relPath = "User/Wii/WheelWitch/rom"
+    val relPath = "WheelWitch/rom"
     val uri = DolphinConfig.dolphinUserTreeUri(relPath)
     val existing = tree.readConfigIni().orEmpty()
     val updated = DolphinConfig.upsert(existing, uri)

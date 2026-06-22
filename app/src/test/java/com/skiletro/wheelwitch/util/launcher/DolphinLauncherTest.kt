@@ -84,13 +84,13 @@ class DolphinLauncherTest {
   fun `buildLaunchJson writes the descriptor top-level values`() {
     val json =
       DolphinLauncher.buildLaunchJson(
-        baseFilePath = "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/User/Wii/WheelWitch/rom/RMCP01.iso",
-        packRootPath = "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/User/Wii/WheelWitch/pack",
+        baseFilePath = "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/WheelWitch/rom/RMCP01.iso",
+        packRootPath = "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/WheelWitch/pack",
       )
     val obj = JSONObject(json)
     assertThat(obj.getString("base-file"))
       .isEqualTo(
-        "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/User/Wii/WheelWitch/rom/RMCP01.iso"
+        "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/WheelWitch/rom/RMCP01.iso"
       )
     assertThat(obj.getString("display-name")).isEqualTo("Retro Rewind")
     assertThat(obj.getString("type")).isEqualTo("dolphin-game-mod-descriptor")
@@ -244,7 +244,7 @@ class DolphinLauncherTest {
     val obj = JSONObject(written.captured)
     assertThat(obj.getString("base-file"))
       .isEqualTo(
-        "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/User/Wii/WheelWitch/rom/RMCP01.iso"
+        "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/WheelWitch/rom/RMCP01.iso"
       )
   }
 
@@ -265,11 +265,11 @@ class DolphinLauncherTest {
         .getJSONObject(0)
     assertThat(patch.getString("root"))
       .isEqualTo(
-        "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/User/Wii/WheelWitch/pack"
+        "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/WheelWitch/pack"
       )
     assertThat(patch.getString("xml"))
       .isEqualTo(
-        "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/User/Wii/WheelWitch/pack/riivolution/RetroRewind6.xml"
+        "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/WheelWitch/pack/riivolution/RetroRewind6.xml"
       )
   }
 
@@ -302,7 +302,7 @@ class DolphinLauncherTest {
         .getJSONObject(0)
     assertThat(patch.getString("xml"))
       .isEqualTo(
-        "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/User/Wii/WheelWitch/pack/riivolution/SubMod/Mod.xml"
+        "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/WheelWitch/pack/riivolution/SubMod/Mod.xml"
       )
   }
 
@@ -385,7 +385,7 @@ class DolphinLauncherTest {
     assertThat(ini).contains("ISOPaths = 1")
     assertThat(ini)
       .contains(
-        "ISOPath0 = content://org.dolphinemu.dolphinemu.user/tree/root%2FUser%2FWii%2FWheelWitch%2From"
+        "ISOPath0 = content://org.dolphinemu.dolphinemu.user/tree/root%2FWheelWitch%2From"
       )
     assertThat(ini).contains("SomeKey = value")
   }
@@ -398,7 +398,7 @@ class DolphinLauncherTest {
       """
       [General]
       ISOPaths = 1
-      ISOPath0 = content://org.dolphinemu.dolphinemu.user/tree/root%2FUser%2FWii%2FWheelWitch%2From
+      ISOPath0 = content://org.dolphinemu.dolphinemu.user/tree/root%2FWheelWitch%2From
       """.trimIndent()
     every { tree.readConfigIni() } returns existing
     every { tree.writeConfigIni(any()) } returns mockk(relaxed = true)
@@ -430,7 +430,7 @@ class DolphinLauncherTest {
 
     assertThat(written.captured)
       .isEqualTo(
-        "ISOPaths = 1\nISOPath0 = content://org.dolphinemu.dolphinemu.user/tree/root%2FUser%2FWii%2FWheelWitch%2From"
+        "ISOPaths = 1\nISOPath0 = content://org.dolphinemu.dolphinemu.user/tree/root%2FWheelWitch%2From"
       )
   }
 

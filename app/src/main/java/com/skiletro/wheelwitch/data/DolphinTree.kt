@@ -58,10 +58,11 @@ data class ExtractProgress(
  *
  * ```
  * <tree root>/
- * └── User/Wii/WheelWitch/
+ * └── WheelWitch/
  *     ├── pack/                       : extracted Retro Rewind contents
- *     ├── rom/                        : user-picked Mario Kart Wii ISO/RVZ/WBFS
- *     └── rr_autostartfile.json       : launch descriptor (dolphin-game-mod-descriptor)
+ *     └── rom/
+ *         ├── <GAMEID>.<ext>          : user-picked Mario Kart Wii ISO/RVZ/WBFS
+ *         └── rr_autostartfile.json   : launch descriptor (dolphin-game-mod-descriptor)
  * ```
  *
  * Construction is cheap: lazy subdirectory properties defer their first
@@ -99,14 +100,8 @@ class DolphinTree(context: Context, val treeUri: Uri) {
       }
 
   val wheelWitchDir: DocumentFile by lazy {
-    val userDir =
-      findOrCreateDir(root, "User")
-        ?: error("Cannot create or find User/ in Dolphin tree")
-    val wiiDir =
-      findOrCreateDir(userDir, "Wii")
-        ?: error("Cannot create or find User/Wii/ in Dolphin tree")
-    findOrCreateDir(wiiDir, "WheelWitch")
-      ?: error("Cannot create or find User/Wii/WheelWitch/ in Dolphin tree")
+    findOrCreateDir(root, "WheelWitch")
+      ?: error("Cannot create or find WheelWitch/ in Dolphin tree")
   }
 
   val romDir: DocumentFile by lazy {
@@ -276,16 +271,16 @@ class DolphinTree(context: Context, val treeUri: Uri) {
   }
 
   /**
-   * Writes [content] as [LAUNCH_JSON_NAME] at the WheelWitch root,
+   * Writes [content] as [LAUNCH_JSON_NAME] under the rom dir,
    * replacing any existing file. The returned [DocumentFile] is the
    * new launch descriptor.
    */
   fun writeLaunchJson(content: String): DocumentFile {
-    val existing = wheelWitchDir.findFile(LAUNCH_JSON_NAME)
+    val existing = romDir.findFile(LAUNCH_JSON_NAME)
     if (existing != null) existing.delete()
     val file =
-      wheelWitchDir.createFile("application/json", LAUNCH_JSON_NAME)
-        ?: error("Cannot create $LAUNCH_JSON_NAME")
+      romDir.createFile("application/json", LAUNCH_JSON_NAME)
+        ?: error("Cannot create $LAUNCH_JSON_NAME in rom/")
     val output = resolver.openOutputStream(file.uri)
       ?: error("Cannot open output stream for $LAUNCH_JSON_NAME")
     output.use { it.write(content.toByteArray(Charsets.UTF_8)) }
@@ -293,11 +288,11 @@ class DolphinTree(context: Context, val treeUri: Uri) {
   }
 
   /**
-   * Reads the [LAUNCH_JSON_NAME] contents if present, or null if the
-   * launch descriptor has not been written yet.
+   * Reads the [LAUNCH_JSON_NAME] contents from the rom dir if present,
+   * or null if the launch descriptor has not been written yet.
    */
   fun readLaunchJson(): String? {
-    val file = wheelWitchDir.findFile(LAUNCH_JSON_NAME) ?: return null
+    val file = romDir.findFile(LAUNCH_JSON_NAME) ?: return null
     val input = resolver.openInputStream(file.uri) ?: return null
     return input.use { it.readBytes().toString(Charsets.UTF_8) }
   }
@@ -437,7 +432,7 @@ class DolphinTree(context: Context, val treeUri: Uri) {
     const val COPY_BUFFER_SIZE: Int = 256 * 1024
 
     /**
-     * Filename of the launch descriptor at the WheelWitch root.
+     * Filename of the launch descriptor under the rom dir.
      * Re-exported from [com.skiletro.wheelwitch.util.launcher.DolphinLauncher.RR_JSON_NAME].
      * Single source of truth lives in the launcher.
      */

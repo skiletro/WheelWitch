@@ -32,7 +32,7 @@ object DolphinPaths {
   const val DOLPHIN_PACKAGE: String = DolphinLauncher.DOLPHIN_PACKAGE
 
   /** Subpath under Dolphin's `files/` dir where WheelWitch keeps the pack, ROM, and launch descriptor. */
-  const val WHEELWITCH_SUBPATH: String = "User/Wii/WheelWitch"
+  const val WHEELWITCH_SUBPATH: String = "WheelWitch"
 
   /**
    * Absolute filesystem path of Dolphin's per-user folder.
@@ -63,7 +63,7 @@ object DolphinPaths {
   fun romDir(context: Context): File = File(wheelWitchDir(context), "rom")
 
   /** Path to the launch descriptor that Riivolution reads to launch Retro Rewind. */
-  fun rrJsonFile(context: Context): File = File(wheelWitchDir(context), "rr_autostartfile.json")
+  fun rrJsonFile(context: Context): File = File(romDir(context), "rr_autostartfile.json")
 
   /** Path to the version file written by [com.skiletro.wheelwitch.domain.RewindPackManager] after a successful install. */
   fun versionFile(context: Context): File = File(packDir(context), "version.txt")
