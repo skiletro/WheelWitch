@@ -16,7 +16,7 @@ import timber.log.Timber
  *   riivolution/
  *     save/
  *       RetroWFC/
- *         <regionCode>/      — e.g. RMCP, RMCE, RMCJ
+ *         <regionCode>/      - e.g. RMCP, RMCE, RMCJ
  *           rksys.dat
  * ```
  *
@@ -125,7 +125,7 @@ object SaveManager {
 
   /**
    * Deletes the [region] save file. Returns success even if the file
-   * was already absent — `delete` is idempotent by intent.
+   * was already absent; `delete` is idempotent by intent.
    */
   suspend fun delete(tree: DolphinTree, region: Region): Result<Unit> =
     withContext(Dispatchers.IO) {

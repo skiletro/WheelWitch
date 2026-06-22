@@ -257,7 +257,7 @@ class FileDownloaderTest {
     @Test
     fun `downloadInParallel falls back to single-stream when server returns no Accept-Ranges`() {
         // Default dispatcher: enqueue a HEAD (no Accept-Ranges) then a 200
-        // body. Only the 200 should be consumed by the GET — the parallel
+        // body. Only the 200 should be consumed by the GET; the parallel
         // path is skipped entirely.
         server.enqueue(
             MockResponse()

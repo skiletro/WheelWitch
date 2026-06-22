@@ -14,7 +14,7 @@ import java.util.Locale
  * The output is a plain-text report with a header (app version, git hash,
  * timestamp) followed by one line per captured [LogEntry]. Throwable stacks
  * are inlined into [LogEntry.message] by Timber, so they are rendered as part
- * of the message — the exporter does not re-render [LogEntry.throwable].
+ * of the message; the exporter does not re-render [LogEntry.throwable].
  */
 object LogExporter {
   private const val DIR_NAME = "logs"

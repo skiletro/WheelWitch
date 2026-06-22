@@ -50,7 +50,7 @@ private const val SparkleFadeOutStart = 0.65f
  * for the hat icon. The sparkles orbit at a fixed proportion of the [hatSize].
  *
  * Apply external `Modifier.offset(y = bob.dp)` to add a vertical bob if
- * desired — the bob animation is not encapsulated here so callers can
+ * desired. The bob animation is not encapsulated here so callers can
  * combine it with other offsets (e.g. a launch animation).
  */
 @Composable

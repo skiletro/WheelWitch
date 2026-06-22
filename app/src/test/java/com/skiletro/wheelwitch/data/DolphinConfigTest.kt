@@ -89,7 +89,7 @@ class DolphinConfigTest {
   fun `read ignores the ISOPaths count line itself`() {
     val content =
       "[General]\n" +
-        "ISOPaths = 5\n" + // count lies — should be ignored
+        "ISOPaths = 5\n" + // count lies; should be ignored
         "ISOPath0 = a\n" +
         "ISOPath1 = b\n"
     val paths = DolphinConfig.read(content).paths
@@ -98,13 +98,13 @@ class DolphinConfigTest {
 
   @Test
   fun `read ignores malformed ISOPath lines and the strays they break the block on`() {
-    // A malformed `ISOPathBad` (no digit) breaks the contiguous block
-    // — it's not in the ISOPathN regex family. The trailing ISOPath2
+    // A malformed `ISOPathBad` (no digit) breaks the contiguous block;
+    // it's not in the ISOPathN regex family. The trailing ISOPath2
     // then sits outside the block and is also ignored, matching the
     // behavior we use in upsert/remove to keep the file canonical.
     val content =
       "[General]\n" +
-        "ISOPath0 = \n" + // empty value — still parsed as ""
+        "ISOPath0 = \n" + // empty value; still parsed as ""
         "ISOPath1 = good\n" +
         "ISOPathBad\n" + // breaks the contiguous run
         "ISOPath2 = trailing\n"
@@ -172,7 +172,7 @@ class DolphinConfigTest {
           "ISOPaths = 1\n" +
           "ISOPath0 = /A\n" +
           "SomeKey = value\n" +
-          "ISOPath1 = /B\n", // stray line — should not survive block replacement
+          "ISOPath1 = /B\n", // stray line; should not survive block replacement
         "/C",
       )
     assertThat(out)

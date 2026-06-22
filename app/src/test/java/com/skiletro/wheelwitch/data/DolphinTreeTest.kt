@@ -154,7 +154,7 @@ class DolphinTreeTest {
   @Test
   fun `validate fails for a subfolder of the Dolphin provider`() {
     // A subfolder of the Dolphin provider (e.g. root/GameSettings)
-    // is rejected — the WheelWitch subdirs must be created at the
+    // is rejected; the WheelWitch subdirs must be created at the
     // top of Dolphin's user folder, not inside some intermediate
     // location.
     mockkStatic(DocumentsContract::class)
@@ -227,7 +227,7 @@ class DolphinTreeTest {
     every { prefs.getString(PrefsKeys.WHEELWITCH_TREE_URI_KEY, null) } returns
       "content://stale/tree/uri"
     every { prefs.edit() } returns editor
-    // Production code chains editor.remove(...).apply() — return the
+    // Production code chains editor.remove(...).apply(); return the
     // editor from remove() so the .apply() call has a non-null target.
     every { editor.remove(any<String>()) } returns editor
     mockPrefsMain(prefs)
@@ -376,7 +376,7 @@ class DolphinTreeTest {
     val (_, packDir, _) = setupDirChain()
     val zip = File(tempDir.toFile(), "pack.zip")
     ZipOutputStream(zip.outputStream()).use { zos ->
-      // Directory entry followed by a file entry — directory should not
+      // Directory entry followed by a file entry; directory should not
       // produce a DocumentFile.createFile call.
       zos.putNextEntry(ZipEntry("subdir/"))
       zos.closeEntry()
@@ -444,7 +444,7 @@ class DolphinTreeTest {
   fun `extractZipToPack creates every ancestor directory even when no file lives at intermediate levels`(
     @TempDir tempDir: Path
   ) = runBlocking {
-    // File at a/b/c/leaf.txt — no files directly under a/ or a/b/ on
+    // File at a/b/c/leaf.txt; no files directly under a/ or a/b/ on
     // their own. The pre-pass must still create the full a -> a/b ->
     // a/b/c chain, which it didn't before the ancestor-set fix
     // (the direct-parent-only set missed "a" and "a/b" entirely).
@@ -750,7 +750,7 @@ class DolphinTreeTest {
   ) {
     val file = mockk<DocumentFile>(relaxed = true)
     // Use a unique mock Uri per file so the byte stream destinations
-    // don't collapse — Uri.parse under unitTests.isReturnDefaultValues
+    // don't collapse; Uri.parse under unitTests.isReturnDefaultValues
     // returns null, so we can't rely on it.
     val uri = mockk<Uri>(relaxed = true)
     every { file.uri } returns uri

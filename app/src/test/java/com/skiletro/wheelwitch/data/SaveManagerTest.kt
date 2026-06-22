@@ -44,8 +44,8 @@ class SaveManagerTest {
       arrayOf(
         mockRomFile("RMCP01.iso"),
         mockRomFile("RMCE01.rvz"),
-        mockRomFile("RMCP01.iso"), // duplicate name — should dedupe
-        mockRomFile("README.txt"), // unknown — should be filtered
+        mockRomFile("RMCP01.iso"), // duplicate name; should dedupe
+        mockRomFile("README.txt"), // unknown; should be filtered
       )
 
     val regions = SaveManager.listRegions(tree)
@@ -125,7 +125,7 @@ class SaveManagerTest {
    * DocumentFile) so any un-stubbed branch still terminates cleanly.
    *
    * [content] is the bytes the resolver returns for the save file
-   * input stream — used by the read paths.
+   * input stream, used by the read paths.
    */
   private fun setupSaveChain(
     region: Region,

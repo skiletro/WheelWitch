@@ -13,8 +13,8 @@ import kotlin.text.Regex.Companion.escape
  * [Context.getExternalFilesDir], which returns
  * `/storage/emulated/<userId>/Android/data/<calling_pkg>/files`, and
  * replace `<calling_pkg>` with [DOLPHIN_PACKAGE]. The result is
- * `/storage/emulated/<userId>/Android/data/org.dolphinemu.dolphinemu/files`
- * — multi-user safe by construction for the common case where WheelWitch
+ * `/storage/emulated/<userId>/Android/data/org.dolphinemu.dolphinemu/files`,
+ * multi-user safe by construction for the common case where WheelWitch
  * and Dolphin live in the same user.
  *
  * All other helpers in this object compose on [physicalRoot], so every
@@ -23,12 +23,12 @@ import kotlin.text.Regex.Companion.escape
  * That single source of truth is the path consistency invariant
  * required for Riivolution to resolve the launch descriptor.
  *
- * `DOLPHIN_PACKAGE` is re-exported from [DolphinLauncher] — do not
+ * `DOLPHIN_PACKAGE` is re-exported from [DolphinLauncher]. Do not
  * redefine it. The Mii WAD installer imports the same constant from
  * the same place, so a rename must happen in one spot.
  */
 object DolphinPaths {
-  /** Re-exported from [DolphinLauncher] — single source of truth. */
+  /** Re-exported from [DolphinLauncher]: single source of truth. */
   const val DOLPHIN_PACKAGE: String = DolphinLauncher.DOLPHIN_PACKAGE
 
   /** Subpath under Dolphin's `files/` dir where WheelWitch keeps the pack, ROM, and launch descriptor. */
@@ -42,8 +42,7 @@ object DolphinPaths {
    * `/storage/emulated/<userId>/Android/data/<calling_pkg>/files`. The
    * calling package segment is then replaced with [DOLPHIN_PACKAGE].
    * This assumes WheelWitch and Dolphin are in the same user, which is
-   * the common case; the work-profile mismatch is a known limitation
-   * (see PLAN.md "Risks and unknowns").
+   * the common case; the work-profile mismatch is a known limitation.
    *
    * @throws IllegalStateException if [Context.getExternalFilesDir] returns null.
    */
@@ -76,7 +75,7 @@ object DolphinPaths {
    * The expected SAF tree document id for the Dolphin user folder.
    *
    * The onboarding picker uses this with [DocumentsContract.getTreeDocumentId] to confirm the
-   * user picked the right folder — anything else is rejected and re-prompted.
+   * user picked the right folder. Anything else is rejected and re-prompted.
    */
   fun expectedTreeId(): String = "primary:Android/data/$DOLPHIN_PACKAGE/files"
 }

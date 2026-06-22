@@ -59,9 +59,9 @@ data class ExtractProgress(
  * ```
  * <tree root>/
  * └── User/Wii/WheelWitch/
- *     ├── pack/                       — extracted Retro Rewind contents
- *     ├── rom/                        — user-picked Mario Kart Wii ISO/RVZ/WBFS
- *     └── rr_autostartfile.json       — launch descriptor (dolphin-game-mod-descriptor)
+ *     ├── pack/                       : extracted Retro Rewind contents
+ *     ├── rom/                        : user-picked Mario Kart Wii ISO/RVZ/WBFS
+ *     └── rr_autostartfile.json       : launch descriptor (dolphin-game-mod-descriptor)
  * ```
  *
  * Construction is cheap: lazy subdirectory properties defer their first
@@ -85,7 +85,7 @@ class DolphinTree(context: Context, val treeUri: Uri) {
         // a bug report can show whether the picker returned an
         // unexpected form. fromTreeUri returns null when the URI is
         // malformed, the tree has been revoked, or the provider is
-        // unreachable — all "re-onboard" cases.
+        // unreachable; all "re-onboard" cases.
         val docId =
           runCatching { DocumentsContract.getTreeDocumentId(treeUri) }.getOrNull()
         Timber.tag(TAG)
@@ -305,7 +305,7 @@ class DolphinTree(context: Context, val treeUri: Uri) {
   /**
    * Reads the `version.txt` file at the root of [packDir] and parses
    * it as a [SemVersion]. Returns null when the file is missing or
-   * unparseable — both are treated as "no local version".
+   * unparseable; both are treated as "no local version".
    */
   fun readVersion(): SemVersion? {
     val file = packDir.findFile(VERSION_FILE_NAME) ?: return null
@@ -324,8 +324,8 @@ class DolphinTree(context: Context, val treeUri: Uri) {
    * Writes [version] to `version.txt` at the root of [packDir],
    * replacing any existing file. Called by
    * [com.skiletro.wheelwitch.domain.RewindPackManager] only after a
-   * successful install/extract — see PLAN §"write `version.txt` after
-   * a successful extract".
+   * successful install/extract, so a failed extract leaves the
+   * previous version (or no file) on disk.
    */
   suspend fun writeVersion(version: SemVersion): Unit =
     withContext(Dispatchers.IO) {
@@ -446,8 +446,8 @@ class DolphinTree(context: Context, val treeUri: Uri) {
 
     /**
      * Filename of the launch descriptor at the WheelWitch root.
-     * Re-exported from [com.skiletro.wheelwitch.util.launcher.DolphinLauncher.RR_JSON_NAME]
-     * — single source of truth lives in the launcher.
+     * Re-exported from [com.skiletro.wheelwitch.util.launcher.DolphinLauncher.RR_JSON_NAME].
+     * Single source of truth lives in the launcher.
      */
     const val LAUNCH_JSON_NAME = com.skiletro.wheelwitch.util.launcher.DolphinLauncher.RR_JSON_NAME
 
@@ -461,18 +461,18 @@ class DolphinTree(context: Context, val treeUri: Uri) {
      * Returns success if [treeUri] points to the Dolphin user folder.
      * Two URI forms are accepted:
      *
-     * 1. **Primary external storage** — the stock SAF picker's default:
+     * 1. **Primary external storage**: the stock SAF picker's default:
      *    `content://com.android.externalstorage.documents/tree/primary%3AAndroid%2Fdata%2Forg.dolphinemu.dolphinemu%2Ffiles`.
      *    Document id is `primary:Android/data/org.dolphinemu.dolphinemu/files`.
-     * 2. **Dolphin's own SAF provider** — surfaced by the picker on
+     * 2. **Dolphin's own SAF provider**: surfaced by the picker on
      *    devices where Dolphin is installed:
      *    `content://org.dolphinemu.dolphinemu.user/tree/root%2F`.
      *    Document id is `root/`. This provider maps to the same
      *    physical folder and is the recommended path on modern
-     *    Android — it does not require the legacy
+     *    Android. It does not require the legacy
      *    `MANAGE_EXTERNAL_STORAGE` permission.
      *
-     * Subfolders of either root are rejected — the WheelWitch
+     * Subfolders of either root are rejected. The WheelWitch
      * subdirectory must be created at the top of Dolphin's user
      * folder, not inside some intermediate location.
      */
@@ -511,14 +511,14 @@ class DolphinTree(context: Context, val treeUri: Uri) {
      * [PrefsKeys.WHEELWITCH_TREE_URI_KEY], or returns null if the URI
      * is missing or no longer valid (e.g. the user revoked the SAF
      * grant). When the grant is lost, the persisted URI is cleared so
-     * the UI can route to onboarding (see PLAN §5).
+     * the UI can route to onboarding.
      */
     fun fromPersisted(context: Context): DolphinTree? {
       val prefs = Prefs.main(context)
       val uriString = prefs.getString(PrefsKeys.WHEELWITCH_TREE_URI_KEY, null)
       if (uriString == null) {
         Timber.tag(TAG)
-          .i("fromPersisted: no tree URI under %s — user has not completed onboarding",
+          .i("fromPersisted: no tree URI under %s; user has not completed onboarding",
             PrefsKeys.WHEELWITCH_TREE_URI_KEY)
         return null
       }
@@ -534,7 +534,7 @@ class DolphinTree(context: Context, val treeUri: Uri) {
         tree
       } catch (e: Exception) {
         Timber.tag(TAG)
-          .e(e, "fromPersisted: rebuild failed for uriString=%s — clearing pref", uriString)
+          .e(e, "fromPersisted: rebuild failed for uriString=%s; clearing pref", uriString)
         prefs.edit().remove(PrefsKeys.WHEELWITCH_TREE_URI_KEY).apply()
         null
       }

@@ -37,12 +37,12 @@ import timber.log.Timber
  * Owns the save file state: per-region parse, leaderboard merge,
  * backup/restore/delete, and slot selection.
  *
- * The pack install flow lives in [PackUpdateViewModel] — this VM
+ * The pack install flow lives in [PackUpdateViewModel]. This VM
  * listens to its [UiState] via [packStatusFlow] and re-parses the
  * save whenever the pack state transitions to [UiState.Ready]. This
  * keeps the two VMs decoupled (no static companion pointers like
  * the deleted `SaveDataDelegate`) and survives process death
- * naturally — both VMs are reconstructed on the next composition
+ * naturally; both VMs are reconstructed on the next composition
  * and re-collect the [packStatusFlow] from scratch.
  *
  * Multi-region: a user with multiple ROMs (one per region) has one
@@ -297,12 +297,12 @@ class SaveDataViewModel(
    * [factory] used by [androidx.lifecycle.viewmodel.compose.viewModel]
    * in the composition root. The default [ViewModelProvider] for
    * [AndroidViewModel] looks up a single-arg `(Application)`
-   * constructor, which doesn't exist anymore — the second
+   * constructor, which doesn't exist anymore. The second
    * `packStatusFlow` parameter requires a custom factory.
    *
    * The other constructor parameters (`treeFactory`, `parser`,
    * `leaderboardFetcher`, `ioDispatcher`) use their production
-   * defaults — tests that need to swap them continue to construct
+   * defaults; tests that need to swap them continue to construct
    * the VM directly with explicit arguments.
    */
   companion object {
@@ -312,7 +312,7 @@ class SaveDataViewModel(
 
     /**
      * [ViewModelProvider.Factory] that wires the production
-     * dependencies — the [Application] from [ViewModelProvider]'s
+     * dependencies; the [Application] from [ViewModelProvider]'s
      * CreationExtras, and the [packStatusFlow] from the
      * already-constructed [PackUpdateViewModel]. The pack VM lives
      * in the parent scope (`MainScreen`) so it can be passed in

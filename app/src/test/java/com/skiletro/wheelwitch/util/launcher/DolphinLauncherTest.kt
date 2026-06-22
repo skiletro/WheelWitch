@@ -36,7 +36,7 @@ class DolphinLauncherTest {
   fun `RR_JSON_NAME is the new rr_autostartfile json filename`() {
     // The on-disk launch descriptor is now "rr_autostartfile.json"
     // (renamed from the legacy "RR.json"). DolphinTree.LAUNCH_JSON_NAME
-    // re-exports this value — see DolphinTreeTest for that linkage.
+    // re-exports this value; see DolphinTreeTest for that linkage.
     assertThat(DolphinLauncher.RR_JSON_NAME).isEqualTo("rr_autostartfile.json")
   }
 
@@ -56,7 +56,7 @@ class DolphinLauncherTest {
         baseFilePath = "/r/rom.iso",
         packRootPath = "/r/pack",
       )
-    // Smoke test — the body must be valid JSON. org.json.JSONObject
+    // Smoke test: the body must be valid JSON. org.json.JSONObject
     // throws on malformed input, so reaching the next assertion is
     // the test.
     val obj = JSONObject(json)
@@ -81,7 +81,7 @@ class DolphinLauncherTest {
   }
 
   @Test
-  fun `buildLaunchJson writes the matellush reference top-level values`() {
+  fun `buildLaunchJson writes the descriptor top-level values`() {
     val json =
       DolphinLauncher.buildLaunchJson(
         baseFilePath = "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/User/Wii/WheelWitch/rom/RMCP01.iso",
@@ -99,7 +99,7 @@ class DolphinLauncherTest {
   }
 
   @Test
-  fun `buildLaunchJson patch field names match the working reference`() {
+  fun `buildLaunchJson patch field names match the descriptor schema`() {
     // Patch field names: options, root, xml.
     val json =
       DolphinLauncher.buildLaunchJson(
@@ -116,10 +116,10 @@ class DolphinLauncherTest {
 
   @Test
   fun `buildLaunchJson writes root and xml from the same packRootPath`() {
-    // Path consistency invariant (PLAN §8). root and xml share
-    // packRootPath as their prefix, so a single physicalRoot input
-    // guarantees the two agree. base-file is the caller's
-    // responsibility — see the buildLaunchJson kdoc.
+    // Path consistency invariant: root and xml share packRootPath
+    // as their prefix, so a single physicalRoot input guarantees
+    // the two agree. base-file is the caller's responsibility; see
+    // the buildLaunchJson kdoc.
     val json =
       DolphinLauncher.buildLaunchJson(
         baseFilePath = "/r/rom.iso",
@@ -216,9 +216,9 @@ class DolphinLauncherTest {
 
   @Test
   fun `buildLaunchJson writes a single patch in the patches array`() {
-    // The matellush reference is a single-patch descriptor. If we
-    // ever fan out to multi-patch, the JSON path tests will need
-    // an index — call out the constraint here.
+    // The descriptor is a single-patch shape. If we ever fan out
+    // to multi-patch, the JSON path tests will need an index; call
+    // out the constraint here.
     val json =
       DolphinLauncher.buildLaunchJson(
         baseFilePath = "/r/rom.iso",

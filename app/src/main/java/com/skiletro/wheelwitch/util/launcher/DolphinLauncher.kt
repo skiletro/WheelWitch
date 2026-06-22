@@ -22,7 +22,7 @@ import timber.log.Timber
  * ROM and fires an [Intent] at Dolphin's main activity with the
  * `AutoStartFile` extra pointing at the on-disk JSON.
  *
- * Path consistency invariant (PLAN §8): the descriptor's `base-file`,
+ * Path consistency invariant: the descriptor's `base-file`,
  * `root`, and `xml` fields, plus the `AutoStartFile` extra, all derive
  * from the same [DolphinPaths.physicalRoot] call. This guarantees
  * Riivolution can `open(2)` every path the descriptor references.
@@ -65,7 +65,7 @@ object DolphinLauncher {
       context.packageManager.getPackageInfo(DOLPHIN_PACKAGE, 0)
       true
     } catch (e: Exception) {
-      Timber.tag("DolphinLauncher").d(e, "Dolphin package not installed")
+      Timber.tag(TAG).d(e, "Dolphin package not installed")
       false
     }
 
@@ -73,12 +73,12 @@ object DolphinLauncher {
    * Build the `dolphin-game-mod-descriptor` JSON body that Riivolution
    * reads when launching Retro Rewind. Pure: no I/O, no Android state.
    *
-   * The output matches the field names, ordering, and choice values
-   * from `@matellush`'s working reference (see PLAN.md). The three
-   * path fields (`base-file`, `root`, `xml`) are derived from the
-   * caller's `baseFilePath` and `packRootPath` — for the launch to
-   * succeed, all three must come from the same `physicalRoot` call
-   * (the Path consistency invariant, PLAN §8). `xml` is the join of
+   * The output uses the field names, ordering, and choice values
+   * that Dolphin's `dolphin-game-mod-descriptor` schema expects. The
+   * three path fields (`base-file`, `root`, `xml`) are derived from
+   * the caller's `baseFilePath` and `packRootPath`. For the launch
+   * to succeed, all three must come from the same `physicalRoot`
+   * call (the Path consistency invariant). `xml` is the join of
    * `packRootPath` and [xmlRelPath], so passing the same pack root
    * for both `root` and the prefix of `xml` is automatic.
    */
@@ -148,7 +148,7 @@ object DolphinLauncher {
       val json = buildLaunchJson(baseFilePath, packRootPath, xmlRelPath)
       tree.writeLaunchJson(json)
 
-      Timber.tag("DolphinLauncher")
+      Timber.tag(TAG)
         .i("Launching RR via AutoStartFile=%s base-file=%s", jsonPath, baseFilePath)
 
       context.startActivity(buildDolphinIntent(jsonPath))
@@ -170,7 +170,7 @@ object DolphinLauncher {
 
   /**
    * Outcome of [launchRetroRewind]. The auto-start path is the
-   * preferred UX — RR launches with the descriptor pre-loaded. The
+   * preferred UX; RR launches with the descriptor pre-loaded. The
    * fallback path is fired when the auto-start attempt fails (e.g.
    * the `AutoStartFile` extra throws "can't find content or path"
    * inside Dolphin). We start Dolphin bare so the user can pick RR
@@ -178,7 +178,7 @@ object DolphinLauncher {
    * RR in that library.
    */
   sealed class LaunchResult {
-    /** Auto-start path worked — RR is launching with the descriptor. */
+    /** Auto-start path worked; RR is launching with the descriptor. */
     data object AutoStarted : LaunchResult()
 
     /**
@@ -211,7 +211,7 @@ object DolphinLauncher {
    * 5. Write the launch descriptor and fire the `AutoStartFile`
    *    intent via [launch].
    * 6. On any failure, fall back to starting Dolphin without the
-   *    extra and return [LaunchResult.FallbackStarted] — the user
+   *    extra and return [LaunchResult.FallbackStarted]. The user
    *    can still launch RR from the library.
    */
   fun launchRetroRewind(context: Context): LaunchResult {
@@ -245,8 +245,8 @@ object DolphinLauncher {
    * Reads `Config/Dolphin.ini` from [tree], upserts the
    * `content://org.dolphinemu.dolphinemu.user/tree/root%2FUser%2FWii%2FWheelWitch%2From`
    * URI (the rom directory the user picked via SAF), and writes the
-   * file back. The URI is the one Dolphin's own SAF provider expects —
-   * see [DolphinConfig.dolphinUserTreeUri]. This is the bridge that
+   * file back. The URI is the one Dolphin's own SAF provider expects.
+   * See [DolphinConfig.dolphinUserTreeUri]. This is the bridge that
    * makes "RR shows up in Dolphin's library" work.
    */
   fun registerRomPathInConfig(
@@ -285,7 +285,7 @@ object DolphinLauncher {
     }
 
   /**
-   * Bare Dolphin launch — no `AutoStartFile` extra. Used as the
+   * Bare Dolphin launch: no `AutoStartFile` extra. Used as the
    * fallback when the auto-start path throws inside Dolphin. Returns
    * true if the intent was started, false if Dolphin isn't installed.
    */

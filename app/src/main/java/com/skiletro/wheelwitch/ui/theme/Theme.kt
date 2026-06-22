@@ -180,8 +180,8 @@ private val CatppuccinLightColorScheme = lightColorScheme(
 enum class ThemeMode { Light, Dark, Oled, System }
 
 enum class AppTheme(val labelRes: Int) {
-    Hex(R.string.settings_app_theme_purple),
-    Swamp(R.string.settings_app_theme_green),
+    Hex(R.string.settings_app_theme_hex),
+    Swamp(R.string.settings_app_theme_swamp),
     Wizard(R.string.settings_app_theme_wizard),
     Catppuccin(R.string.settings_app_theme_catppuccin),
     MaterialYou(R.string.settings_app_theme_material_you);

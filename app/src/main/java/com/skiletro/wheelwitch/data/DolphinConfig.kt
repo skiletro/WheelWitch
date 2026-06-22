@@ -8,7 +8,7 @@ import android.net.Uri
  *
  * The Dolphin emulator reads the `[General] ISOPathN` keys when
  * building its game library. WheelWitch edits this file so the
- * `User/Wii/WheelWitch/rom/` folder shows up as a library entry —
+ * `User/Wii/WheelWitch/rom/` folder shows up as a library entry,
  * this is the bridge that makes "RR shows up in Dolphin's library"
  * work even though `rr_autostartfile.json` itself uses physical
  * paths (Riivolution is native code and cannot resolve `content://`
@@ -39,7 +39,7 @@ object DolphinConfig {
    * at the first `ISOPathN` line if no count line is present) and
    * ending at the first non-`ISOPathN` line. Lines that match the
    * `ISOPathN` pattern but sit outside this run (a stray) are
-   * ignored — they would otherwise produce a broken file when
+   * ignored; they would otherwise produce a broken file when
    * [upsert] renumbers the block.
    *
    * The returned list preserves file order. Writing it back via
@@ -90,7 +90,7 @@ object DolphinConfig {
    * Computes the `content://` URI that Dolphin's own `.user` provider
    * expects for a given relative path under its `files/` tree.
    *
-   * WheelWitch never reads from this URI (it has no grant for it) — it
+   * WheelWitch never reads from this URI (it has no grant for it); it
    * only writes the string into `Dolphin.ini`'s `ISOPathN` and lets
    * Dolphin resolve it through its own provider.
    *

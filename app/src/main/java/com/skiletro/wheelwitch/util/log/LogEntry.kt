@@ -4,7 +4,7 @@ package com.skiletro.wheelwitch.util.log
  * A single captured log entry, held in [LogBuffer] and serialised by [LogExporter].
  *
  * Note: when [throwable] is non-null, [message] already includes the rendered stack trace
- * appended by Timber's [Timber.Tree] dispatch — consumers must not render [throwable]
+ * appended by Timber's [Timber.Tree] dispatch. Consumers must not render [throwable]
  * separately, or the stack trace will be written twice.
  */
 data class LogEntry(

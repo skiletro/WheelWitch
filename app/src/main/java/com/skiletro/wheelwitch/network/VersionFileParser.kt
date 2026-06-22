@@ -116,7 +116,7 @@ object VersionFileParser {
         parseHealthResponse(json)
     }
 
-    /** Simple liveness check — returns true if the process is up. */
+    /** Simple liveness check; returns true if the process is up. */
     fun fetchHealthLive(): Result<Boolean> = runCatching {
         val request = Request.Builder().url(HEALTH_LIVE_URL).build()
         httpClient.newCall(request).execute().use { response ->

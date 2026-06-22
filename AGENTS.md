@@ -2,7 +2,7 @@
 
 An Android app that downloads/updates the Retro Rewind Mario Kart Wii Pack and launches Dolphin Emulator.
 
-> Build instructions, commit conventions, and contribution guidelines live in [CONTRIBUTING.md](CONTRIBUTING.md). This file covers architecture, key decisions, constants, and testing — the things that don't change often.
+> Build instructions, commit conventions, and contribution guidelines live in [CONTRIBUTING.md](CONTRIBUTING.md). This file covers architecture, key decisions, constants, and testing: the things that don't change often.
 
 ## Build & Dev
 
@@ -10,28 +10,28 @@ See [CONTRIBUTING.md#build](CONTRIBUTING.md#build) for build commands and signin
 
 ### Formatting (Spotless + ktfmt)
 
-- `./gradlew spotlessApply` — auto-format all `.kt` and `.kts` files
-- `./gradlew spotlessCheck` — verify formatting (for CI)
-- No configuration to debate — ktfmt DEFAULT style is enforced
+- `./gradlew spotlessApply`: auto-format all `.kt` and `.kts` files
+- `./gradlew spotlessCheck`: verify formatting (for CI)
+- No configuration to debate; ktfmt DEFAULT style is enforced
 
 ### Linting (Android Lint)
 
-- `./gradlew lint` — runs Android Lint on the default variant
-- `./gradlew check` — includes lint + unit tests
+- `./gradlew lint`: runs Android Lint on the default variant
+- `./gradlew check`: includes lint + unit tests
 - Config in `app/lint.xml` (silences non-actionable checks)
-- Keep lint clean before committing — no errors allowed
+- Keep lint clean before committing; no errors allowed
 
 ## Git & Commits
 
-- Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) — `<type>(<scope>): <description>`, lowercase imperative, no trailing period. See [CONTRIBUTING.md#commit-messages](CONTRIBUTING.md#commit-messages) for types and scopes.
+- Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/): `<type>(<scope>): <description>`, lowercase imperative, no trailing period. See [CONTRIBUTING.md#commit-messages](CONTRIBUTING.md#commit-messages) for types and scopes.
 - Stage only intended files with `git add <file>`; read `git status` before every commit; never use `git add -A` or `git commit -a` without verifying the diff.
 
 ## Architecture
 
 - **Min SDK**: 31, **Target SDK**: 36, **Java 11**, **Compose + Material3** with dynamic color
-- **No Google Play Services** — sideloaded APK only
+- **No Google Play Services**: sideloaded APK only
 - **Landscape-locked** fullscreen via `WindowCompat.getInsetsController`
-- **Navigation**: flat overlay pattern via `AnimatedVisibility` — no NavHost
+- **Navigation**: flat overlay pattern via `AnimatedVisibility`. No NavHost.
 - **Gamepad focus isolation**: background screens removed from composition when overlays active
 - **OkHttp 4.12.0** via `HttpClientProvider` singleton (15s / 60s read timeout variants)
 - **SAF folder picker** for storage; `DolphinTree` wraps the SAF grant + `DocumentFile` operations
@@ -51,28 +51,28 @@ com.skiletro.wheelwitch
 ├── util/{io,net,mii,launcher,log,json,prefs}/   (utilities grouped by concern)
 ├── ui/{components,screens,theme}/
 └── viewmodel/
-    ├── PackUpdateViewModel   — install/update state machine + SAF tree wiring
-    ├── SaveDataViewModel     — per-region parse, leaderboard merge, backup/restore/delete, multi-region
-    ├── MiiMakerViewModel     — WAD install (Mutex-guarded), launch, delete
-    ├── OnlineViewModel       — rooms, leaderboard (Channel-based race-free), health, race stats
-    ├── VersionHistoryViewModel — version history + changelog
-    └── UiState               — sealed class for pack update flow
+    ├── PackUpdateViewModel   : install/update state machine + SAF tree wiring
+    ├── SaveDataViewModel     : per-region parse, leaderboard merge, backup/restore/delete, multi-region
+    ├── MiiMakerViewModel     : WAD install (Mutex-guarded), launch, delete
+    ├── OnlineViewModel       : rooms, leaderboard (Channel-based race-free), health, race stats
+    ├── VersionHistoryViewModel: version history + changelog
+    └── UiState               : sealed class for pack update flow
 ```
 
-The sub-packages under `util/` are intentional — keep new files in the right sub-package:
-- `io/` — `FileDownloader`, `ByteReader`, `OptionalFileTree`
-- `net/` — `HttpClientProvider`, `NetworkExtensions`
-- `mii/` — `MiiWadInstaller`, `MiiFaceCache`, `MiiEndpoints`
-- `launcher/` — `DolphinLauncher`, `BugReportLauncher`
-- `log/` — `LogBuffer`, `LogEntry`, `LogExporter`, `MemoryBufferTree`, `AppReleaseLogTree`
-- `json/` — `JsonExtensions`
-- `prefs/` — `Prefs`, `PrefsKeys`
+The sub-packages under `util/` are intentional. Keep new files in the right sub-package:
+- `io/`: `FileDownloader`, `ByteReader`, `OptionalFileTree`
+- `net/`: `HttpClientProvider`, `NetworkExtensions`
+- `mii/`: `MiiWadInstaller`, `MiiFaceCache`, `MiiEndpoints`
+- `launcher/`: `DolphinLauncher`, `BugReportLauncher`
+- `log/`: `LogBuffer`, `LogEntry`, `LogExporter`, `MemoryBufferTree`, `AppReleaseLogTree`
+- `json/`: `JsonExtensions`
+- `prefs/`: `Prefs`, `PrefsKeys`
 
 ## Key Decisions
 
 - **Screen nav**: `MainScreen` orchestrates `HomeScreen`/`SettingsScreen`/`OnboardingScreen`; `HomeScreen` orchestrates `OnlineMenuScreen`/`SaveInfoScreen`; `OnlineMenuScreen` uses `AnimatedContent` with `OnlineMenuPage` enum
 - **Dolphin tree**: `DolphinTree` (SAF wrapper) is the single source of truth for the user-picked folder; `DolphinPaths` derives physical paths via the package-swap trick; `DolphinConfig` is the pure INI parser for `Dolphin.ini` `ISOPathN` registration
-- **Path consistency invariant**: every path inside `rr_autostartfile.json` and the `AutoStartFile` extra must derive from the same `DolphinPaths.physicalRoot(context)` call — Riivolution's native code can't resolve `content://` URIs
+- **Path consistency invariant**: every path inside `rr_autostartfile.json` and the `AutoStartFile` extra must derive from the same `DolphinPaths.physicalRoot(context)` call. Riivolution's native code can't resolve `content://` URIs.
 - **Launch flow**: `DolphinLauncher.launchRetroRewind(context)` does (1) validate Dolphin, (2) load tree, (3) pick ROM, (4) upsert `Dolphin.ini`, (5) write descriptor, (6) fire intent; falls back to bare-Dolphin launch if any step throws
 - **PrimaryActionButton**: 56dp, filled primary, `titleMedium` semi-bold; **SecondaryActionButton**: 48dp, outlined
 - **Leaderboard**: clickable rows with 5dp primary border on focus; one-shot `hasRequestedFocus` guard for pagination
@@ -120,7 +120,7 @@ JUnit 5, MockK 1.13.x, Truth 1.4.x, `org.json:json` test dep (Android stubs thro
 | File | Tests | What it covers |
 |---|---|---|
 | `model/SemVersionTest.kt` | 6 | `parse()` valid/invalid, `compareTo()`, `toString()` |
-| `network/RoomStatusParserTest.kt` | 7 | `parseRooms()` — full room, null race, edge cases |
+| `network/RoomStatusParserTest.kt` | 7 | `parseRooms()`: full room, null race, edge cases |
 | `util/launcher/DolphinLauncherTest.kt` | 31 | `buildLaunchJson` field shape, `launch` intent, `registerRomPathInConfig`, `pickRomFile`, `startDolphin`, `launchRetroRewind` (auto-start + fallback + NoRom + StorageNotConfigured + DolphinNotInstalled) |
 | `util/mii/MiiFaceCacheTest.kt` | 5 | cache size, clear, init |
 | `util/mii/MiiWadInstallerTest.kt` | 8 | WAD validation, zip extraction, HACS variant |
@@ -131,7 +131,7 @@ JUnit 5, MockK 1.13.x, Truth 1.4.x, `org.json:json` test dep (Android stubs thro
 | `util/io/FileDownloaderTest.kt` | 6 | MockWebServer HTTP flows, backoff, 4xx/5xx discrimination |
 | `util/io/ByteReaderTest.kt` | 12 | byte-level reads, endianness, bounds |
 | `util/FormatTest.kt` | 6 | byte/percentage formatting |
-| `data/RksysParserTest.kt` | 9 | RKPD binary parsing — slots, friend code golden |
+| `data/RksysParserTest.kt` | 9 | RKPD binary parsing: slots, friend code golden |
 | `data/GameTypeParserTest.kt` | 23 | ISO/RVZ/WBFS/WAD detection, game-id extraction |
 | `data/DolphinPathsTest.kt` | 14 | `physicalRoot` package-swap (release + debug), path helpers |
 | `data/DolphinTreeTest.kt` | 35 | lazy subdirs, `validate`, `fromPersisted`/`persist`, `copyRomFromSource`, `extractZipToPack`, `writeLaunchJson`/`readLaunchJson`, `readVersion`/`writeVersion`, `readConfigIni`/`writeConfigIni`, persist/release URI permission |
@@ -147,6 +147,6 @@ JUnit 5, MockK 1.13.x, Truth 1.4.x, `org.json:json` test dep (Android stubs thro
 - Pure functions tested directly (no Android deps): SemVersion, parseRooms(), parseUpdatesText(), `DolphinConfig`, `DolphinPaths.physicalRoot`, `DolphinLauncher.buildLaunchJson`, etc.
 - `RksysParser` and `MiiFaceCache` use `java.util.Base64` for JVM testability
 - `DolphinTree` is tested with MockK-stubs for `ContentResolver`/`DocumentFile`; constructor is cheap and side-effect free (lazy subdirs).
-- ViewModels test through MockK constructor injection — `PackUpdateViewModel` takes a `managerFactory` lambda; `SaveDataViewModel` takes `treeFactory`, `parser`, `leaderboardFetcher`, `ioDispatcher`
+- ViewModels test through MockK constructor injection. `PackUpdateViewModel` takes a `managerFactory` lambda; `SaveDataViewModel` takes `treeFactory`, `parser`, `leaderboardFetcher`, `ioDispatcher`
 - Static `object` singletons mocked via `mockkObject()`; `RewindPackManager` is a class with constructor injection
-- Android-dependent orchestration (intent firing, SAF I/O) is mocked via the two-arg `DolphinLauncher.launchRetroRewind(context, tree)` overload — the single-arg version delegates to `DolphinTree.fromPersisted` which the production home-screen caller invokes anyway
+- Android-dependent orchestration (intent firing, SAF I/O) is mocked via the two-arg `DolphinLauncher.launchRetroRewind(context, tree)` overload. The single-arg version delegates to `DolphinTree.fromPersisted` which the production home-screen caller invokes anyway

@@ -50,11 +50,11 @@ It downloads and incrementally updates the pack from the RWFC server, then launc
 - Multiple themes including Material You dynamic colour, with dark, light, and system modes
 
 > [!NOTE]
-> Save backup/restore supports the PAL (`RMCP`), USA (`RMCE`), and JPN (`RMCJ`) versions of Mario Kart Wii. The app shows one save tile per region the user has a ROM for. KOR (`RMCK`) is not yet supported — see [TODO](#todo).
+> Save backup/restore supports the PAL (`RMCP`), USA (`RMCE`), and JPN (`RMCJ`) versions of Mario Kart Wii. Switch regions from a single screen; the Licenses screen surfaces one region at a time. KOR (`RMCK`) is not yet supported. See [TODO](#todo).
 
 ## Download
 
-The latest signed release APK is built automatically on every push to `master` and published as a [pre-release](https://github.com/skiletro/WheelWitch/releases/tag/latest) with auto-generated changelog. You can also install it via [Obtainium](https://github.com/ImranR98/Obtainium) by importing the config from the button above.
+The latest signed release APK is built automatically on every push to `master` and published as a [pre-release](https://github.com/skiletro/WheelWitch/releases/tag/ci) with auto-generated changelog. You can also install it via [Obtainium](https://github.com/ImranR98/Obtainium) by importing the config from the button above.
 
 To build from source or contribute, see [CONTRIBUTING.md](CONTRIBUTING.md#build).
 
@@ -66,11 +66,14 @@ To build from source or contribute, see [CONTRIBUTING.md](CONTRIBUTING.md#build)
 
 ## First Time Setup
 
-1. Open the app, tap **Select Storage Folder** to choose where the pack files go
-2. After installing the pack, select your Mario Kart Wii ISO when prompted
-3. Tap **Launch Dolphin**
+1. Open the app and tap **Let's get started**.
+2. Tap **Got it, let's go** on the beta caveats screen.
+3. Install Dolphin Emulator if prompted, then tap **Check Again**.
+4. Tap **Grant Access** and pick Dolphin's `org.dolphinemu.dolphinemu` folder.
+5. Tap **Select ROM File** and pick your Mario Kart Wii ISO.
+6. Tap **Continue** to enter the home screen.
 
-For returning users, the gear icon opens Settings, and the **Quick Launch** section lets you pin a home-screen shortcut that skips onboarding entirely.
+For returning users, the gear icon opens Settings.
 
 ## Building & Contributing
 
@@ -92,7 +95,7 @@ This section is for known issues, as well as other features that are on my radar
 </details>
 
 <details><summary>Support RMCK (KOR) save type</summary>
-  PAL (`RMCP`), USA (`RMCE`), and JPN (`RMCJ`) are supported — the
+  PAL (`RMCP`), USA (`RMCE`), and JPN (`RMCJ`) are supported. The
   Licenses screen shows one save tile per region the user has a ROM
   for. KOR (`RMCK`) needs the same treatment. Could detect by sniffing
   the first bytes of the save or by following the storage folder name.
@@ -135,7 +138,7 @@ This section is for known issues, as well as other features that are on my radar
   any structurally valid WBFS without checking the 6-byte disc ID.
   Callers read only the first 4 KiB, but a real WBFS disc header
   typically lives at `wlba[0] * wbfs_sector_size` (often hundreds of
-  KiB into the file) — a true game-ID check would need seekable I/O.
+  KiB into the file). A true game-ID check would need seekable I/O.
   Until then, a disclaimer dialog warns the user that the disc ID
   couldn't be verified. Add a `RandomAccessFile`-based overload of
   `GameTypeParser.checkValidity` / `parseGameInfo` (or a `ByteSource`

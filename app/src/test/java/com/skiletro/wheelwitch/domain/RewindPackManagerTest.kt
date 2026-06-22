@@ -185,7 +185,7 @@ class RewindPackManagerTest {
     assertThat(result.isSuccess).isTrue()
     // The first three reports are Downloading (one from the downloader's
     // start-of-attempt hook, one at the end of the success path, plus
-    // a third the throttled callback adds — we accept any Downloading
+    // a third the throttled callback adds; we accept any Downloading
     // prefix and only assert the *eventual* transition to Extracting).
     // The Extracting phase reports 5 entries (1 pre-pass + 4 writing).
     assertThat(phases.filterIsInstance<RewindPackManager.InstallProgress.Extracting>())
@@ -353,7 +353,7 @@ class RewindPackManagerTest {
     val result = manager().update { /* no-op */ }
 
     assertThat(result.isSuccess).isTrue()
-    // Only 3.3.1 and 3.3.2 are downloaded — 3.3.0 is the current local.
+    // Only 3.3.1 and 3.3.2 are downloaded; 3.3.0 is the current local.
     verify(exactly = 1) {
       FileDownloader.downloadToFile(
         url = "https://example.com/3.3.1.zip",

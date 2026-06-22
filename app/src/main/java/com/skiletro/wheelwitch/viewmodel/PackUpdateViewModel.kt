@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.viewModelScope
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.data.DolphinTree
 import com.skiletro.wheelwitch.data.ExtractingPhase
 import com.skiletro.wheelwitch.domain.RewindPackManager
@@ -75,7 +76,7 @@ class PackUpdateViewModel(
    * [UiState.Checking] then [UiState.Ready] with the resolved
    * [PackStatus], or [UiState.Error] on failure. When no pack
    * storage is configured (no persisted tree URI), the resolved
-   * status is [PackStatus.NotInstalled] — the user is routed to
+   * status is [PackStatus.NotInstalled]. The user is routed to
    * onboarding by the UI.
    */
   fun checkStatus() {
@@ -83,7 +84,7 @@ class PackUpdateViewModel(
       _state.value = UiState.Checking
       if (currentManager() == null) {
         Timber.tag(TAG)
-          .w("checkStatus: manager is null — no persisted Dolphin tree; " +
+          .w("checkStatus: manager is null; no persisted Dolphin tree; " +
             "treating as NotInstalled (user needs to run onboarding)")
       }
       val result =
@@ -116,9 +117,12 @@ class PackUpdateViewModel(
         val mgr = currentManager()
         if (mgr == null) {
           Timber.tag(TAG)
-            .e("installLatest: manager is null — DolphinTree.fromPersisted returned null. " +
+            .e("installLatest: manager is null; DolphinTree.fromPersisted returned null. " +
               "User has no valid SAF grant; route to onboarding.")
-          _state.value = UiState.Error(STORAGE_NOT_CONFIGURED)
+          _state.value =
+            UiState.Error(
+              getApplication<Application>().getString(R.string.vm_storage_not_configured_full)
+            )
           return@withLock
         }
         _state.value = UiState.Installing.Extracting(
@@ -139,7 +143,7 @@ class PackUpdateViewModel(
    * Performs the smallest set of incremental updates needed. Falls
    * back to a full reinstall if the local version is missing or
    * predates the pack format change. Same [installMutex] guard as
-   * [installLatest] — calling both in parallel is a no-op for the
+   * [installLatest]; calling both in parallel is a no-op for the
    * second caller.
    */
   fun update() {
@@ -148,9 +152,12 @@ class PackUpdateViewModel(
         val mgr = currentManager()
         if (mgr == null) {
           Timber.tag(TAG)
-            .e("update: manager is null — DolphinTree.fromPersisted returned null. " +
+            .e("update: manager is null; DolphinTree.fromPersisted returned null. " +
               "User has no valid SAF grant; route to onboarding.")
-          _state.value = UiState.Error(STORAGE_NOT_CONFIGURED)
+          _state.value =
+            UiState.Error(
+              getApplication<Application>().getString(R.string.vm_storage_not_configured_full)
+            )
           return@withLock
         }
         _state.value = UiState.Installing.Extracting(
@@ -217,11 +224,11 @@ class PackUpdateViewModel(
     val raw = e.message?.takeIf { it.isNotBlank() } ?: e::class.simpleName.orEmpty()
     return when {
       e is android.os.NetworkOnMainThreadException ->
-        "Internal error: install ran on the main thread. Please file a bug."
+        getApplication<Application>().getString(R.string.vm_install_main_thread_error)
       e is java.net.UnknownHostException || e is java.net.SocketTimeoutException ->
-        "Network error. Check your connection and try again."
+        getApplication<Application>().getString(R.string.vm_network_error)
       e is java.io.IOException && raw.contains("saf", ignoreCase = true) ->
-        "Storage error: $raw"
+        getApplication<Application>().getString(R.string.vm_storage_error_format, raw)
       else -> raw
     }
   }
@@ -231,12 +238,10 @@ class PackUpdateViewModel(
    * the public [Factory] used by [androidx.lifecycle.viewmodel.compose.viewModel]
    * in the composition root. The default [ViewModelProvider] for
    * [AndroidViewModel] looks up a single-arg `(Application)`
-   * constructor, which doesn't exist anymore — the second
+   * constructor, which doesn't exist anymore. The second
    * `managerFactory` parameter requires a custom factory.
    */
   companion object {
-    const val STORAGE_NOT_CONFIGURED =
-      "Storage not configured. Open Settings → Re-run onboarding to pick your Dolphin folder."
     const val TAG = "PackUpdate"
 
     /** Default production factory: read the persisted SAF tree and wire up the manager. */

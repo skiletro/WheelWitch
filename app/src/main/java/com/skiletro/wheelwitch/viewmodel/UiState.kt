@@ -28,10 +28,10 @@ sealed class UiState {
   /**
    * A pack install or update is in progress. The phase is one of:
    *
-   * - [Installing.Downloading] — fetching the zip from the server.
+   * - [Installing.Downloading]: fetching the zip from the server.
    *   Carries the full [DownloadProgress] (fraction, rate, byte
    *   counts) for a determinate UI bar.
-   * - [Installing.Extracting] — unpacking the zip into the SAF tree.
+   * - [Installing.Extracting]: unpacking the zip into the SAF tree.
    *   Carries a determinate file-count bar, the current file name,
    *   and a byte-count basis for future use.
    *

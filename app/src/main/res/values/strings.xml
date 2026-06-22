@@ -13,14 +13,11 @@
     <string name="action_retry">Retry</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_exit">Exit</string>
-    <string name="action_ok">OK</string>
 
     <!-- general status -->
     <string name="status_checking">Checking...</string>
     <string name="status_not_installed">Not installed</string>
     <string name="status_installed">Installed</string>
-    <string name="status_not_installed_format">%s is not installed</string>
-    <string name="status_installed_format">%s is installed!</string>
     <string name="status_installing">Installing...</string>
     <string name="status_extracting">Extracting files...</string>
     <string name="status_extracting_preparing_folders">Preparing folders…</string>
@@ -32,46 +29,36 @@
 
     <!-- general errors -->
     <string name="error_storage_not_configured">Storage not configured</string>
-    <string name="error_cannot_reach_server">Cannot reach the update server. Please check your internet connection and try again.</string>
     <string name="error_no_internet">No internet connection. Please connect to the internet and try again.</string>
 
     <!-- viewmodel error messages -->
     <string name="vm_failed_format">Failed to %s</string>
     <string name="vm_save_write_failed">Cannot write to selected location</string>
     <string name="vm_save_read_failed">Cannot read from selected file</string>
-    <string name="vm_unknown_error">Unknown error</string>
+    <string name="vm_save_not_configured">No storage configured</string>
+    <string name="vm_install_main_thread_error">Internal error: install ran on the main thread. Please file a bug.</string>
+    <string name="vm_network_error">Network error. Check your connection and try again.</string>
+    <string name="vm_storage_error_format">Storage error: %s</string>
+    <string name="vm_storage_not_configured_full">Storage not configured. Open Settings, then Onboarding, then Relaunch to pick your Dolphin folder.</string>
 
     <!-- home -->
     <string name="home_check_for_updates">Check for updates</string>
     <string name="home_update_to">Update to v%s</string>
     <string name="home_launch_retro_rewind">Launch Retro Rewind</string>
-    <string name="home_select_rom">Select Mario Kart Wii ROM</string>
     <string name="home_racers_online">%d racers online</string>
     <string name="home_offline">Offline</string>
     <string name="home_up_to_date">Up to date (v%s)</string>
     <string name="home_version_installed">v%s installed</string>
-    <string name="home_update_format">v%1$s \u2192 v%2$s</string>
-    <string name="home_launch_dolphin_not_installed">Dolphin Emulator is not installed.</string>
-    <string name="home_launch_no_rom">No Mario Kart Wii ROM found. Re-run onboarding to pick one.</string>
-    <string name="home_launch_fallback">Auto-launch failed. Opened Dolphin \u2014 launch Retro Rewind from the library.</string>
-    <string name="player_default">Player</string>
-    <string name="home_vr_active_suffix"> VR \u00b7 %1$sx active</string>
-    <string name="home_vr_suffix"> VR</string>
-    <string name="home_active_license">Active license</string>
+    <string name="home_update_format">v%1$s to v%2$s</string>
+    <string name="home_launch_dolphin_not_installed">Dolphin Emulator isn\'t installed. Install it from dolphin-emu.org, then try again.</string>
+    <string name="home_launch_no_rom">No Mario Kart Wii ROM found. Open Settings, then Onboarding, then Relaunch to pick one.</string>
+    <string name="home_launch_fallback">Couldn\'t launch Retro Rewind automatically. Pick it from Dolphin\'s game library.</string>
     <string name="home_exit_title">Exit Wheel Witch?</string>
-    <string name="home_exit_message">Are you sure you want to close the app?</string>
-    <string name="home_update_step_format">Update %1$d/%2$d: %3$s</string>
-    <string name="home_rom_not_found">Mario Kart Wii ROM not found. Please select it again.</string>
-    <string name="home_rom_invalid">The selected file is not a valid Mario Kart Wii ROM.</string>
-    <string name="home_rom_unreachable">Could not access the selected file.</string>
-    <string name="home_rom_wbfs_disclaimer">WBFS support is experimental. We verify the file is a valid WBFS container, but we can\'t always confirm the game inside. Make sure you selected a Mario Kart Wii WBFS, otherwise the game may not launch.</string>
-    <string name="home_rom_wbfs_dialog_title">WBFS file selected</string>
-    <string name="home_no_iso_cant_launch">Cannot resolve storage path. Please pick a new storage folder.</string>
-    <string name="home_launch_failed">Failed to launch Dolphin</string>
+    <string name="home_exit_message">Wheel Witch will close. Continue?</string>
 
     <!-- onboarding -->
     <string name="onboarding_beta_title">Heads up: this is beta software</string>
-    <string name="onboarding_beta_body">Wheel Witch is in active development. Things might break, installs can fail, and you may see the occasional crash.\n\nIf something doesn\'t work, please report it — go to Settings → Report bug to send your logs. The more detail you can share, the faster it gets fixed.</string>
+    <string name="onboarding_beta_body">Wheel Witch is in active development. Things might break, installs can fail, and you may see the occasional crash.\n\nIf something doesn\'t work, please report it: go to Settings, then Report bug to send your logs. The more detail you can share, the faster it gets fixed.</string>
     <string name="onboarding_beta_continue">Got it, let\'s go</string>
     <string name="onboarding_welcome_to">Welcome to</string>
     <string name="onboarding_app_name">Wheel Witch</string>
@@ -87,16 +74,14 @@
     <string name="onboarding_storage_body">Wheel Witch installs the Retro Rewind Pack inside Dolphin Emulator\'s folder on this device. Tap below to grant access.</string>
     <string name="onboarding_select_folder">Grant Access</string>
     <string name="onboarding_iso_title">Mario Kart Wii ROM</string>
-    <string name="onboarding_iso_body">Select your Mario Kart Wii ROM file — .iso, .rvz, or .wbfs. Wheel Witch needs this to launch the game with Retro Rewind in Dolphin.</string>
+    <string name="onboarding_iso_body">Select your Mario Kart Wii ROM file (.iso, .rvz, or .wbfs). Wheel Witch needs this to launch the game with Retro Rewind in Dolphin.</string>
     <string name="onboarding_select_rom">Select ROM File</string>
-    <string name="cd_installing">Installing</string>
+    <string name="onboarding_open_app">Continue</string>
     <string name="onboarding_complete_title">You\'re all set!</string>
     <string name="onboarding_complete_body">Everything is ready. Let\'s get you into the main app.</string>
-    <string name="onboarding_open_app">Continue</string>
     <string name="onboarding_storage_wrong_folder">Wrong folder. Please pick Android/data/org.dolphinemu.dolphinemu/files.</string>
     <string name="onboarding_storage_read_failed">Cannot read the selected folder.</string>
     <string name="onboarding_iso_invalid">This doesn\'t look like a Mario Kart Wii ROM. Pick an .iso, .rvz, or .wbfs file.</string>
-    <string name="onboarding_iso_read_failed">Cannot read the selected ROM file.</string>
     <string name="onboarding_iso_copy_failed">Couldn\'t copy the ROM into your Dolphin folder.</string>
     <string name="onboarding_storage_required">Pick a storage folder first.</string>
     <string name="onboarding_rom_verifying">Verifying ROM…</string>
@@ -104,17 +89,12 @@
 
     <!-- settings -->
     <string name="settings_title">Settings</string>
-    <string name="settings_save_data">Save Data</string>
-    <string name="settings_save_found">Save file found</string>
-    <string name="settings_backup">Backup</string>
-    <string name="settings_restore">Restore</string>
-    <string name="settings_delete_save">Delete save data</string>
-    <string name="settings_delete_save_sub">This cannot be undone</string>
     <string name="settings_appearance">Appearance</string>
+    <string name="settings_clear">Clear</string>
     <string name="settings_app_theme">App theme</string>
     <string name="settings_app_theme_material_you">Material You</string>
-    <string name="settings_app_theme_purple">Hex</string>
-    <string name="settings_app_theme_green">Swamp</string>
+    <string name="settings_app_theme_hex">Hex</string>
+    <string name="settings_app_theme_swamp">Swamp</string>
     <string name="settings_app_theme_wizard">Wizard</string>
     <string name="settings_app_theme_catppuccin">Catppuccin</string>
     <string name="settings_dark_mode">Dark mode</string>
@@ -126,23 +106,12 @@
     <string name="settings_always_dark">Always dark</string>
     <string name="settings_oled">OLED (pure black)</string>
     <string name="settings_follow_system">Follow system</string>
-    <string name="settings_retro_rewind">Retro Rewind</string>
-    <string name="settings_mario_kart_wii">Mario Kart Wii File</string>
-    <string name="settings_rom_not_selected">ROM not selected</string>
-    <string name="settings_pick">Pick</string>
-    <string name="settings_clear">Clear</string>
-    <string name="settings_pack_storage">Pack storage</string>
     <string name="settings_mii_maker_section">Mii Maker</string>
     <string name="settings_mii_channel_wad">Mii Channel WAD</string>
     <string name="settings_installing">Installing...</string>
     <string name="settings_delete">Delete</string>
     <string name="settings_advanced">Advanced</string>
-    <string name="settings_download_cache">Download cache</string>
     <string name="settings_mii_face_cache">Mii face cache</string>
-    <string name="settings_quick_launch">Quick launch</string>
-    <string name="settings_quick_launch_sub">Launch Retro Rewind directly from a home screen shortcut</string>
-    <string name="settings_simulate">Simulate</string>
-    <string name="settings_shortcut">Shortcut</string>
     <string name="settings_onboarding">Onboarding</string>
     <string name="settings_relaunch_onboarding">Re-run the initial setup wizard</string>
     <string name="settings_relaunch">Relaunch</string>
@@ -151,16 +120,9 @@
     <string name="settings_app_subtitle">Manages Retro Rewind Pack for MKWii</string>
     <string name="settings_version_debug">v%s-debug</string>
     <string name="settings_version_release">v%s</string>
-    <string name="settings_delete_save_dialog_title">Delete Save Data</string>
-    <string name="settings_delete_save_dialog_body">Are you sure you want to delete the save file? This cannot be undone.</string>
     <string name="settings_delete_wad_dialog_title">Delete Mii Channel WAD</string>
     <string name="settings_delete_wad_dialog_body">Delete the cached Mii Channel WAD file? It will be re-downloaded the next time you use Mii Maker.</string>
-    <string name="settings_replace_save_sub">Replace current save with a backup</string>
-    <string name="settings_shortcut_short">Quick Launch</string>
-    <string name="settings_shortcut_long">Launch Retro Rewind</string>
-    <string name="shortcut_disabled_message">Quick Launch is unavailable right now</string>
-    <string name="shortcut_pin_unsupported">This launcher doesn\'t support pinned shortcuts. Long-press the Wheel Witch app icon on your home screen to add the Quick Launch shortcut.</string>
-    <string name="settings_about_summary">%1$s \u2014 %2$s</string>
+    <string name="settings_about_summary">%1$s: %2$s</string>
 
     <!-- online menu -->
     <string name="online_menu_title">Online Menu</string>
@@ -266,42 +228,21 @@
     <string name="save_info_region_jpn">JPN</string>
     <string name="save_info_region_picker">Region</string>
     <string name="save_info_slot_picker">Slot</string>
-    <string name="vm_save_not_configured">No storage configured</string>
-    <string name="vm_save_read_failed_backup">Cannot read current save</string>
-
-    <!-- quick launch -->
-    <string name="quick_launch_storage_error">Storage not configured.\nOpen Wheel Witch first to set up your pack location.</string>
-    <string name="quick_launch_checking">Checking for updates...</string>
-    <string name="quick_launch_preparing">Preparing...</string>
-    <string name="quick_launch_up_to_date">Everything\'s up to date!</string>
-    <string name="quick_launch_starting_in">Starting in %d...</string>
-    <string name="quick_launch_launching">Launching!</string>
-    <string name="quick_launch_launching_dolphin">Launching Dolphin Emulator...</string>
 
     <!-- version history -->
     <string name="version_history_title">Version History</string>
     <string name="version_history_loading">Loading version history...</string>
     <string name="version_history_failed">Failed to load version history</string>
 
-    <!-- riivolution -->
-    <string name="settings_riivolution_options">Riivolution Options</string>
-    <string name="settings_my_stuff">My Stuff</string>
-    <string name="settings_my_stuff_summary">Controls which custom content Riivolution loads on launch</string>
-    <string name="settings_my_stuff_disabled">Disabled</string>
-    <string name="settings_my_stuff_music">Music Only</string>
-    <string name="settings_my_stuff_everything">Everything</string>
-
     <!-- logging / bug report -->
     <string name="settings_logging">Logging</string>
     <string name="settings_logging_to_file">Save logs to file</string>
     <string name="settings_logging_to_file_sub">Persist logs to a rotating file in the app cache</string>
-    <string name="settings_logging_to_file_on">On</string>
-    <string name="settings_logging_to_file_off">Off</string>
     <string name="settings_report_bug">Report bug</string>
     <string name="settings_report_bug_sub">Email us your logs to help fix issues</string>
     <string name="settings_report">Report</string>
     <string name="bug_report_chooser_title">Send bug report</string>
-    <string name="bug_report_subject">Wheel Witch logs — v%1$s (%2$s)</string>
+    <string name="bug_report_subject">Wheel Witch logs: v%1$s (%2$s)</string>
     <string name="bug_report_body_format">Wheel Witch bug report\n\nSummary:\n%1$s\n\nLogs are attached. Describe what happened below:\n\n</string>
     <string name="bug_report_summary_with_error">Most recent error in the log buffer: %1$s</string>
     <string name="bug_report_summary_no_error">No errors captured in the current log buffer.</string>

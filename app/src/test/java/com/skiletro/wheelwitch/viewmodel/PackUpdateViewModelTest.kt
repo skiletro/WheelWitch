@@ -2,12 +2,14 @@ package com.skiletro.wheelwitch.viewmodel
 
 import android.app.Application
 import com.google.common.truth.Truth.assertThat
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.domain.RewindPackManager
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.SemVersion
 import com.skiletro.wheelwitch.model.ServerInfo
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -120,6 +122,8 @@ class PackUpdateViewModelTest {
 
   @Test
   fun `installLatest reports storage not configured when manager is null`() = runTest {
+    every { context.getString(R.string.vm_storage_not_configured_full) } returns
+      "Storage not configured"
     val vm =
       PackUpdateViewModel(
         application = context,

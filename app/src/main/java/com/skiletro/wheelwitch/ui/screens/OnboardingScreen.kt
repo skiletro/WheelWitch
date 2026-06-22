@@ -141,7 +141,7 @@ fun OnboardingScreen(
 
   // Resolve every error string up here so the activity-result
   // callbacks (which run outside the composition) can use them
-  // without calling getString on LocalContext.current — lint
+  // without calling getString on LocalContext.current; lint
   // rejects that and it's also fragile across recomposition.
   val storageReadFailed = stringResource(R.string.onboarding_storage_read_failed)
   val storageWrongFolder = stringResource(R.string.onboarding_storage_wrong_folder)
@@ -192,7 +192,7 @@ fun OnboardingScreen(
   // The ROM picker. OpenDocument returns a content URI; we read
   // enough bytes to validate, then copy via DolphinTree (which
   // re-opens the URI for streaming). application/octet-stream is
-  // the closest SAF mime filter — extension-based discrimination
+  // the closest SAF mime filter; extension-based discrimination
   // happens in GameTypeParser.
   val romLauncher =
     rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri ->
@@ -428,7 +428,7 @@ private fun DolphinStep(
 
 /**
  * Opens Dolphin's official download page in the user's default
- * browser. Website-first per the design decision — avoids the
+ * browser. Website-first per the design decision; avoids the
  * `market://` Play Store intent and the resulting "no Play Store"
  * fallback ladder that the website solves for free.
  */
@@ -600,7 +600,7 @@ private fun StepDots(current: Int, total: Int, modifier: Modifier = Modifier) {
 /**
  * Best-effort display-name lookup for a SAF document URI. Falls back
  * to `null` so the caller can use a generic name. DocumentFile is
- * the only public API for this — `DocumentsContract.getTreeDocumentId`
+ * the only public API for this. `DocumentsContract.getTreeDocumentId`
  * doesn't return the leaf name.
  */
 private fun queryDisplayName(context: android.content.Context, uri: Uri): String? =

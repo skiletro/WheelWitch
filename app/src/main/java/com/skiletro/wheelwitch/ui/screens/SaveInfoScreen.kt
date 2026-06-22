@@ -58,7 +58,7 @@ import com.skiletro.wheelwitch.ui.theme.sectionShape
 import com.skiletro.wheelwitch.viewmodel.SaveDataViewModel
 
 /**
- * Licenses screen — parses the active region's `rksys.dat` and shows
+ * Licenses screen: parses the active region's `rksys.dat` and shows
  * the 4 license slots, with backup / restore / delete actions and
  * (in a multi-region install) a region picker.
  *

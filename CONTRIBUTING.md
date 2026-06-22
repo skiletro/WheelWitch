@@ -37,7 +37,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
 
 Types: `feat:` (new user-facing), `fix:` (bug fix), `refactor:` (neither), `perf:`, `test:`, `docs:`, `chore:`, `build:`.
 
-Scopes match the package layout — e.g. `dolphin`, `pack`, `save`, `mii-maker`, `online`, `leaderboard`, `rooms`, `race-stats`, `changelog`, `onboarding`, `home`, `settings`, `quick-launch`, `theme`, `gamepad`, `ui`, `storage`, `i18n`, `viewmodel`.
+Scopes match the package layout. For example: `dolphin`, `pack`, `save`, `mii-maker`, `online`, `leaderboard`, `rooms`, `race-stats`, `changelog`, `onboarding`, `home`, `settings`, `quick-launch`, `theme`, `gamepad`, `ui`, `storage`, `i18n`, `viewmodel`.
 
 Description is lowercase imperative, no trailing period.
 

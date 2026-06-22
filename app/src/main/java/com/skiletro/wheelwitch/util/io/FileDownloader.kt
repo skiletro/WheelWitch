@@ -59,7 +59,7 @@ object FileDownloader {
     private const val PROGRESS_TICK_MILLIS: Long = 200L
 
     /**
-     * Downloads [url] to [targetFile]. Blocking — call from a background dispatcher.
+     * Downloads [url] to [targetFile]. Blocking - call from a background dispatcher.
      *
      * On transient failures (network [IOException] or HTTP 5xx), retries up to [maxRetries] times
      * with exponential backoff ([initialBackoffMillis] * 2^attempt). HTTP 4xx and other non-2xx
@@ -101,10 +101,10 @@ object FileDownloader {
             try {
                 return downloadOnce(url, targetFile, onProgress, client)
             } catch (e: Http4xxException) {
-                Timber.tag("FileDownloader").w(e, "HTTP 4xx for %s — not retrying", url)
+                Timber.tag("FileDownloader").w(e, "HTTP 4xx for %s; not retrying", url)
                 throw e
             } catch (e: EmptyBodyException) {
-                Timber.tag("FileDownloader").w(e, "Empty body for %s — not retrying", url)
+                Timber.tag("FileDownloader").w(e, "Empty body for %s; not retrying", url)
                 throw e
             } catch (e: IOException) {
                 Timber.tag("FileDownloader")
@@ -137,7 +137,7 @@ object FileDownloader {
 
     /**
      * Downloads [url] to [targetFile] in [parallelism] concurrent byte
-     * ranges. Blocking — call from a background dispatcher.
+     * ranges. Blocking - call from a background dispatcher.
      *
      * Probes with HEAD first; if the server doesn't advertise
      * `Accept-Ranges: bytes` or doesn't return a `Content-Length`, falls
@@ -404,7 +404,7 @@ object FileDownloader {
                 delay(PROGRESS_TICK_MILLIS)
             }
         } finally {
-            // Terminal emit — runs on normal exit, on chunk-worker
+            // Terminal emit; runs on normal exit, on chunk-worker
             // completion (when the scope cancels us to release the
             // coroutineScope), and on cancellation. Guarantees the
             // UI sees a 100% report.
@@ -546,7 +546,7 @@ object FileDownloader {
                 throw Http5xxException("Download failed: HTTP ${response.code} ${response.message}")
             }
             check(response.isSuccessful) { "Download failed: HTTP ${response.code} ${response.message}" }
-            Timber.tag("FileDownloader").d("HTTP %d for %s", response.code, url)
+            Timber.tag(TAG).d("HTTP %d for %s", response.code, url)
             val body = response.body ?: throw EmptyBodyException("No response body")
             val totalBytes = body.contentLength()
             if (totalBytes == 0L) throw EmptyBodyException("Empty response body")

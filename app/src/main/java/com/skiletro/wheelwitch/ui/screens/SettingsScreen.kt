@@ -53,10 +53,10 @@ import com.skiletro.wheelwitch.util.formatBytes
 import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
 
 /**
- * Top of the settings overlay. Save Data / Retro Rewind / Riivolution
- * sections have been removed along with the install / launch / save
- * data flow. Sections, in order: Appearance, Mii Maker, Logging,
- * Advanced, About.
+ * Settings overlay. The Save Data, Retro Rewind, and Riivolution
+ * settings sections were removed; save data is reachable from the
+ * home top bar (Licenses icon). Sections, in order: Appearance,
+ * Mii Maker, Logging, Advanced, About.
  */
 @Composable
 fun SettingsScreen(

@@ -75,7 +75,7 @@ import kotlinx.coroutines.withContext
 /**
  * Top-level home screen: top bar, version-history card, and the
  * check-for-updates / install / launch bottom bar. The save-data
- * "Licenses" top-bar entry still routes to a stubbed [SaveInfoScreen].
+ * "Licenses" top-bar entry opens [SaveInfoScreen].
  */
 @Composable
 fun HomeScreen(

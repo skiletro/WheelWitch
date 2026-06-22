@@ -24,11 +24,10 @@ import timber.log.Timber
  * downloading the pack zip to [Context.getCacheDir] (where
  * `java.io.File` works) and then streaming it into the SAF tree via
  * [DolphinTree.extractZipToPack]. Writes the new version file *only
- * after* a successful extract — see PLAN §"write `version.txt` after a
- * successful extract".
+ * after* a successful extract, so a failed install leaves the
+ * previous version (or no file) on disk.
  *
- * The downloader is [FileDownloader] (the hand-rolled OkHttp wrapper
- * that the project standardized on, per PLAN §"Downloader decision").
+ * The downloader is [FileDownloader], the hand-rolled OkHttp wrapper.
  * The pack zip is multi-MB so we use the
  * [HttpClientProvider.largeDownloadClient] (60s read timeout).
  */
@@ -73,7 +72,7 @@ class RewindPackManager(
 
   /**
    * Downloads the full pack zip and extracts it into the SAF tree.
-   * Always overwrites the local install — use this for a fresh install
+   * Always overwrites the local install. Use this for a fresh install
    * or to recover from a corrupted state.
    *
    * Wrapped in [withContext] [Dispatchers.IO] because the initial
@@ -95,11 +94,11 @@ class RewindPackManager(
    * Performs the smallest set of incremental updates that takes the
    * local pack from its current version to the server's latest
    * version. Falls back to a full reinstall if the local version is
-   * missing or older than [MIN_INCREMENTAL_VERSION] — the pack format
+   * missing or older than [MIN_INCREMENTAL_VERSION]. The pack format
    * changed incompatibly around that point, so partial updates are
-   * not safe (see PLAN §"Min reinstall version").
+   * not safe.
    *
-   * Same `Dispatchers.IO` wrapper as [installLatest] — see the kdoc
+   * Same `Dispatchers.IO` wrapper as [installLatest]. See the kdoc
    * there for why.
    */
   suspend fun update(onProgress: (InstallProgress) -> Unit): Result<Unit> =
@@ -170,7 +169,7 @@ class RewindPackManager(
   /**
    * Downloads a pack zip to [Context.getCacheDir], extracts it into
    * the SAF tree's pack directory, and deletes the temp file. The
-   * [onProgress] callback fires for both phases — first the
+   * [onProgress] callback fires for both phases. First the
    * per-byte download progress, then the per-file extraction
    * progress.
    *
