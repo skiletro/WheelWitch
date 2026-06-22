@@ -5,8 +5,11 @@ import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -17,7 +20,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.util.mii.MII_IMAGE_BASE_URL
 import com.skiletro.wheelwitch.util.mii.MiiFaceCache
 import com.skiletro.wheelwitch.util.net.HttpClientProvider
@@ -34,16 +40,27 @@ private const val MII_FACE_FETCH_WIDTH = 96
 /** Corner radius applied to rendered Mii face bitmaps. */
 private val MiiFaceCorner = 10.dp
 
+/** Default Mii RFL data shown when the real Mii fetch fails. */
+private const val DEFAULT_MII_DATA_BASE64 =
+  "AwAIMK89McaWg1Qak3k3LDSvLMdoMwAAIgBNAGkAaQAAAAAAAAAAAAAAAAAAAEBAAAAhAQJoRBgmNEYUgRIXaA0AACkAUkhQVAAgAEIAbwBmAGkAYgBlAHIAAAAAAAACHC"
+
 /**
  * Renders a Mii face from either an already-rendered PNG (base64) or raw
  * Mii data that needs to be fetched from the configured image service and
  * cached in [MiiFaceCache].
  *
+ * Resolution order:
  * - If [imageBase64] is non-null, it is decoded immediately and no network
  *   call is made.
  * - Otherwise, if [miiDataBase64] is non-null, the cached bitmap (if any) is
  *   shown, or a network fetch is performed and the result is shown.
  * - While a fetch is in flight, a `CircularProgressIndicator` is displayed.
+ * - If the real Mii fetch fails (network error, decode error, etc.), a
+ *   fallback is attempted by fetching the default Mii identified by
+ *   [DEFAULT_MII_DATA_BASE64] through the same endpoint. The default Mii's
+ *   bitmap is cached so subsequent calls hit the cache.
+ * - If even the default Mii fetch fails, a face icon (`ic_face_up`) is
+ *   shown as a static placeholder instead of an infinite spinner.
  * - If neither input is non-null, nothing is shown (the modifier still takes
  *   the requested space).
  */
@@ -75,46 +92,83 @@ fun MiiFace(
     }
 
     var miiBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var fetchFailed by remember { mutableStateOf(false) }
+
     LaunchedEffect(miiDataBase64) {
         val data = miiDataBase64 ?: return@LaunchedEffect
+        miiBitmap = null
+        fetchFailed = false
+
         val cached = withContext(Dispatchers.IO) { MiiFaceCache.getAndTouch(data) }
         if (cached != null) {
             miiBitmap = cached
-        } else {
-            val fetched = withContext(Dispatchers.IO) {
-                val url = "$MII_IMAGE_BASE_URL?data=${
-                    URLEncoder.encode(data, "UTF-8")
-                }&width=$MII_FACE_FETCH_WIDTH&type=face"
-                val request = Request.Builder().url(url).build()
-                HttpClientProvider.client.newCall(request).execute().use { response ->
-                    val bytes = response.body?.bytes()
-                    if (bytes != null) {
-                        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                        if (bitmap != null) {
-                            MiiFaceCache.put(data, bitmap)
-                        }
-                        bitmap
-                    } else {
-                        null
-                    }
-                }
-            }
-            miiBitmap = fetched
+            return@LaunchedEffect
         }
+
+        val fetched = fetchMiiBitmap(data)
+        if (fetched != null) {
+            miiBitmap = fetched
+            MiiFaceCache.put(data, fetched)
+            return@LaunchedEffect
+        }
+
+        val defaultCached =
+            withContext(Dispatchers.IO) { MiiFaceCache.getAndTouch(DEFAULT_MII_DATA_BASE64) }
+        val default =
+            defaultCached
+                ?: fetchMiiBitmap(DEFAULT_MII_DATA_BASE64)
+                    ?.also { MiiFaceCache.put(DEFAULT_MII_DATA_BASE64, it) }
+        if (default != null) {
+            miiBitmap = default
+            return@LaunchedEffect
+        }
+
+        fetchFailed = true
     }
 
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         val bitmap = miiBitmap
-        if (bitmap != null) {
-            Image(
-                bitmap = bitmap.asImageBitmap(),
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(MiiFaceCorner))
-            )
-        } else if (miiDataBase64 != null) {
-            CircularProgressIndicator(strokeWidth = 3.dp)
+        when {
+            bitmap != null -> {
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(MiiFaceCorner))
+                )
+            }
+            fetchFailed && miiDataBase64 != null -> {
+                Icon(
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_face_up),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxSize().padding(8.dp)
+                )
+            }
+            miiDataBase64 != null -> {
+                CircularProgressIndicator(strokeWidth = 3.dp)
+            }
         }
     }
 }
+
+/**
+ * Fetches a Mii face bitmap from [MII_IMAGE_BASE_URL] for the given RFL
+ * [data]. Returns null on any failure (network, decode, non-2xx response
+ * with non-image body). Safe to call from any dispatcher.
+ */
+private suspend fun fetchMiiBitmap(data: String): Bitmap? =
+    withContext(Dispatchers.IO) {
+        try {
+            val url =
+                "$MII_IMAGE_BASE_URL?data=${URLEncoder.encode(data, "UTF-8")}" +
+                    "&width=$MII_FACE_FETCH_WIDTH&type=face"
+            val request = Request.Builder().url(url).build()
+            HttpClientProvider.client.newCall(request).execute().use { response ->
+                val bytes = response.body?.bytes()
+                if (bytes != null) BitmapFactory.decodeByteArray(bytes, 0, bytes.size) else null
+            }
+        } catch (e: Exception) {
+            Timber.tag("MiiFace").w(e, "Mii fetch failed")
+            null
+        }
+    }

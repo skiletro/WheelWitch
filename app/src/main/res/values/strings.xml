@@ -55,6 +55,9 @@
     <string name="home_launch_fallback">Couldn\'t launch Retro Rewind automatically. Pick it from Dolphin\'s game library.</string>
     <string name="home_exit_title">Exit Wheel Witch?</string>
     <string name="home_exit_message">Wheel Witch will close. Continue?</string>
+    <string name="player_default">Player</string>
+    <string name="home_vr_suffix"> VR</string>
+    <string name="home_vr_active_suffix"> VR \u00b7 %1$sx active</string>
 
     <!-- onboarding -->
     <string name="onboarding_beta_title">Heads up: this is beta software</string>
@@ -209,7 +212,6 @@
     <!-- save info -->
     <string name="save_info_title">Licenses</string>
     <string name="save_info_race_format">Race: W %1$d / L %2$d</string>
-    <string name="save_info_slot_format">Slot %1$d</string>
     <string name="save_info_vr_format">VR %1$d</string>
     <string name="save_info_vr_leaderboard_format">VR %1$d \u00b7 leaderboard %2$d</string>
     <string name="save_info_no_licenses">No license slots in this save</string>
@@ -217,16 +219,21 @@
     <string name="save_info_empty_slot">Empty slot</string>
     <string name="save_info_no_name">(no name)</string>
     <string name="save_info_friend_code_format">Friend code: %s</string>
-    <string name="save_info_backup">Backup</string>
-    <string name="save_info_restore">Restore</string>
-    <string name="save_info_delete">Delete</string>
-    <string name="save_info_delete_confirm_title">Delete save?</string>
-    <string name="save_info_delete_confirm_message">This permanently deletes the %s save file. This cannot be undone.</string>
+    <string name="save_info_selected">Active</string>
     <string name="save_info_region_pal">PAL</string>
     <string name="save_info_region_usa">USA</string>
     <string name="save_info_region_jpn">JPN</string>
-    <string name="save_info_region_picker">Region</string>
-    <string name="save_info_slot_picker">Slot</string>
+
+    <!-- settings save data -->
+    <string name="settings_save_data_section">Save Data</string>
+    <string name="settings_save_data_region_label">Region</string>
+    <string name="settings_save_data_actions">%1$s licenses</string>
+    <string name="settings_save_data_backup">Backup</string>
+    <string name="settings_save_data_restore">Restore</string>
+    <string name="settings_save_data_delete">Delete</string>
+    <string name="settings_save_data_no_save">No save file</string>
+    <string name="settings_save_data_delete_confirm_title">Delete save?</string>
+    <string name="settings_save_data_delete_confirm_message">This permanently deletes the %s save file. This cannot be undone.</string>
 
     <!-- version history -->
     <string name="version_history_title">Version History</string>

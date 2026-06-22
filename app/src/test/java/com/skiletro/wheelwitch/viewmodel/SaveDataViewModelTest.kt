@@ -18,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -35,6 +36,7 @@ class SaveDataViewModelTest {
   private lateinit var vm: SaveDataViewModel
 
   private val leaderboardResult = mutableMapOf<String, Result<Pair<Int, String?>>>()
+  private var leaderboardCalls = 0
 
   @BeforeEach
   fun setUp() {
@@ -50,6 +52,7 @@ class SaveDataViewModelTest {
     mockTree = mockk(relaxed = true)
     mockkObject(SaveManager)
     leaderboardResult.clear()
+    leaderboardCalls = 0
     leaderboardResult["1234-5678-9012"] = Result.success(9999 to "mii-b64")
   }
 
@@ -64,6 +67,7 @@ class SaveDataViewModelTest {
   private fun buildVm(
     tree: DolphinTree? = mockTree,
     leaderboard: suspend (String) -> Result<Pair<Int, String?>> = { code ->
+      leaderboardCalls++
       leaderboardResult[code] ?: Result.failure(RuntimeException("no stub for $code"))
     },
   ): SaveDataViewModel =
@@ -81,6 +85,7 @@ class SaveDataViewModelTest {
 
     assertThat(vm.saveInfos.value).isEmpty()
     assertThat(vm.hasSave.value).isEmpty()
+    assertThat(vm.mergedLicenses.value).isEmpty()
     assertThat(vm.activeLicense.value).isNull()
     assertThat(vm.error.value).isNull()
   }
@@ -103,6 +108,7 @@ class SaveDataViewModelTest {
 
     assertThat(vm.saveInfos.value).isEmpty()
     assertThat(vm.hasSave.value).isEmpty()
+    assertThat(vm.mergedLicenses.value).isEmpty()
     assertThat(vm.error.value).isNull()
   }
 
@@ -116,6 +122,7 @@ class SaveDataViewModelTest {
     assertThat(vm.saveInfos.value).isEmpty()
     assertThat(vm.hasSave.value).isEmpty()
     assertThat(vm.selectedRegion.value).isNull()
+    assertThat(vm.mergedLicenses.value).isEmpty()
     assertThat(vm.activeLicense.value).isNull()
   }
 
@@ -141,7 +148,42 @@ class SaveDataViewModelTest {
   }
 
   @Test
-  fun `refreshActiveLicense merges leaderboard VR and Mii for selected slot`() = runTest {
+  fun `refresh populates mergedLicenses with leaderboard data for all 4 slots of selected region`() =
+    runTest {
+      // Slots 0 and 1 valid with leaderboard results; slots 2 and 3 empty.
+      val bytes = ByteArray(0x20000)
+      for ((slot, base) in RksysParser.LICENSE_BASES.withIndex()) {
+        if (slot > 1) break
+        writeAscii(bytes, base, "RKPD")
+        writeUtf16Be(bytes, base + 0x14, if (slot == 0) "Zero" else "One")
+        writeUInt32Be(bytes, base + 0x5C, if (slot == 0) 0x00000010L else 0x00000011L)
+      }
+      val info = RksysParser.parse(bytes)
+      val fc0 = info.licenses[0].friendCode!!
+      val fc1 = info.licenses[1].friendCode!!
+      leaderboardResult[fc0] = Result.success(1000 to "mii-0")
+      leaderboardResult[fc1] = Result.success(2000 to "mii-1")
+
+      every { SaveManager.listRegions(mockTree) } returns listOf(Region.PAL)
+      coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns bytes
+      coEvery { SaveManager.hasSave(mockTree, Region.PAL) } returns true
+      vm = buildVm()
+
+      vm.refresh()
+
+      val merged = vm.mergedLicenses.value[Region.PAL]
+      assertThat(merged).hasSize(4)
+      assertThat(merged!![0].leaderboardVr).isEqualTo(1000)
+      assertThat(merged[0].leaderboardMiiImageBase64).isEqualTo("mii-0")
+      assertThat(merged[1].leaderboardVr).isEqualTo(2000)
+      assertThat(merged[1].leaderboardMiiImageBase64).isEqualTo("mii-1")
+      assertThat(merged[2].exists).isFalse()
+      assertThat(merged[3].exists).isFalse()
+      assertThat(leaderboardCalls).isEqualTo(2)
+    }
+
+  @Test
+  fun `activeLicense merges leaderboard VR and Mii for selected slot`() = runTest {
     val bytes = rksysWithLicense(pid = 0x00000001L, name = "X", slot = 0)
     val info = RksysParser.parse(bytes)
     val friendCode = info.licenses[0].friendCode!!
@@ -161,7 +203,7 @@ class SaveDataViewModelTest {
   }
 
   @Test
-  fun `refreshActiveLicense returns null for a slot that does not exist`() = runTest {
+  fun `activeLicense is null for a slot that does not exist`() = runTest {
     val bytes = rksysWithLicense(pid = 0x11111111L, name = "A", slot = 0)
     every { SaveManager.listRegions(mockTree) } returns listOf(Region.PAL)
     coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns bytes
@@ -175,55 +217,94 @@ class SaveDataViewModelTest {
   }
 
   @Test
-  fun `selectRegion updates state and refreshes active license`() = runTest {
-    val palBytes = rksysWithLicense(pid = 0x11111111L, name = "PAL", slot = 0)
-    val usaBytes = rksysWithLicense(pid = 0x22222222L, name = "USA", slot = 0)
-    val palInfo = RksysParser.parse(palBytes)
-    val usaInfo = RksysParser.parse(usaBytes)
+  fun `selectRegion triggers leaderboard fetch for the new region and updates activeLicense`() =
+    runTest {
+      val palBytes = rksysWithLicense(pid = 0x11111111L, name = "PAL", slot = 0)
+      val usaBytes = rksysWithLicense(pid = 0x22222222L, name = "USA", slot = 0)
+      val palInfo = RksysParser.parse(palBytes)
+      val usaInfo = RksysParser.parse(usaBytes)
+      val palFc = palInfo.licenses[0].friendCode!!
+      val usaFc = usaInfo.licenses[0].friendCode!!
+      leaderboardResult[palFc] = Result.success(1111 to "mii-pal")
+      leaderboardResult[usaFc] = Result.success(2222 to "mii-usa")
 
-    every { SaveManager.listRegions(mockTree) } returns listOf(Region.PAL, Region.USA)
-    coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns palBytes
-    coEvery { SaveManager.readSave(mockTree, Region.USA) } returns usaBytes
-    coEvery { SaveManager.hasSave(mockTree, any()) } returns true
-    vm = buildVm()
-    vm.refresh()
+      every { SaveManager.listRegions(mockTree) } returns listOf(Region.PAL, Region.USA)
+      coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns palBytes
+      coEvery { SaveManager.readSave(mockTree, Region.USA) } returns usaBytes
+      coEvery { SaveManager.hasSave(mockTree, any()) } returns true
+      vm = buildVm()
+      vm.refresh()
+      // After the initial refresh only the selected region (PAL) is
+      // merged; USA is not.
+      assertThat(vm.mergedLicenses.value).doesNotContainKey(Region.USA)
+      val callsAfterRefresh = leaderboardCalls
 
-    vm.selectRegion(Region.USA)
+      vm.selectRegion(Region.USA)
 
-    assertThat(vm.selectedRegion.value).isEqualTo(Region.USA)
-    val active = vm.activeLicense.value
-    assertThat(active).isNotNull()
-    assertThat(active!!.friendCode).isEqualTo(usaInfo.licenses[0].friendCode)
-  }
+      assertThat(vm.selectedRegion.value).isEqualTo(Region.USA)
+      val merged = vm.mergedLicenses.value[Region.USA]
+      assertThat(merged).hasSize(4)
+      assertThat(merged!![0].leaderboardVr).isEqualTo(2222)
+      val active = vm.activeLicense.value
+      assertThat(active).isNotNull()
+      assertThat(active!!.friendCode).isEqualTo(usaFc)
+      assertThat(active.leaderboardVr).isEqualTo(2222)
+      // Exactly one new leaderboard call (USA slot 0).
+      assertThat(leaderboardCalls - callsAfterRefresh).isEqualTo(1)
+    }
 
   @Test
-  fun `selectSlot persists to prefs and refreshes active license`() = runTest {
-    // Two valid slots: 0 and 1
-    val bytes = ByteArray(0x20000)
-    for ((slot, base) in RksysParser.LICENSE_BASES.withIndex()) {
-      if (slot > 1) break
-      writeAscii(bytes, base, "RKPD")
-      writeUtf16Be(bytes, base + 0x14, if (slot == 0) "Zero" else "One")
-      writeUInt32Be(bytes, base + 0x5C, if (slot == 0) 0x00000010L else 0x00000011L)
-    }
+  fun `selectRegion with the same region is a no-op`() = runTest {
+    val bytes = rksysWithLicense(pid = 0x00000001L, name = "X", slot = 0)
     val info = RksysParser.parse(bytes)
+    leaderboardResult[info.licenses[0].friendCode!!] = Result.success(100 to "img")
 
     every { SaveManager.listRegions(mockTree) } returns listOf(Region.PAL)
     coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns bytes
     coEvery { SaveManager.hasSave(mockTree, Region.PAL) } returns true
     vm = buildVm()
     vm.refresh()
+    val callsAfterRefresh = leaderboardCalls
 
-    vm.selectSlot(1)
+    vm.selectRegion(Region.PAL) // same region
 
-    assertThat(vm.selectedSlotIndex.value).isEqualTo(1)
-    val active = vm.activeLicense.value
-    assertThat(active).isNotNull()
-    assertThat(active!!.slotIndex).isEqualTo(1)
-    assertThat(active.miiName).isEqualTo("One")
-    // sanity: the parsed info also has slot 0
-    assertThat(info.licenses[0].exists).isTrue()
+    assertThat(leaderboardCalls).isEqualTo(callsAfterRefresh)
   }
+
+  @Test
+  fun `selectSlot persists to prefs and updates activeLicense from mergedLicenses without re-fetching`() =
+    runTest {
+      // Two valid slots: 0 and 1
+      val bytes = ByteArray(0x20000)
+      for ((slot, base) in RksysParser.LICENSE_BASES.withIndex()) {
+        if (slot > 1) break
+        writeAscii(bytes, base, "RKPD")
+        writeUtf16Be(bytes, base + 0x14, if (slot == 0) "Zero" else "One")
+        writeUInt32Be(bytes, base + 0x5C, if (slot == 0) 0x00000010L else 0x00000011L)
+      }
+      val info = RksysParser.parse(bytes)
+      leaderboardResult[info.licenses[0].friendCode!!] = Result.success(1000 to "mii-0")
+      leaderboardResult[info.licenses[1].friendCode!!] = Result.success(2000 to "mii-1")
+
+      every { SaveManager.listRegions(mockTree) } returns listOf(Region.PAL)
+      coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns bytes
+      coEvery { SaveManager.hasSave(mockTree, Region.PAL) } returns true
+      vm = buildVm()
+      vm.refresh()
+      val callsAfterRefresh = leaderboardCalls
+
+      vm.selectSlot(1)
+
+      assertThat(vm.selectedSlotIndex.value).isEqualTo(1)
+      // The combined activeLicense re-projects from mergedLicenses
+      // without an extra leaderboard round trip.
+      val active = vm.activeLicense.first()
+      assertThat(active).isNotNull()
+      assertThat(active!!.slotIndex).isEqualTo(1)
+      assertThat(active.miiName).isEqualTo("One")
+      assertThat(active.leaderboardVr).isEqualTo(2000)
+      assertThat(leaderboardCalls).isEqualTo(callsAfterRefresh)
+    }
 
   @Test
   fun `backupSave delegates to SaveManager backup and refreshes on success`() = runTest {
@@ -265,6 +346,61 @@ class SaveDataViewModelTest {
 
     coVerify { SaveManager.delete(mockTree, Region.JPN) }
     coVerify { SaveManager.listRegions(mockTree) }
+  }
+
+  @Test
+  fun `deleteSave updates mergedLicenses to four empty slots for the deleted region`() = runTest {
+    val bytes = rksysWithLicense(pid = 0x00000010L, name = "Alice", slot = 0)
+    every { SaveManager.listRegions(mockTree) } returns listOf(Region.PAL)
+    // First refresh: save exists and parses.
+    coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns bytes
+    coEvery { SaveManager.hasSave(mockTree, Region.PAL) } returns true
+    vm = buildVm()
+    vm.refresh()
+    assertThat(vm.mergedLicenses.value[Region.PAL]?.get(0)?.exists).isTrue()
+
+    // After delete: save is gone, refresh must publish 4 empty slots.
+    coEvery { SaveManager.delete(mockTree, Region.PAL) } returns Result.success(Unit)
+    coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns null
+    coEvery { SaveManager.hasSave(mockTree, Region.PAL) } returns false
+
+    vm.deleteSave(Region.PAL)
+
+    val merged = vm.mergedLicenses.value[Region.PAL]
+    assertThat(merged).hasSize(4)
+    merged!!.forEachIndexed { i, license ->
+      assertThat(license.slotIndex).isEqualTo(i)
+      assertThat(license.exists).isFalse()
+    }
+    assertThat(vm.activeLicense.value).isNull()
+  }
+
+  @Test
+  fun `selectRegion after a delete publishes four empty slots for the new region`() = runTest {
+    val palBytes = rksysWithLicense(pid = 0x00000010L, name = "Alice", slot = 0)
+    val palInfo = RksysParser.parse(palBytes)
+    every { SaveManager.listRegions(mockTree) } returns listOf(Region.PAL, Region.USA)
+    coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns palBytes
+    // USA has no save from the start.
+    coEvery { SaveManager.readSave(mockTree, Region.USA) } returns null
+    coEvery { SaveManager.hasSave(mockTree, Region.PAL) } returns true
+    coEvery { SaveManager.hasSave(mockTree, Region.USA) } returns false
+    vm = buildVm()
+    vm.refresh()
+
+    // PAL is the initially selected region with real data.
+    assertThat(vm.mergedLicenses.value[Region.PAL]).isEqualTo(palInfo.licenses)
+    assertThat(vm.mergedLicenses.value).doesNotContainKey(Region.USA)
+
+    vm.selectRegion(Region.USA)
+
+    val usaMerged = vm.mergedLicenses.value[Region.USA]
+    assertThat(usaMerged).hasSize(4)
+    usaMerged!!.forEachIndexed { i, license ->
+      assertThat(license.slotIndex).isEqualTo(i)
+      assertThat(license.exists).isFalse()
+    }
+    assertThat(vm.activeLicense.value).isNull()
   }
 
   // --- helpers ----------------------------------------------------------

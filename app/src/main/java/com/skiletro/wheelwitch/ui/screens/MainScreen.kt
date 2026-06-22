@@ -87,6 +87,7 @@ fun MainScreen(
         ) {
           SettingsScreen(
             miiMaker = miiMaker,
+            saveData = saveData,
             onClose = { showSettings = false },
             appTheme = appTheme,
             onChangeAppTheme = onChangeAppTheme,

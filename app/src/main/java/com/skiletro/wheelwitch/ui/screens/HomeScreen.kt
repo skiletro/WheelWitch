@@ -55,8 +55,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.skiletro.wheelwitch.R
+import com.skiletro.wheelwitch.model.LicenseInfo
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.ServerConnectivity
+import com.skiletro.wheelwitch.ui.components.ActivePlayerCard
 import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
 import com.skiletro.wheelwitch.ui.components.ProgressButton
 import com.skiletro.wheelwitch.ui.components.TopBar
@@ -91,6 +93,8 @@ fun HomeScreen(
   val hasWad by miiMaker.hasWad.collectAsState()
   val roomsState by onlineViewModel.roomsState.collectAsState()
   val vrMultiplier by onlineViewModel.vrMultiplier.collectAsState()
+  val activeLicense by saveData.activeLicense.collectAsState()
+  val cachedLeaderboardVrs by saveData.cachedLeaderboardVrs.collectAsState()
 
   val playerCount = (roomsState as? RoomsState.Success)?.playerCount
   val serverConnectivity =
@@ -171,6 +175,8 @@ fun HomeScreen(
               HomeBottomBar(
                 state = state,
                 vrMultiplier = vrMultiplier,
+                activeLicense = activeLicense,
+                cachedLeaderboardVrs = cachedLeaderboardVrs,
                 playerCount = playerCount,
                 serverConnectivity = serverConnectivity,
                 isBusy = state is UiState.Installing,
@@ -264,6 +270,8 @@ fun HomeScreen(
 private fun HomeBottomBar(
   state: UiState,
   vrMultiplier: Float?,
+  activeLicense: LicenseInfo?,
+  cachedLeaderboardVrs: Map<Int, Int>,
   playerCount: Int?,
   serverConnectivity: ServerConnectivity,
   isBusy: Boolean,
@@ -280,6 +288,14 @@ private fun HomeBottomBar(
     modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
+    if (activeLicense != null) {
+      ActivePlayerCard(
+        license = activeLicense,
+        cachedLeaderboardVr = cachedLeaderboardVrs[activeLicense.slotIndex],
+        vrMultiplier = vrMultiplier,
+      )
+    }
+
     Spacer(modifier = Modifier.weight(1f))
 
     AnimatedContent(

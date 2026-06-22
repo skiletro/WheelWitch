@@ -1,5 +1,7 @@
 package com.skiletro.wheelwitch.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,6 +26,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,6 +42,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.BuildConfig
 import com.skiletro.wheelwitch.R
+import com.skiletro.wheelwitch.data.SaveManager
+import com.skiletro.wheelwitch.data.SaveManager.Region
 import com.skiletro.wheelwitch.ui.components.SettingsCategoryHeader
 import com.skiletro.wheelwitch.ui.components.SettingsItem
 import com.skiletro.wheelwitch.ui.theme.AppTheme
@@ -51,16 +56,23 @@ import com.skiletro.wheelwitch.util.prefs.PrefsKeys
 import com.skiletro.wheelwitch.util.io.cacheSize
 import com.skiletro.wheelwitch.util.formatBytes
 import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
+import com.skiletro.wheelwitch.viewmodel.SaveDataViewModel
 
 /**
- * Settings overlay. The Save Data, Retro Rewind, and Riivolution
- * settings sections were removed; save data is reachable from the
- * home top bar (Licenses icon). Sections, in order: Appearance,
- * Mii Maker, Logging, Advanced, About.
+ * Settings overlay. Sections, in order: Appearance, Mii Maker, Save
+ * Data, Logging, Advanced, About.
+ *
+ * The Save Data section was promoted from the Licenses screen so the
+ * Licenses UI can be a pure 2x2 viewer: region selection, backup,
+ * restore and delete live here. The Save Data section is only
+ * rendered when the user has at least one save file; it stays
+ * available even if the user has no current save so the region
+ * selector can be used to retarget the Licenses view.
  */
 @Composable
 fun SettingsScreen(
   miiMaker: MiiMakerViewModel,
+  saveData: SaveDataViewModel,
   onClose: () -> Unit,
   appTheme: AppTheme,
   onChangeAppTheme: (AppTheme) -> Unit,
@@ -71,6 +83,10 @@ fun SettingsScreen(
   val hasWad by miiMaker.hasWad.collectAsState()
   val isInstallingWad by miiMaker.isInstallingWad.collectAsState()
   val miiMakerError by miiMaker.miiMakerError.collectAsState()
+  val hasSaveMap by saveData.hasSave.collectAsState()
+  val selectedRegion by saveData.selectedRegion.collectAsState()
+  val showSaveData = hasSaveMap.isNotEmpty()
+  val activeRegion = selectedRegion
 
   var showWadDeleteConfirm by remember { mutableStateOf(false) }
 
@@ -136,6 +152,15 @@ fun SettingsScreen(
           onRequestDelete = { showWadDeleteConfirm = true },
         )
       }
+      if (showSaveData && activeRegion != null) {
+        item {
+          SaveDataSection(
+            saveData = saveData,
+            selectedRegion = activeRegion,
+            presentRegions = hasSaveMap.keys,
+          )
+        }
+      }
       item { LoggingSection() }
       item {
         AdvancedSection(
@@ -147,6 +172,151 @@ fun SettingsScreen(
     }
   }
 }
+
+/** Save Data section: region picker + backup / restore / delete for the selected region. */
+@Composable
+private fun SaveDataSection(
+  saveData: SaveDataViewModel,
+  selectedRegion: Region,
+  presentRegions: Set<Region>,
+) {
+  val hasSaveMap by saveData.hasSave.collectAsState()
+  val context = LocalContext.current
+  var pendingBackup by remember { mutableStateOf(false) }
+  var pendingRestore by remember { mutableStateOf(false) }
+  var showDeleteConfirm by remember { mutableStateOf(false) }
+  var showRegionDropdown by remember { mutableStateOf(false) }
+
+  val backupLauncher =
+    rememberLauncherForActivityResult(
+      contract = ActivityResultContracts.CreateDocument("application/octet-stream")
+    ) { uri ->
+      if (uri != null) saveData.backupSave(selectedRegion, uri)
+      pendingBackup = false
+    }
+  val restoreLauncher =
+    rememberLauncherForActivityResult(
+      contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+      if (uri != null) saveData.restoreSave(selectedRegion, uri)
+      pendingRestore = false
+    }
+
+  LaunchedEffect(pendingBackup, selectedRegion) {
+    if (pendingBackup) {
+      val fileName = "rksys-${selectedRegion.code}-${System.currentTimeMillis()}.dat"
+      backupLauncher.launch(fileName)
+    }
+  }
+  LaunchedEffect(pendingRestore) {
+    if (pendingRestore) {
+      restoreLauncher.launch(arrayOf("application/octet-stream", "*/*"))
+    }
+  }
+
+  if (showDeleteConfirm) {
+    val name = stringResource(regionLabelRes(selectedRegion))
+    AlertDialog(
+      onDismissRequest = { showDeleteConfirm = false },
+      title = { Text(stringResource(R.string.settings_save_data_delete_confirm_title)) },
+      text = {
+        Text(stringResource(R.string.settings_save_data_delete_confirm_message, name))
+      },
+      confirmButton = {
+        Button(
+          onClick = {
+            saveData.deleteSave(selectedRegion)
+            showDeleteConfirm = false
+          },
+        ) {
+          Text(stringResource(R.string.settings_save_data_delete))
+        }
+      },
+      dismissButton = {
+        TextButton(onClick = { showDeleteConfirm = false }) {
+          Text(stringResource(R.string.action_cancel))
+        }
+      },
+    )
+  }
+
+  SettingsCategoryHeader(stringResource(R.string.settings_save_data_section))
+
+  SettingsItem(
+    icon = ImageVector.vectorResource(R.drawable.ic_dns),
+    title = stringResource(R.string.settings_save_data_region_label),
+    summary = stringResource(regionLabelRes(selectedRegion)),
+    trailing = {
+      Box {
+        TextButton(
+          onClick = { showRegionDropdown = true },
+          shape = buttonShape,
+        ) {
+          Text(stringResource(regionLabelRes(selectedRegion)))
+        }
+        DropdownMenu(
+          expanded = showRegionDropdown,
+          onDismissRequest = { showRegionDropdown = false },
+        ) {
+          Region.entries.forEach { region ->
+            val enabled = region in presentRegions
+            DropdownMenuItem(
+              text = { Text(stringResource(regionLabelRes(region))) },
+              enabled = enabled,
+              onClick = {
+                saveData.selectRegion(region)
+                showRegionDropdown = false
+              },
+            )
+          }
+        }
+      }
+    },
+  )
+
+  val hasSave = presentRegions.contains(selectedRegion) && (hasSaveMap[selectedRegion] == true)
+  SettingsItem(
+    icon = ImageVector.vectorResource(R.drawable.ic_save),
+    title = stringResource(R.string.settings_save_data_actions, stringResource(regionLabelRes(selectedRegion))),
+    summary =
+      if (hasSave) null
+      else stringResource(R.string.settings_save_data_no_save),
+    trailing = {
+      Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        TextButton(
+          onClick = { pendingBackup = true },
+          enabled = hasSave,
+          shape = buttonShape,
+        ) {
+          Text(stringResource(R.string.settings_save_data_backup))
+        }
+        TextButton(
+          onClick = { pendingRestore = true },
+          shape = buttonShape,
+        ) {
+          Text(stringResource(R.string.settings_save_data_restore))
+        }
+        TextButton(
+          onClick = { showDeleteConfirm = true },
+          enabled = hasSave,
+          shape = buttonShape,
+        ) {
+          Text(
+            text = stringResource(R.string.settings_save_data_delete),
+            color = MaterialTheme.colorScheme.error,
+          )
+        }
+      }
+    },
+  )
+}
+
+private fun regionLabelRes(region: Region): Int =
+  when (region) {
+    Region.PAL -> R.string.save_info_region_pal
+    Region.USA -> R.string.save_info_region_usa
+    Region.JPN -> R.string.save_info_region_jpn
+  }
 
 /** Appearance section: app theme picker and dark-mode picker. */
 @Composable

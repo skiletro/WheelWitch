@@ -24,10 +24,14 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -49,7 +53,18 @@ import timber.log.Timber
  * save file per region. [SaveManager.listRegions] walks the user's
  * [DolphinTree.romDir] and [refresh] reads + parses a save for each
  * present region in parallel. [selectedRegion] defaults to the first
- * region with a ROM.
+ * region with a ROM, and is changed from the Settings screen's
+ * Save Data section. The Licenses screen is a pure viewer of
+ * (selectedRegion × selectedSlotIndex) and never picks a region.
+ *
+ * Leaderboard merge: the Licenses screen renders all 4 slots of the
+ * selected region, so [mergedLicenses] holds a 4-entry list per
+ * region with leaderboard VR/Mii merged in. The leaderboard fetch
+ * is fanned out in parallel for all 4 slots of the selected region
+ * (4 in-flight requests max) via [refreshMergedLicensesForRegion].
+ * [activeLicense] is derived from [mergedLicenses] × selected
+ * region × selected slot via [combine], so selecting a slot never
+ * triggers a network round trip.
  *
  * Tests can swap the [treeFactory], the [parser], and the
  * [leaderboardFetcher] lambdas to inject mocks without going through
@@ -82,8 +97,14 @@ class SaveDataViewModel(
     MutableStateFlow(prefs.getInt(PrefsKeys.SELECTED_SLOT_KEY, 0))
   val selectedSlotIndex: StateFlow<Int> = _selectedSlotIndex.asStateFlow()
 
-  private val _activeLicense = MutableStateFlow<LicenseInfo?>(null)
-  val activeLicense: StateFlow<LicenseInfo?> = _activeLicense.asStateFlow()
+  private val _mergedLicenses = MutableStateFlow<Map<Region, List<LicenseInfo>>>(emptyMap())
+  val mergedLicenses: StateFlow<Map<Region, List<LicenseInfo>>> = _mergedLicenses.asStateFlow()
+
+  val activeLicense: StateFlow<LicenseInfo?> =
+    combine(_mergedLicenses, _selectedRegion, _selectedSlotIndex) { merged, region, slot ->
+        merged[region]?.getOrNull(slot)?.takeIf { it.exists }
+      }
+      .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
   private val _cachedLeaderboardVrs = MutableStateFlow(readVrCache())
   val cachedLeaderboardVrs: StateFlow<Map<Int, Int>> = _cachedLeaderboardVrs.asStateFlow()
@@ -107,8 +128,9 @@ class SaveDataViewModel(
 
   /**
    * Re-reads every region's save from the SAF tree, parses them in
-   * parallel, and refreshes the leaderboard for the selected slot.
-   * No-op if [treeFactory] returns null (no persisted SAF grant).
+   * parallel, and refreshes the leaderboard for the selected
+   * region's 4 slots. No-op if [treeFactory] returns null (no
+   * persisted SAF grant).
    */
   fun refresh() {
     viewModelScope.launch {
@@ -119,7 +141,7 @@ class SaveDataViewModel(
             ?: run {
               _saveInfos.value = emptyMap()
               _hasSave.value = emptyMap()
-              _activeLicense.value = null
+              _mergedLicenses.value = emptyMap()
               return@launch
             }
         val regions = SaveManager.listRegions(tree)
@@ -127,7 +149,7 @@ class SaveDataViewModel(
           _saveInfos.value = emptyMap()
           _hasSave.value = emptyMap()
           _selectedRegion.value = null
-          _activeLicense.value = null
+          _mergedLicenses.value = emptyMap()
           return@launch
         }
         val parsed =
@@ -152,7 +174,9 @@ class SaveDataViewModel(
         if (target != _selectedRegion.value) {
           _selectedRegion.value = target
         }
-        refreshActiveLicense()
+        if (target != null) {
+          refreshMergedLicensesForRegion(target, infos[target])
+        }
       } catch (e: Exception) {
         Timber.tag(TAG).e(e, "refresh failed")
         _error.value =
@@ -163,21 +187,27 @@ class SaveDataViewModel(
     }
   }
 
-  /** Persists the selected region and refreshes the active license. */
+  /**
+   * Persists the selected region and fetches the new region's 4
+   * leaderboards in parallel. The Licenses screen never picks a
+   * region; this is invoked from the Settings Save Data section.
+   */
   fun selectRegion(region: Region) {
+    if (region == _selectedRegion.value) return
     prefs.edit().putString(PrefsKeys.SELECTED_REGION_KEY, region.code).apply()
     _selectedRegion.value = region
-    viewModelScope.launch { refreshActiveLicense() }
+    viewModelScope.launch { refreshMergedLicensesForRegion(region, _saveInfos.value[region]) }
   }
 
   /**
-   * Persists [index] as the selected slot and refreshes the active
-   * license. The persisted value survives process death.
+   * Persists [index] as the selected slot. [activeLicense] is a
+   * projection of [mergedLicenses] × selected region × selected
+   * slot, so no network call is needed. The persisted value
+   * survives process death.
    */
   fun selectSlot(index: Int) {
     prefs.edit().putInt(PrefsKeys.SELECTED_SLOT_KEY, index).apply()
     _selectedSlotIndex.value = index
-    viewModelScope.launch { refreshActiveLicense() }
   }
 
   /** Copies the [region] save bytes to the user-picked [dest] URI. */
@@ -235,28 +265,52 @@ class SaveDataViewModel(
 
   // --- internals --------------------------------------------------------
 
-  private suspend fun refreshActiveLicense() {
-    val region = _selectedRegion.value ?: return
-    val saveInfo = _saveInfos.value[region] ?: run {
-      _activeLicense.value = null
-      return
-    }
-    val slotIndex = _selectedSlotIndex.value
-    val base = saveInfo.licenses.getOrNull(slotIndex)?.takeIf { it.exists }
-    if (base == null) {
-      _activeLicense.value = null
-      return
-    }
-    _activeLicense.value = base
-    if (base.friendCode != null) {
-      val result = withContext(ioDispatcher) { leaderboardFetcher(base.friendCode) }
-      if (result.isSuccess) {
-        val (vr, mii) = result.getOrThrow()
-        _activeLicense.value =
-          base.copy(leaderboardVr = vr, leaderboardMiiImageBase64 = mii)
-        cacheAndPersistLeaderboardVr(slotIndex, vr)
+  /**
+   * Fans out 4 parallel leaderboard fetches (one per license slot
+   * of [region]) and writes the merged list into [mergedLicenses].
+   * Skips slots without a `friendCode` (empty slots). When [info]
+   * is null (no save file for this region, e.g. after a delete or
+   * a switch to a region that has never been played), publishes 4
+   * empty `LicenseInfo` entries so the Licenses screen renders an
+   * empty 2x2 grid instead of stale data from a previous session.
+   *
+   * The initial (un-merged) list is published first so the UI can
+   * show the local VR while the network round trips are in flight.
+   *
+   * Each successful VR is also written to the persistent VR cache
+   * so subsequent fetches with no network still have a fallback.
+   */
+  private suspend fun refreshMergedLicensesForRegion(
+    region: Region,
+    info: SaveFileInfo?,
+  ) {
+    val baseLicenses =
+      info?.licenses ?: List(LICENSE_SLOTS) { i -> LicenseInfo(slotIndex = i, exists = false) }
+    _mergedLicenses.update { current -> current + (region to baseLicenses) }
+    val enriched =
+      withContext(ioDispatcher) {
+        coroutineScope {
+          baseLicenses
+            .map { license ->
+              async {
+                if (!license.exists || license.friendCode == null) {
+                  license
+                } else {
+                  val result = leaderboardFetcher(license.friendCode)
+                  if (result.isSuccess) {
+                    val (vr, mii) = result.getOrThrow()
+                    cacheAndPersistLeaderboardVr(license.slotIndex, vr)
+                    license.copy(leaderboardVr = vr, leaderboardMiiImageBase64 = mii)
+                  } else {
+                    license
+                  }
+                }
+              }
+            }
+            .awaitAll()
+        }
       }
-    }
+    _mergedLicenses.update { current -> current + (region to enriched) }
   }
 
   private fun pickSelectedRegion(regions: List<Region>): Region? {
@@ -307,6 +361,9 @@ class SaveDataViewModel(
    */
   companion object {
     const val TAG = "SaveData"
+
+    /** Number of license slots in an `rksys.dat` save file. */
+    private const val LICENSE_SLOTS = 4
 
     fun defaultTreeFactory(context: Context): DolphinTree? = DolphinTree.fromPersisted(context)
 
