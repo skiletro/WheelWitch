@@ -41,29 +41,26 @@ fun ActivePlayerCard(license: LicenseInfo, cachedLeaderboardVr: Int?, vrMultipli
         maxLines = 1,
         fontFamily = CtmkfFontFamily,
       )
-      val vr = license.leaderboardVr ?: cachedLeaderboardVr ?: license.vr
-      if (vr != null) {
-        val showActive = vrMultiplier != null && vrMultiplier > 1.0f
-        val multText =
-          if (showActive) {
-            if (vrMultiplier == vrMultiplier.toInt().toFloat()) vrMultiplier.toInt().toString()
-            else vrMultiplier.toString()
-          } else null
-        val suffix =
-          if (multText != null) stringResource(R.string.home_vr_active_suffix, multText)
-          else stringResource(R.string.home_vr_suffix)
-        val numberStyle =
-          MaterialTheme.typography.labelSmall.copy(
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-          )
-        Row(verticalAlignment = Alignment.CenterVertically) {
-          RollingNumbers(text = vr.toString(), textStyle = numberStyle)
-          Text(
-            text = suffix,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-          )
-        }
+      val vr = license.leaderboardVr ?: cachedLeaderboardVr ?: 0
+      val showActive = vrMultiplier != null && vrMultiplier > 1.0f
+      val multText =
+        if (showActive) {
+          if (vrMultiplier == vrMultiplier.toInt().toFloat()) vrMultiplier.toInt().toString()
+          else vrMultiplier.toString()
+        } else null
+      val suffix =
+        if (multText != null) stringResource(R.string.home_vr_active_suffix, multText)
+        else stringResource(R.string.home_vr_suffix)
+      val numberStyle =
+        MaterialTheme.typography.labelSmall.copy(
+          color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+      Row(verticalAlignment = Alignment.CenterVertically) {
+        RollingNumbers(text = vr.toString(), textStyle = numberStyle)
+        Text(
+          text = " $suffix",
+          style = MaterialTheme.typography.labelSmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,)
       }
     }
   }
