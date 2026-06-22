@@ -1,250 +1,230 @@
 package com.skiletro.wheelwitch.domain
 
-import com.skiletro.wheelwitch.data.PackStorage
-import com.skiletro.wheelwitch.domain.RewindPackManager.freshInstall
-import com.skiletro.wheelwitch.domain.RewindPackManager.initCacheDir
+import android.content.Context
+import com.skiletro.wheelwitch.data.DolphinTree
+import com.skiletro.wheelwitch.data.ExtractingPhase
 import com.skiletro.wheelwitch.model.PackStatus
-import com.skiletro.wheelwitch.model.ProgressInfo
 import com.skiletro.wheelwitch.model.SemVersion
-import com.skiletro.wheelwitch.model.ServerInfo
-import com.skiletro.wheelwitch.model.UpdateEntry
 import com.skiletro.wheelwitch.network.VersionFileParser
-import com.skiletro.wheelwitch.util.FileDownloader
-import com.skiletro.wheelwitch.util.HttpClientProvider
+import com.skiletro.wheelwitch.util.io.DownloadProgress
+import com.skiletro.wheelwitch.util.io.FileDownloader
+import com.skiletro.wheelwitch.util.io.ParallelDownloadProgress
+import com.skiletro.wheelwitch.util.net.HttpClientProvider
+import java.io.File
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.io.File
-import java.util.concurrent.TimeUnit
 
-/** Orchestrates Retro Rewind Pack installation, incremental updates, and status checks. */
-object RewindPackManager {
-    /** Path of the local version file relative to the storage root (NOT the server-side `RetroRewind/RetroRewindVersion.txt`). */
-    internal const val VERSION_FILE = "RetroRewind6/version.txt"
-    private const val MIN_FULL_REINSTALL_VERSION = "3.2.6"
-    private const val DOWNLOAD_MESSAGE = "Downloading Retro Rewind Pack..."
+/**
+ * Owns the install/update flow for the Retro Rewind Pack.
+ *
+ * Reads the local pack version from [DolphinTree.readVersion] (the
+ * `pack/version.txt` inside the SAF tree) and compares it against
+ * the server manifest; performs full or incremental installs by
+ * downloading the pack zip to [Context.getCacheDir] (where
+ * `java.io.File` works) and then streaming it into the SAF tree via
+ * [DolphinTree.extractZipToPack]. Writes the new version file *only
+ * after* a successful extract, so a failed install leaves the
+ * previous version (or no file) on disk.
+ *
+ * The downloader is [FileDownloader], the hand-rolled OkHttp wrapper.
+ * The pack zip is multi-MB so we use the
+ * [HttpClientProvider.largeDownloadClient] (60s read timeout).
+ */
+class RewindPackManager(
+  private val context: Context,
+  private val tree: DolphinTree,
+) {
+  /**
+   * Reads the local pack version and the server manifest and returns
+   * the appropriate [PackStatus]. If the server is unreachable,
+   * returns [PackStatus.Installed] when a local version exists or
+   * [PackStatus.NotInstalled] otherwise.
+   */
+  suspend fun checkStatus(): PackStatus = withContext(Dispatchers.IO) {
+    val local = tree.readVersion()
+    val server = VersionFileParser.fetchServerInfo().getOrNull()
+    if (server == null) {
+      Timber.tag(TAG).w("Server info unavailable; localVersion=%s", local)
+      return@withContext if (local != null) {
+        PackStatus.Installed(local)
+      } else {
+        PackStatus.NotInstalled
+      }
+    }
+    when {
+      local == null -> {
+        Timber.tag(TAG).d("Not installed; server latest=%s", server.latestVersion)
+        PackStatus.NotInstalled
+      }
+      local >= server.latestVersion -> {
+        Timber.tag(TAG)
+          .d("Up to date: local=%s server=%s", local, server.latestVersion)
+        PackStatus.UpToDate(local, server.latestVersion)
+      }
+      else -> {
+        Timber.tag(TAG)
+          .i("Update available: %s -> %s", local, server.latestVersion)
+        PackStatus.UpdateAvailable(local, server.latestVersion, server)
+      }
+    }
+  }
 
-    private var tempCacheDir: File? = null
-
-    /** Initialises the temp download cache and cleans files older than 24 hours. */
-    fun initCacheDir(cache: File) {
-        val dir = File(cache, "rewind_pack_downloads")
-        tempCacheDir = dir
-        dir.mkdirs()
-        val cutoff = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(1)
-        dir.listFiles()?.forEach { file ->
-            if (file.lastModified() < cutoff) file.delete()
-        }
+  /**
+   * Downloads the full pack zip and extracts it into the SAF tree.
+   * Always overwrites the local install. Use this for a fresh install
+   * or to recover from a corrupted state.
+   *
+   * Wrapped in [withContext] [Dispatchers.IO] because the initial
+   * server-info call hits the network; without it, a [viewModelScope]
+   * caller (which defaults to `Dispatchers.Main.immediate`) trips
+   * Android's `NetworkOnMainThreadException` strict-mode check.
+   */
+  suspend fun installLatest(onProgress: (InstallProgress) -> Unit): Result<Unit> =
+    withContext(Dispatchers.IO) {
+      runCatching {
+        val server = VersionFileParser.fetchServerInfo().getOrThrow()
+        Timber.tag(TAG).i("Starting full install of %s", server.latestVersion)
+        performInstall(VersionFileParser.getFullZipUrl(), onProgress)
+        tree.writeVersion(server.latestVersion)
+      }
     }
 
-    /** Compares local version against the server to determine [PackStatus]. Returns [Installed] if the server is unreachable. */
-    suspend fun checkStatus(
-        storage: PackStorage
-    ): PackStatus {
-        val localVersion = readLocalVersion(storage)
-        val serverInfo = VersionFileParser.fetchServerInfo().getOrNull()
-        if (serverInfo == null) {
-            Timber.tag("RewindPack")
-                .w("Server info unavailable; localVersion=%s", localVersion)
-            return if (localVersion != null) PackStatus.Installed(localVersion) else PackStatus.NotInstalled
-        }
-
-        return if (localVersion == null) {
-            Timber.tag("RewindPack").d("Not installed; server latest=%s", serverInfo.latestVersion)
-            PackStatus.NotInstalled
-        } else if (localVersion >= serverInfo.latestVersion) {
-            Timber.tag("RewindPack")
-                .d("Up to date: local=%s server=%s", localVersion, serverInfo.latestVersion)
-            PackStatus.UpToDate(localVersion, serverInfo.latestVersion)
+  /**
+   * Performs the smallest set of incremental updates that takes the
+   * local pack from its current version to the server's latest
+   * version. Falls back to a full reinstall if the local version is
+   * missing or older than [MIN_INCREMENTAL_VERSION]. The pack format
+   * changed incompatibly around that point, so partial updates are
+   * not safe.
+   *
+   * Same `Dispatchers.IO` wrapper as [installLatest]. See the kdoc
+   * there for why.
+   */
+  suspend fun update(onProgress: (InstallProgress) -> Unit): Result<Unit> =
+    withContext(Dispatchers.IO) {
+      runCatching {
+        val local = tree.readVersion()
+        val server = VersionFileParser.fetchServerInfo().getOrThrow()
+        val minVersion =
+          SemVersion.parse(MIN_INCREMENTAL_VERSION)
+            ?: error("Invalid MIN_INCREMENTAL_VERSION constant")
+        if (local == null || local < minVersion) {
+          Timber.tag(TAG)
+            .i("Local version %s is below %s; doing full reinstall", local, minVersion)
+          performInstall(VersionFileParser.getFullZipUrl(), onProgress)
         } else {
-            Timber.tag("RewindPack")
-                .i("Update available: %s -> %s", localVersion, serverInfo.latestVersion)
-            PackStatus.UpdateAvailable(localVersion, serverInfo.latestVersion, serverInfo)
-        }
-    }
-
-    /**
-     * Downloads the full Retro Rewind zip, extracts it, and writes the
-     * local version file.
-     *
-     * Throws if [initCacheDir] has not been called first.
-     */
-    suspend fun freshInstall(
-        storage: PackStorage,
-        onProgress: (ProgressInfo) -> Unit
-    ): Result<SemVersion> = runCatching {
-        val serverInfo = VersionFileParser.fetchServerInfo().getOrNull()
-        val targetVersion = serverInfo?.latestVersion ?: error("Could not fetch version info")
-
-        onProgress(ProgressInfo.Downloading(0f, 0L, 0L, 0L, DOWNLOAD_MESSAGE))
-        val cacheBase = tempCacheDir ?: error("Cache not initialized")
-        cacheBase.mkdirs()
-        val zipFile = File.createTempFile("install_", ".zip", cacheBase)
-        withContext(Dispatchers.IO) {
-            FileDownloader.downloadToFile(
-                VersionFileParser.getFullZipUrl(),
-                zipFile,
-                onProgress = { p ->
-                    onProgress(
-                        ProgressInfo.Downloading(
-                            p.progress,
-                            p.bytesPerSecond,
-                            p.bytesDownloaded,
-                            p.totalBytes,
-                            DOWNLOAD_MESSAGE,
-                        )
-                    )
-                },
-                client = HttpClientProvider.largeDownloadClient
+          val steps =
+            server.allUpdates
+              .filter { it.version > local && it.version <= server.latestVersion }
+              .sortedBy { it.version }
+          Timber.tag(TAG)
+            .i(
+              "Applying %d incremental update steps from %s to %s",
+              steps.size,
+              local,
+              server.latestVersion,
             )
+          for (step in steps) {
+            performInstall(step.url, onProgress)
+          }
         }
-
-        onProgress(ProgressInfo.Extracting(0f))
-        Timber.tag("RewindPack").i("Extracting fresh install to %s", storage.rootPath)
-        storage.extractZip(zipFile) { progress ->
-            onProgress(ProgressInfo.Extracting(progress))
-        }.getOrThrow()
-
-        writeLocalVersion(storage, targetVersion)
-        zipFile.delete()
-        Timber.tag("RewindPack").i("Fresh install complete: v%s", targetVersion)
-        targetVersion
+        tree.writeVersion(server.latestVersion)
+      }
     }
 
+  /**
+   * Phased progress emitted by [performInstall]. Lets the caller
+   * distinguish between the network-bound download phase (which
+   * carries a [DownloadProgress] with byte counts) and the
+   * disk-bound extraction phase (which carries a file count).
+   */
+  sealed class InstallProgress {
+    /** Zip is being fetched from the update server. */
+    data class Downloading(val progress: DownloadProgress) : InstallProgress()
+
     /**
-     * Downloads incremental update zips, applies file deletions, then
-     * extracts each zip in order, writing `version.txt` after every
-     * successful step. Falls back to [freshInstall] for versions below
-     * 3.2.6.
+     * Zip is being unpacked into the SAF tree.
      *
-     * Throws if [initCacheDir] has not been called first.
+     * - [phase] tells the caller whether the directory pre-pass
+     *   (the slow part) is running or the per-file writes have
+     *   started.
+     * - [filesDone] / [filesTotal] are the file count basis for the
+     *   determinate bar.
+     * - [currentFile] is the entry currently being written, or
+     *   null between files and during the pre-pass.
+     * - [bytesDone] / [bytesTotal] are the uncompressed byte counts
+     *   carried for future display / ETA use.
      */
-    suspend fun incrementalUpdate(
-        storage: PackStorage,
-        serverInfo: ServerInfo,
-        currentVersion: SemVersion,
-        onProgress: (ProgressInfo) -> Unit
-    ): Result<SemVersion> = runCatching {
-        val minVersion = SemVersion.parse(MIN_FULL_REINSTALL_VERSION)
-            ?: error("Invalid min version constant")
-        if (currentVersion < minVersion) {
-            onProgress(ProgressInfo.Checking("Version too old, performing full reinstall..."))
-            return@runCatching freshInstall(storage, onProgress).getOrThrow()
-        }
+    data class Extracting(
+      val phase: ExtractingPhase,
+      val filesDone: Int,
+      val filesTotal: Int,
+      val currentFile: String?,
+      val bytesDone: Long,
+      val bytesTotal: Long,
+    ) : InstallProgress()
+  }
 
-        val steps = serverInfo.allUpdates.filter { it.version > currentVersion }
-        val deletionSteps = filterDeletions(serverInfo, currentVersion, steps)
-
-        applyDeletions(storage, deletionSteps, onProgress)
-
-        onProgress(ProgressInfo.Checking("Downloading updates..."))
-        val cacheBase = tempCacheDir ?: error("Cache not initialized")
-        cacheBase.mkdirs()
-
-        // Downloads run in parallel; extraction is sequential and waits for all downloads.
-        val results = coroutineScope {
-            steps.map { step ->
-                async(Dispatchers.IO) { downloadUpdateZip(step, cacheBase, onProgress) }
-            }.awaitAll()
-        }
-        applyUpdateZips(storage, results, onProgress)
-
-        serverInfo.latestVersion
-    }
-
-    /**
-     * Filters deletions to only those whose version is greater than
-     * [currentVersion] and at most the latest step we are updating to.
-     * Deletions for versions beyond the latest step are skipped so we do
-     * not delete files for updates we are not applying this run.
-     */
-    private fun filterDeletions(
-        serverInfo: ServerInfo,
-        currentVersion: SemVersion,
-        steps: List<UpdateEntry>,
-    ): List<com.skiletro.wheelwitch.model.DeletionEntry> {
-        val maxStepVersion = steps.lastOrNull()?.version ?: currentVersion
-        return serverInfo.deletions.filter { it.version > currentVersion && it.version <= maxStepVersion }
-    }
-
-    private fun applyDeletions(
-        storage: PackStorage,
-        deletions: List<com.skiletro.wheelwitch.model.DeletionEntry>,
-        onProgress: (ProgressInfo) -> Unit,
-    ) {
-        onProgress(ProgressInfo.Checking("Applying file deletions..."))
-        Timber.tag("RewindPack").d("Applying %d file deletions", deletions.size)
-        for (deletion in deletions) {
-            storage.deleteFile(deletion.path)
-        }
-    }
-
-    private suspend fun downloadUpdateZip(
-        step: UpdateEntry,
-        cacheBase: File,
-        onProgress: (ProgressInfo) -> Unit,
-    ): Pair<UpdateEntry, File> {
-        val file = File.createTempFile("update_", ".zip", cacheBase)
-        FileDownloader.downloadToFile(
-            step.url,
-            file,
-            onProgress = { p ->
-                onProgress(
-                    ProgressInfo.Downloading(
-                        p.progress,
-                        p.bytesPerSecond,
-                        p.bytesDownloaded,
-                        p.totalBytes,
-                        "${step.description} - downloading",
-                    )
-                )
-            },
-            client = HttpClientProvider.largeDownloadClient
+  /**
+   * Downloads a pack zip to [Context.getCacheDir], extracts it into
+   * the SAF tree's pack directory, and deletes the temp file. The
+   * [onProgress] callback fires for both phases. First the
+   * per-byte download progress, then the per-file extraction
+   * progress.
+   *
+   * Uses [FileDownloader.downloadInParallel] which issues a HEAD
+   * probe and falls back to single-stream if the server doesn't
+   * support byte ranges. The downloader accepts
+   * [com.skiletro.wheelwitch.util.io.ParallelDownloadProgress]
+   * (structurally identical to [DownloadProgress] with one extra
+   * `activeChunks` field) which we project to the UI's
+   * [DownloadProgress] shape so the consumer doesn't change.
+   */
+  private suspend fun performInstall(
+    url: String,
+    onProgress: (InstallProgress) -> Unit,
+  ) {
+    val zipFile = File(context.cacheDir, PACK_ZIP_NAME)
+    FileDownloader.downloadInParallel(
+      url = url,
+      targetFile = zipFile,
+      onProgress = { pp -> onProgress(InstallProgress.Downloading(pp.toDownloadProgress())) },
+      client = HttpClientProvider.largeDownloadClient,
+    )
+    try {
+      tree.extractZipToPack(zipFile) { ep ->
+        onProgress(
+          InstallProgress.Extracting(
+            phase = ep.phase,
+            filesDone = ep.filesDone,
+            filesTotal = ep.filesTotal,
+            currentFile = ep.currentFile,
+            bytesDone = ep.bytesDone,
+            bytesTotal = ep.bytesTotal,
+          )
         )
-        return step to file
+      }
+    } finally {
+      zipFile.delete()
     }
+  }
 
-    private suspend fun applyUpdateZips(
-        storage: PackStorage,
-        results: List<Pair<UpdateEntry, File>>,
-        onProgress: (ProgressInfo) -> Unit,
-    ) {
-        for ((i, pair) in results.withIndex()) {
-            val (step, zipFile) = pair
-            val displayIndex = i + 1
-            Timber.tag("RewindPack").i("Applying update %d/%d: v%s", displayIndex, results.size, step.version)
-            onProgress(
-                ProgressInfo.ApplyingUpdate(
-                    displayIndex,
-                    results.size,
-                    step.description,
-                    0f
-                )
-            )
-            storage.extractZip(zipFile) { progress ->
-                onProgress(
-                    ProgressInfo.ApplyingUpdate(
-                        displayIndex,
-                        results.size,
-                        step.description,
-                        progress
-                    )
-                )
-            }.getOrThrow()
-            writeLocalVersion(storage, step.version)
-            zipFile.delete()
-        }
-    }
+  private fun ParallelDownloadProgress.toDownloadProgress(): DownloadProgress =
+    DownloadProgress(
+      progress = progress,
+      bytesPerSecond = bytesPerSecond,
+      bytesDownloaded = bytesDownloaded,
+      totalBytes = totalBytes,
+    )
 
-    private fun writeLocalVersion(storage: PackStorage, version: SemVersion) {
-        storage.writeFile(VERSION_FILE, version.toString())
-    }
+  private companion object {
+    /** Local versions older than this get a full reinstall, not an incremental update. */
+    const val MIN_INCREMENTAL_VERSION = "3.2.6"
 
-    private fun readLocalVersion(storage: PackStorage): SemVersion? {
-        val text = storage.readFile(VERSION_FILE) ?: return null
-        return SemVersion.parse(text.trim())
-    }
+    /** Cached pack zip filename inside [Context.getCacheDir]. */
+    const val PACK_ZIP_NAME = "RetroRewind.zip"
+
+    const val TAG = "RewindPack"
+  }
 }

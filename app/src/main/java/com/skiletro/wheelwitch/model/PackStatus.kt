@@ -8,7 +8,7 @@ sealed class PackStatus {
     /** No pack files found in storage. */
     data object NotInstalled : PackStatus()
 
-    /** Pack is installed but the server could not be reached — version may be stale. */
+    /** Pack is installed but the server could not be reached; version may be stale. */
     data class Installed(val version: SemVersion) : PackStatus()
 
     /** A newer version is available on the server. */

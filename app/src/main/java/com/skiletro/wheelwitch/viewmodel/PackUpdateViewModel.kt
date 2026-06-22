@@ -1,378 +1,269 @@
 package com.skiletro.wheelwitch.viewmodel
 
 import android.app.Application
-import android.net.Uri
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.viewModelScope
 import com.skiletro.wheelwitch.R
-import com.skiletro.wheelwitch.data.GameTypeParser
-import com.skiletro.wheelwitch.data.IsoValidator
-import com.skiletro.wheelwitch.data.PackStorage
-import com.skiletro.wheelwitch.data.SaveManager
+import com.skiletro.wheelwitch.data.DolphinTree
+import com.skiletro.wheelwitch.data.ExtractingPhase
 import com.skiletro.wheelwitch.domain.RewindPackManager
 import com.skiletro.wheelwitch.model.PackStatus
-import com.skiletro.wheelwitch.model.ProgressInfo
-import com.skiletro.wheelwitch.util.DolphinLauncher
-import com.skiletro.wheelwitch.util.MiiFaceCache
-import com.skiletro.wheelwitch.util.Prefs
-import com.skiletro.wheelwitch.util.PrefsKeys
-import com.skiletro.wheelwitch.viewmodel.PackUpdateViewModel.Companion.currentStorage
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import timber.log.Timber
-import java.io.File
 
 /**
- * Owns the pack install / update state machine and the storage URI.
+ * Orchestrates the install/update flow for the Retro Rewind Pack.
  *
- * [currentStorage] is exposed via the companion object's [currentStorage]
- * getter so that [SaveDataViewModel] can read it without needing DI.
- * Companion-object state is used because AndroidViewModel instantiation
- * is framework-controlled, so constructor injection is not available.
+ * Loads the [RewindPackManager] from the persisted [DolphinTree] in
+ * [init] and runs an initial [checkStatus]. Exposes the install /
+ * update actions to the UI; both are guarded by an [installMutex]
+ * so a double-tap on the install button cannot trigger parallel
+ * downloads.
+ *
+ * The state machine (`UiState`) cycles through
+ * `Idle → Checking → Ready → Installing → Installed → Checking → Ready`
+ * on a successful install. Failure paths land in [UiState.Error] and
+ * can be retried via [clearError].
+ *
+ * Tests can swap the [managerFactory] to inject a mock
+ * [RewindPackManager] without going through SAF.
  */
-class PackUpdateViewModel(application: Application) : AndroidViewModel(application) {
-    private val app = application
-    private val prefs = Prefs.main(application)
+class PackUpdateViewModel(
+  application: Application,
+  private val managerFactory: (Context) -> RewindPackManager? = ::defaultManagerFactory,
+) : AndroidViewModel(application) {
+  // Cached at construction, replaced by [refreshManager] after the
+  // composition root re-runs onboarding. The var swap is intentional:
+  // the manager depends on a persisted SAF tree URI which can be
+  // written after the VM is created.
+  private var manager: RewindPackManager? = managerFactory(application)
+  private val installMutex = Mutex()
 
-    private val _state = MutableStateFlow<UiState>(UiState.NoStorage)
-    val state: StateFlow<UiState> = _state.asStateFlow()
+  private val _state = MutableStateFlow<UiState>(UiState.Idle)
+  val state: StateFlow<UiState> = _state.asStateFlow()
 
-    private val _successMessage = MutableStateFlow<String?>(null)
-    val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
+  init {
+    checkStatus()
+  }
 
-    private val _currentIsoPath = MutableStateFlow<String?>(null)
-    val currentIsoPath: StateFlow<String?> = _currentIsoPath.asStateFlow()
+  /** Single read-through so the `var` swap is intentional. */
+  private fun currentManager(): RewindPackManager? = manager
 
-    private val _gameInfo = MutableStateFlow<GameTypeParser.GameInfo?>(null)
-    val gameInfo: StateFlow<GameTypeParser.GameInfo?> = _gameInfo.asStateFlow()
+  /**
+   * Re-creates the manager from the current persisted tree URI and
+   * re-runs [checkStatus]. Call from the composition root after a
+   * successful onboarding flow so the cached (possibly null) manager
+   * is replaced with the new tree URI. No-op if the factory still
+   * returns null (the user cancelled the SAF picker or the URI was
+   * cleared by a previous fromPersisted failure).
+   */
+  fun refreshManager() {
+    manager = managerFactory(getApplication())
+    checkStatus()
+  }
 
-    private val _myStuffMode = MutableStateFlow(DolphinLauncher.MyStuffMode.Everything)
-    val myStuffMode: StateFlow<DolphinLauncher.MyStuffMode> = _myStuffMode.asStateFlow()
+  /**
+   * Re-checks the local version against the server manifest. Emits
+   * [UiState.Checking] then [UiState.Ready] with the resolved
+   * [PackStatus], or [UiState.Error] on failure. When no pack
+   * storage is configured (no persisted tree URI), the resolved
+   * status is [PackStatus.NotInstalled]. The user is routed to
+   * onboarding by the UI.
+   */
+  fun checkStatus() {
+    viewModelScope.launch {
+      _state.value = UiState.Checking
+      if (currentManager() == null) {
+        Timber.tag(TAG)
+          .w("checkStatus: manager is null; no persisted Dolphin tree; " +
+            "treating as NotInstalled (user needs to run onboarding)")
+      }
+      val result =
+        runCatching {
+          currentManager()?.checkStatus() ?: PackStatus.NotInstalled
+        }
+      _state.value =
+        result.fold(
+          onSuccess = {
+            Timber.tag(TAG).d("checkStatus -> %s", it::class.simpleName)
+            UiState.Ready(it)
+          },
+          onFailure = { e ->
+            Timber.tag(TAG).e(e, "checkStatus failed")
+            UiState.Error(friendlyErrorMessage(e))
+          },
+        )
+    }
+  }
 
-    private var storage: PackStorage? = null
-    val storageRootPath: String? get() = storage?.rootPath
+  /**
+   * Downloads and extracts the full pack zip. Guarded by
+   * [installMutex]. On success, briefly emits [UiState.Installed]
+   * and then auto-calls [checkStatus] to transition to [UiState.Ready]
+   * with the new status.
+   */
+  fun installLatest() {
+    viewModelScope.launch {
+      installMutex.withLock {
+        val mgr = currentManager()
+        if (mgr == null) {
+          Timber.tag(TAG)
+            .e("installLatest: manager is null; DolphinTree.fromPersisted returned null. " +
+              "User has no valid SAF grant; route to onboarding.")
+          _state.value =
+            UiState.Error(
+              getApplication<Application>().getString(R.string.vm_storage_not_configured_full)
+            )
+          return@withLock
+        }
+        _state.value = UiState.Installing.Extracting(
+          phase = ExtractingPhase.PreparingFolders,
+          filesDone = 0,
+          filesTotal = 1,
+          currentFile = null,
+          bytesDone = 0L,
+          bytesTotal = 0L,
+        )
+        val result = mgr.installLatest { phase -> _state.value = phase.toUiState() }
+        handleInstallResult(result)
+      }
+    }
+  }
 
-    init {
-        RewindPackManager.initCacheDir(application.cacheDir)
-        MiiFaceCache.init(application)
-        restoreStorageUri()
-        _myStuffMode.value = readMyStuffMode()
+  /**
+   * Performs the smallest set of incremental updates needed. Falls
+   * back to a full reinstall if the local version is missing or
+   * predates the pack format change. Same [installMutex] guard as
+   * [installLatest]; calling both in parallel is a no-op for the
+   * second caller.
+   */
+  fun update() {
+    viewModelScope.launch {
+      installMutex.withLock {
+        val mgr = currentManager()
+        if (mgr == null) {
+          Timber.tag(TAG)
+            .e("update: manager is null; DolphinTree.fromPersisted returned null. " +
+              "User has no valid SAF grant; route to onboarding.")
+          _state.value =
+            UiState.Error(
+              getApplication<Application>().getString(R.string.vm_storage_not_configured_full)
+            )
+          return@withLock
+        }
+        _state.value = UiState.Installing.Extracting(
+          phase = ExtractingPhase.PreparingFolders,
+          filesDone = 0,
+          filesTotal = 1,
+          currentFile = null,
+          bytesDone = 0L,
+          bytesTotal = 0L,
+        )
+        val result = mgr.update { phase -> _state.value = phase.toUiState() }
+        handleInstallResult(result)
+      }
+    }
+  }
+
+  /** Maps a [RewindPackManager.InstallProgress] phase to the corresponding [UiState.Installing] phase. */
+  private fun RewindPackManager.InstallProgress.toUiState(): UiState.Installing =
+    when (this) {
+      is RewindPackManager.InstallProgress.Downloading ->
+        UiState.Installing.Downloading(progress)
+      is RewindPackManager.InstallProgress.Extracting ->
+        UiState.Installing.Extracting(
+          phase = phase,
+          filesDone = filesDone,
+          filesTotal = filesTotal,
+          currentFile = currentFile,
+          bytesDone = bytesDone,
+          bytesTotal = bytesTotal,
+        )
     }
 
-    private fun restoreStorageUri() {
-        val uriString = prefs.getString(PrefsKeys.STORAGE_URI_KEY, null)
-        if (uriString == null) {
-            _state.value = UiState.NoStorage
-            return
-        }
-        val path = PackStorage.resolveTreeUriToPath(Uri.parse(uriString))
-        if (path == null) {
-            _state.value = UiState.NoStorage
-            return
-        }
-        storage = PackStorage(path)
-        currentStorage = storage
-        refreshIsoPath()
-        refreshGameInfo()
-        checkStatus()
-    }
+  /** Clears an error state and re-checks status. No-op for non-error states. */
+  fun clearError() {
+    if (_state.value is UiState.Error) checkStatus()
+  }
 
-    private fun refreshIsoPath() {
-        val rootPath = storage?.rootPath ?: return
-        _currentIsoPath.value = DolphinLauncher.readIsoPathFromLaunchJson(rootPath)
-    }
+  private fun handleInstallResult(result: Result<Unit>) {
+    result.fold(
+      onSuccess = {
+        _state.value = UiState.Installed
+        // Briefly show Installed, then immediately re-check status so
+        // the UI lands on the new Ready(UpToDate) state.
+        viewModelScope.launch { checkStatus() }
+      },
+      onFailure = { e ->
+        Timber.tag(TAG).e(e, "install/update failed")
+        val friendly = friendlyErrorMessage(e)
+        _state.value = UiState.Error(friendly)
+      },
+    )
+  }
 
-    /** Persists [uri] as the pack storage root and re-checks the pack status. */
-    fun setStorageUri(uri: Uri) {
-        prefs.edit().putString(PrefsKeys.STORAGE_URI_KEY, uri.toString()).apply()
-        val path = PackStorage.resolveTreeUriToPath(uri)
-        if (path == null) {
-            _state.value = UiState.Error(app.getString(R.string.home_no_iso_cant_launch))
-            return
-        }
-        storage = PackStorage(path)
-        currentStorage = storage
-        checkStatus()
+  /**
+   * Maps a thrown exception to a user-facing message. Most app
+   * exceptions have decent `message` text, but a few (notably
+   * [android.os.NetworkOnMainThreadException] and the various
+   * [java.io.IOException] subclasses thrown by OkHttp/SAF) just dump
+   * the class name, which is meaningless in a toast. We surface the
+   * most common cases explicitly; everything else falls through to
+   * the exception's own message.
+   */
+  private fun friendlyErrorMessage(e: Throwable): String {
+    val raw = e.message?.takeIf { it.isNotBlank() } ?: e::class.simpleName.orEmpty()
+    return when {
+      e is android.os.NetworkOnMainThreadException ->
+        getApplication<Application>().getString(R.string.vm_install_main_thread_error)
+      e is java.net.UnknownHostException || e is java.net.SocketTimeoutException ->
+        getApplication<Application>().getString(R.string.vm_network_error)
+      e is java.io.IOException && raw.contains("saf", ignoreCase = true) ->
+        getApplication<Application>().getString(R.string.vm_storage_error_format, raw)
+      else -> raw
     }
+  }
 
-    /** Re-checks the local version against the server and updates [state]. */
-    fun checkStatus() {
-        viewModelScope.launch {
-            _state.value = UiState.Checking
-            val activeStorage = storage ?: run {
-                _state.value = UiState.NoStorage
-                return@launch
-            }
-            val status = withContext(Dispatchers.IO) {
-                RewindPackManager.checkStatus(activeStorage)
-            }
-            Timber.tag("PackUpdate").d("checkStatus -> %s", status::class.simpleName)
-            // Both UpdateAvailable and UpToDate carry the server's latest version;
-            // Kotlin cannot smart-cast across combined `is` branches, so they stay separate.
-            val serverVersion = when (status) {
-                is PackStatus.UpdateAvailable -> status.latestVersion.toString()
-                is PackStatus.UpToDate -> status.latestVersion.toString()
-                else -> null
-            }
-            if (serverVersion != null) {
-                prefs.edit().putString(PrefsKeys.LAST_SERVER_VERSION_KEY, serverVersion).apply()
-            }
-            _state.value = UiState.Ready(status)
-            saveDataDelegate?.onPackStatusChanged()
-        }
+  /**
+   * Internal constants + the default [RewindPackManager] factory plus
+   * the public [Factory] used by [androidx.lifecycle.viewmodel.compose.viewModel]
+   * in the composition root. The default [ViewModelProvider] for
+   * [AndroidViewModel] looks up a single-arg `(Application)`
+   * constructor, which doesn't exist anymore. The second
+   * `managerFactory` parameter requires a custom factory.
+   */
+  companion object {
+    const val TAG = "PackUpdate"
+
+    /** Default production factory: read the persisted SAF tree and wire up the manager. */
+    fun defaultManagerFactory(context: Context): RewindPackManager? {
+      val tree = DolphinTree.fromPersisted(context) ?: return null
+      return RewindPackManager(context, tree)
     }
 
     /**
-     * Installs or updates the pack according to [status]. Handles four
-     * cases: fresh install, incremental update, "server unreachable"
-     * fallback, and "already up to date" no-op. Emits progress via
-     * [state] and clears the save backup on success.
+     * [ViewModelProvider.Factory] for the composition root. Resolves
+     * the [Application] from [ViewModelProvider]'s CreationExtras
+     * (set by [androidx.lifecycle.viewmodel.compose.viewModel] via
+     * the LocalViewModelStoreOwner) and constructs the VM with its
+     * default manager factory.
      */
-    fun downloadOrUpdate(status: PackStatus) {
-        viewModelScope.launch {
-            val activeStorage = storage ?: run {
-                _state.value = UiState.Error(app.getString(R.string.error_storage_not_configured))
-                return@launch
-            }
-            try {
-                withContext(Dispatchers.IO) {
-                    SaveManager.backupSaveToCache(app, activeStorage)
-                }
-                Timber.tag("PackUpdate").d("Save backed up to cache before install/update")
-
-                val installedVersion = when (status) {
-                    is PackStatus.NotInstalled -> {
-                        Timber.tag("PackUpdate").i("Starting fresh install")
-                        performFreshInstall(activeStorage)
-                    }
-                    is PackStatus.UpdateAvailable -> {
-                        Timber.tag("PackUpdate")
-                            .i("Starting incremental update from %s to %s", status.currentVersion, status.latestVersion)
-                        performIncrementalUpdate(activeStorage, status)
-                    }
-                    is PackStatus.Installed -> {
-                        Timber.tag("PackUpdate")
-                            .w("Server unreachable but local install present")
-                        _state.value =
-                            UiState.Error(app.getString(R.string.error_cannot_reach_server))
-                        return@launch
-                    }
-
-                    is PackStatus.UpToDate -> {
-                        handleAlreadyUpToDate(status)
-                        return@launch
-                    }
-                }
-                withContext(Dispatchers.IO) {
-                    SaveManager.deleteSaveBackup(app)
-                }
-                _state.value =
-                    UiState.Ready(PackStatus.UpToDate(installedVersion, installedVersion))
-                saveDataDelegate?.onPackStatusChanged()
-                Timber.tag("PackUpdate").i("Install/update complete: v%s", installedVersion)
-            } catch (e: Exception) {
-                Timber.tag("PackUpdate").e(e, "Install/update failed")
-                _state.value = UiState.Error(e.message ?: app.getString(R.string.vm_unknown_error))
-            }
-        }
+    val Factory: ViewModelProvider.Factory = viewModelFactory {
+      initializer {
+        val app =
+          this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as Application
+        PackUpdateViewModel(app)
+      }
     }
-
-    private suspend fun performFreshInstall(storage: PackStorage): com.skiletro.wheelwitch.model.SemVersion {
-        return withContext(Dispatchers.IO) {
-            RewindPackManager.freshInstall(storage) { progress ->
-                handleProgress(progress)
-            }
-        }.getOrThrow()
-    }
-
-    private suspend fun performIncrementalUpdate(
-        storage: PackStorage,
-        status: PackStatus.UpdateAvailable,
-    ): com.skiletro.wheelwitch.model.SemVersion {
-        return withContext(Dispatchers.IO) {
-            RewindPackManager.incrementalUpdate(
-                storage,
-                status.serverInfo,
-                status.currentVersion,
-            ) { progress ->
-                handleProgress(progress)
-            }
-        }.getOrThrow()
-    }
-
-    private suspend fun handleAlreadyUpToDate(status: PackStatus.UpToDate) {
-        withContext(Dispatchers.IO) {
-            SaveManager.deleteSaveBackup(app)
-        }
-        _state.value =
-            UiState.Ready(PackStatus.UpToDate(status.currentVersion, status.latestVersion))
-        saveDataDelegate?.onPackStatusChanged()
-    }
-
-    /** Launches Dolphin with the configured ISO and RR.json; reports errors via [state]. */
-    fun launchDolphin() {
-        val activeStorage = storage ?: run {
-            _state.value = UiState.Error(app.getString(R.string.error_storage_not_configured))
-            return
-        }
-        val gameIsoPath = DolphinLauncher.getGameIsoPath(app)
-        if (gameIsoPath.isNullOrBlank()) {
-            return
-        }
-        if (!File(gameIsoPath).exists()) {
-            clearIsoPath()
-            _state.value = UiState.Error(app.getString(R.string.home_rom_not_found))
-            return
-        }
-        val rootPath = activeStorage.rootPath
-
-        viewModelScope.launch {
-            try {
-                val mode = readMyStuffMode()
-                val json = withContext(Dispatchers.IO) {
-                    DolphinLauncher.generateLaunchJson(rootPath, gameIsoPath, myStuffMode = mode)
-                }
-                val rrJsonFile = File(rootPath, DolphinLauncher.RR_JSON_NAME)
-                withContext(Dispatchers.IO) {
-                    rrJsonFile.writeText(json)
-                }
-                DolphinLauncher.launchDolphin(app, rrJsonFile.absolutePath).getOrThrow()
-                Timber.tag("PackUpdate").i("Dolphin launched with %s", rrJsonFile.absolutePath)
-            } catch (e: Exception) {
-                Timber.tag("PackUpdate").e(e, "Dolphin launch failed")
-                _state.value =
-                    UiState.Error(e.message ?: app.getString(R.string.home_launch_failed))
-            }
-        }
-    }
-
-    /** Persists [path] as the ISO path and regenerates RR.json if storage is configured. */
-    fun setGameIsoPath(path: String) {
-        DolphinLauncher.setGameIsoPath(app, path)
-        val rootPath = storage?.rootPath
-        if (rootPath != null) {
-            val mode = readMyStuffMode()
-            viewModelScope.launch(Dispatchers.IO) {
-                DolphinLauncher.writeLaunchJson(rootPath, path, mode)
-            }
-        }
-        _currentIsoPath.value = path
-        refreshGameInfo()
-    }
-
-    /** Clears the persisted ISO path and deletes the existing RR.json. */
-    fun clearIsoPath() {
-        DolphinLauncher.setGameIsoPath(app, "")
-        storage?.rootPath?.let { DolphinLauncher.deleteLaunchJson(it) }
-        _currentIsoPath.value = null
-        _gameInfo.value = null
-    }
-
-    private fun refreshGameInfo() {
-        val path = _currentIsoPath.value ?: run {
-            _gameInfo.value = null
-            return
-        }
-        viewModelScope.launch(Dispatchers.IO) {
-            _gameInfo.value =
-                try {
-                    val info = IsoValidator.parseHeader(File(path))
-                    info?.takeIf { it.format != GameTypeParser.GameFormat.Invalid }
-                } catch (e: Exception) {
-                    Timber.tag("PackUpdate").w(e, "Failed to parse game info for %s", path)
-                    null
-                }
-        }
-    }
-
-    /** Persists [mode] and regenerates RR.json with the new My Stuff choice. */
-    fun setMyStuffMode(mode: DolphinLauncher.MyStuffMode) {
-        _myStuffMode.value = mode
-        prefs.edit().putString(PrefsKeys.RIIVOLUTION_MY_STUFF_MODE_KEY, mode.name).apply()
-        regenerateLaunchJson()
-    }
-
-    private fun readMyStuffMode(): DolphinLauncher.MyStuffMode {
-        val name = prefs.getString(PrefsKeys.RIIVOLUTION_MY_STUFF_MODE_KEY, null)
-            ?: return DolphinLauncher.MyStuffMode.Everything
-        return try {
-            DolphinLauncher.MyStuffMode.valueOf(name)
-        } catch (_: IllegalArgumentException) {
-            DolphinLauncher.MyStuffMode.Everything
-        }
-    }
-
-    private fun regenerateLaunchJson() {
-        val rootPath = storage?.rootPath ?: return
-        val gameIsoPath = DolphinLauncher.getGameIsoPath(app) ?: return
-        viewModelScope.launch(Dispatchers.IO) {
-            DolphinLauncher.writeLaunchJson(rootPath, gameIsoPath, readMyStuffMode())
-        }
-    }
-
-    /** Clears an error state and re-checks status. No-op for non-error states. */
-    fun clearError() {
-        val currentState = _state.value
-        if (currentState is UiState.Error) {
-            checkStatus()
-        }
-    }
-
-    /** Clears the one-shot success message. */
-    fun dismissSuccess() {
-        _successMessage.value = null
-    }
-
-    /** Sets a one-shot success message to be shown and then dismissed. */
-    fun setSuccessMessage(message: String) {
-        _successMessage.value = message
-    }
-
-    private fun handleProgress(progress: ProgressInfo) {
-        _state.value = when (progress) {
-            is ProgressInfo.Checking -> UiState.Checking
-            is ProgressInfo.Downloading ->
-                UiState.Downloading(
-                    progress.progress,
-                    progress.bytesPerSecond,
-                    progress.bytesDownloaded,
-                    progress.totalBytes,
-                    progress.message,
-                )
-            is ProgressInfo.Extracting -> UiState.Extracting(progress.progress)
-            is ProgressInfo.ApplyingUpdate -> UiState.ApplyingUpdate(
-                progress.index, progress.total, progress.description, progress.progress
-            )
-        }
-    }
-
-    companion object {
-        /**
-         * The currently active [PackStorage] instance, shared with other
-         * ViewModels (e.g. [SaveDataViewModel]) so they can read/write the
-         * pack files without needing constructor injection.
-         */
-        @Volatile
-        var currentStorage: PackStorage? = null
-            private set
-
-        /**
-         * Callback invoked when the pack status changes, so dependent
-         * ViewModels can refresh their state.
-         */
-        @Volatile
-        var saveDataDelegate: SaveDataDelegate? = null
-    }
+  }
 }
 
-/**
- * Interface implemented by [SaveDataViewModel] to receive notifications
- * about pack status changes without creating a hard coupling.
- */
-interface SaveDataDelegate {
-    fun onPackStatusChanged()
-}

@@ -15,16 +15,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
+import com.skiletro.wheelwitch.ui.theme.WheelWitchPreviewTheme
+import com.skiletro.wheelwitch.util.formatBytesPerSecond
+import com.skiletro.wheelwitch.util.formatDownloadProgress
 
 /**
  * Indeterminate-style progress bar with a percent label, optional
  * "X / Y bytes" size label, and optional bytes-per-second readout.
  * Used by [com.skiletro.wheelwitch.ui.screens.HomeScreen]'s
- * bottom bar and by [com.skiletro.wheelwitch.ui.screens.QuickLaunchScreen].
+ * bottom bar.
+ *
+ * During the extraction phase the caller also passes
+ * [filesDone]/[filesTotal] (rendered as "X / Y files" next to the
+ * percent) and [currentFile] (rendered as a small monospace line
+ * under the bar so the user can see which file is being written).
  */
 @Composable
 fun ProgressButton(
@@ -33,10 +44,14 @@ fun ProgressButton(
   bytesPerSecond: Long? = null,
   bytesDownloaded: Long = 0L,
   totalBytes: Long = 0L,
+  filesDone: Int = 0,
+  filesTotal: Int = 0,
+  currentFile: String? = null,
 ) {
   val percent = (progress.coerceIn(0f, 1f) * 100f).toInt()
   val showSize = bytesPerSecond != null && (bytesDownloaded > 0L || totalBytes > 0L)
   val sizeText = if (showSize) formatDownloadProgress(bytesDownloaded, totalBytes) else ""
+  val showFiles = filesTotal > 0
   Column(modifier = Modifier.widthIn(min = 220.dp), horizontalAlignment = Alignment.End) {
     LinearProgressIndicator(
       progress = { progress.coerceIn(0f, 1f) },
@@ -55,6 +70,16 @@ fun ProgressButton(
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         fontWeight = FontWeight.SemiBold,
       )
+      if (showFiles) {
+        Spacer(modifier = Modifier.weight(1f))
+        Text(
+          text = stringResource(R.string.status_extracting_files_format, filesDone, filesTotal),
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          textAlign = TextAlign.End,
+          fontWeight = FontWeight.Medium,
+        )
+      }
       if (showSize) {
         Spacer(modifier = Modifier.weight(1f))
         Text(
@@ -77,11 +102,42 @@ fun ProgressButton(
       }
     }
     Text(
-      text = label,
+      text = currentFile ?: label,
       style = MaterialTheme.typography.bodySmall,
       color = MaterialTheme.colorScheme.onSurfaceVariant,
       textAlign = TextAlign.End,
-      fontWeight = FontWeight.Medium,
+      fontWeight = if (currentFile != null) FontWeight.Normal else FontWeight.Medium,
+      fontFamily = if (currentFile != null) FontFamily.Monospace else null,
+      maxLines = 1,
+      overflow = TextOverflow.Ellipsis,
+    )
+  }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ProgressButtonPreview() {
+  WheelWitchPreviewTheme {
+    ProgressButton(
+      progress = 0.67f,
+      label = "Downloading…",
+      bytesPerSecond = 1_234_567L,
+      bytesDownloaded = 67_000_000L,
+      totalBytes = 100_000_000L,
+    )
+  }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ProgressButtonExtractingPreview() {
+  WheelWitchPreviewTheme {
+    ProgressButton(
+      progress = 0.47f,
+      label = "Extracting files...",
+      filesDone = 482,
+      filesTotal = 1024,
+      currentFile = "riivolution/USA/Music/course_47.brstm",
     )
   }
 }

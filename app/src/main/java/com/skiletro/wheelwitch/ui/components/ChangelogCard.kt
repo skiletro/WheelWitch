@@ -14,8 +14,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.model.ChangelogEntry
+import com.skiletro.wheelwitch.ui.theme.WheelWitchPreviewTheme
+import com.skiletro.wheelwitch.ui.theme.sectionShape
 
 private const val Bullet = "\u2022"
 
@@ -75,5 +78,23 @@ fun ChangelogCard(
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ChangelogCardPreview() {
+    WheelWitchPreviewTheme {
+        ChangelogCard(
+            entry = ChangelogEntry(
+                version = "6.11.1",
+                date = "2026-01-15",
+                changes = listOf(
+                    "Added 8 new tracks",
+                    "Fixed VR multiplier on Mii faces",
+                    "Improved room join reliability",
+                ),
+            ),
+        )
     }
 }

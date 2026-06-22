@@ -23,8 +23,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
+import com.skiletro.wheelwitch.ui.theme.WheelWitchPreviewTheme
 
 private val HeaderPadding = PaddingValues(horizontal = 12.dp, vertical = 16.dp)
 
@@ -101,5 +103,13 @@ fun ScreenHeader(
                 )
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ScreenHeaderPreview() {
+    WheelWitchPreviewTheme {
+        ScreenHeader(title = "Online", onBack = {}, onRefresh = {})
     }
 }

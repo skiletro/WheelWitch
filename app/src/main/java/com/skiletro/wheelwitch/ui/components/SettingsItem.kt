@@ -15,9 +15,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.skiletro.wheelwitch.R
+import com.skiletro.wheelwitch.ui.theme.WheelWitchPreviewTheme
 
 /** Section header used in the settings list, e.g. "Save Data", "Appearance". */
 @Composable
@@ -83,4 +87,17 @@ fun SettingsItem(
       trailing()
     }
   }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun SettingsItemPreview() {
+    WheelWitchPreviewTheme {
+        SettingsItem(
+            icon = ImageVector.vectorResource(R.drawable.ic_info),
+            title = "Wheel Witch",
+            summary = "Retro Rewind companion app for Android",
+            trailing = { androidx.compose.material3.TextButton(onClick = {}) { androidx.compose.material3.Text("Open") } },
+        )
+    }
 }

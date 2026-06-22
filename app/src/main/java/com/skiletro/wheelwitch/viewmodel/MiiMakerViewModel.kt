@@ -4,8 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.skiletro.wheelwitch.R
-import com.skiletro.wheelwitch.util.MiiWadInstaller
-import com.skiletro.wheelwitch.util.isNetworkAvailable
+import com.skiletro.wheelwitch.util.mii.MiiWadInstaller
+import com.skiletro.wheelwitch.util.net.isNetworkAvailable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -46,11 +46,6 @@ class MiiMakerViewModel(application: Application) : AndroidViewModel(application
     /** Re-checks whether a cached WAD exists and updates [hasWad]. */
     fun refreshHasWad() {
         _hasWad.value = MiiWadInstaller.getCachedWadFile(app) != null
-    }
-
-    /** Clears the last error message shown to the user. */
-    fun clearError() {
-        _miiMakerError.value = null
     }
 
     /** Launches Dolphin with the cached Mii Channel WAD, if one is present. */

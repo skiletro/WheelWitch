@@ -23,13 +23,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.Player
 import com.skiletro.wheelwitch.model.Room
 import com.skiletro.wheelwitch.ui.components.MiiFace
-import com.skiletro.wheelwitch.ui.components.statusColors
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
+import com.skiletro.wheelwitch.ui.theme.WheelWitchPreviewTheme
+import com.skiletro.wheelwitch.ui.theme.statusColors
 
 @Composable
 fun RoomDetail(room: Room) {
@@ -178,5 +180,40 @@ fun MiiPlayerCard(player: Player) {
                 )
             }
         }
+    }
+}
+
+private val sampleRoom = Room(
+    id = "1",
+    players = listOf(
+        Player(
+            name = "Hosty",
+            friendCode = "9876-5432-1098",
+            vr = 7200,
+            br = 4000,
+            isOpenHost = true,
+            mii = null,
+        ),
+        Player(
+            name = "Jamie",
+            friendCode = "1234-5678-9012",
+            vr = 5000,
+            br = 3000,
+            isOpenHost = false,
+            mii = null,
+        ),
+    ),
+    averageVR = 6100,
+    trackName = "GCN Peach Beach",
+    roomType = "FFA",
+    isPublic = true,
+    isJoinable = true,
+)
+
+@Preview(showBackground = true, widthDp = 400, heightDp = 500)
+@Composable
+private fun RoomDetailPreview() {
+    WheelWitchPreviewTheme {
+        RoomDetail(room = sampleRoom)
     }
 }

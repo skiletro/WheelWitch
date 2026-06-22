@@ -1,55 +1,72 @@
 package com.skiletro.wheelwitch.viewmodel
 
 import androidx.compose.runtime.Immutable
+import com.skiletro.wheelwitch.data.ExtractingPhase
 import com.skiletro.wheelwitch.model.PackStatus
+import com.skiletro.wheelwitch.util.io.DownloadProgress
 
 /**
- * High-level state machine for the pack install / update flow.
+ * High-level state for the pack update flow.
  *
- * The lifecycle is:
- * `NoStorage -> Checking -> Downloading/Extracting/ApplyingUpdate -> Ready/Error`
- *
- * `Checking` recurs throughout the flow (the manager emits
- * [ProgressInfo.Checking] during deletion and download phases too), so
- * the diagram above is simplified.
+ * Lifecycle: `Idle → Checking → Ready → Installing → Installed → Error`.
+ * `Installing` and `Installed` are the new install/update states
+ * added when the save/install/launch refactor reintroduced the
+ * orchestration; `checkStatus` and the error path still cycle back to
+ * `Ready` / `Error` respectively.
  */
 @Immutable
 sealed class UiState {
-    /** No storage folder has been picked yet. */
-    data object NoStorage : UiState()
+  /** Initial state before the first check completes. */
+  data object Idle : UiState()
 
-    /** A status check or install/update finished; [status] is the current pack state. */
-    data class Ready(val status: PackStatus) : UiState()
+  /** A status check is in progress. */
+  data object Checking : UiState()
 
-    /** A status check or intermediate install phase is in progress. */
-    data object Checking : UiState()
+  /** A status check finished; [status] is the current pack state. */
+  data class Ready(val status: PackStatus) : UiState()
 
-    /** A download is in progress; [progress] is 0..1, [bytesPerSecond] is the smoothed transfer rate, [bytesDownloaded] and [totalBytes] (0 if unknown) report raw size, [message] is user-facing. */
-    data class Downloading(
-        val progress: Float,
-        val bytesPerSecond: Long,
-        val bytesDownloaded: Long,
-        val totalBytes: Long,
-        val message: String
-    ) : UiState()
-
-    /** A zip extraction is in progress; [progress] is 0..1. */
-    data class Extracting(val progress: Float) : UiState()
+  /**
+   * A pack install or update is in progress. The phase is one of:
+   *
+   * - [Installing.Downloading]: fetching the zip from the server.
+   *   Carries the full [DownloadProgress] (fraction, rate, byte
+   *   counts) for a determinate UI bar.
+   * - [Installing.Extracting]: unpacking the zip into the SAF tree.
+   *   Carries a determinate file-count bar, the current file name,
+   *   and a byte-count basis for future use.
+   *
+   * Both phases live under the same `Installing` parent so the home
+   * screen's `isBusy = state is UiState.Installing` check still
+   * works without a per-phase guard.
+   */
+  @Immutable
+  sealed class Installing : UiState() {
+    /** Zip is being fetched from the update server. */
+    data class Downloading(val progress: DownloadProgress) : Installing()
 
     /**
-     * An incremental-update step is being applied.
-     *
-     * [index] is the 1-based step number, [total] is the step count,
-     * [description] is the user-facing step description, and [progress]
-     * is 0..1 for the current step's extraction.
+     * Zip is being unpacked into the SAF tree. [phase] tells the UI
+     * whether the directory pre-pass is running or the per-file
+     * writes are live; [currentFile] is the entry currently being
+     * written, or null during the pre-pass and between files.
      */
-    data class ApplyingUpdate(
-        val index: Int,
-        val total: Int,
-        val description: String,
-        val progress: Float
-    ) : UiState()
+    data class Extracting(
+      val phase: ExtractingPhase,
+      val filesDone: Int,
+      val filesTotal: Int,
+      val currentFile: String?,
+      val bytesDone: Long,
+      val bytesTotal: Long,
+    ) : Installing()
+  }
 
-    /** An install/update failed or a launch error occurred; [message] is user-facing. */
-    data class Error(val message: String) : UiState()
+  /**
+   * An install just completed. The view-model auto-transitions to
+   * [Checking] immediately after this, so the UI typically sees this
+   * state for a single frame.
+   */
+  data object Installed : UiState()
+
+  /** A status check or install failed; [message] is user-facing. */
+  data class Error(val message: String) : UiState()
 }

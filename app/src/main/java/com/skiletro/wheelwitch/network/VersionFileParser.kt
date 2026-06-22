@@ -9,12 +9,7 @@ import com.skiletro.wheelwitch.model.ServerHealth
 import com.skiletro.wheelwitch.model.ServerInfo
 import com.skiletro.wheelwitch.model.TimeTrialTrack
 import com.skiletro.wheelwitch.model.UpdateEntry
-import com.skiletro.wheelwitch.model.parseHealthResponse
-import com.skiletro.wheelwitch.model.parseLeaderboardResponse
-import com.skiletro.wheelwitch.model.parseRaceStats
-import com.skiletro.wheelwitch.model.parseRooms
-import com.skiletro.wheelwitch.model.parseTracks
-import com.skiletro.wheelwitch.util.HttpClientProvider
+import com.skiletro.wheelwitch.util.net.HttpClientProvider
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Request
 import org.json.JSONObject
@@ -121,7 +116,7 @@ object VersionFileParser {
         parseHealthResponse(json)
     }
 
-    /** Simple liveness check — returns true if the process is up. */
+    /** Simple liveness check; returns true if the process is up. */
     fun fetchHealthLive(): Result<Boolean> = runCatching {
         val request = Request.Builder().url(HEALTH_LIVE_URL).build()
         httpClient.newCall(request).execute().use { response ->

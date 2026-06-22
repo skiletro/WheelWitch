@@ -5,8 +5,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.skiletro.wheelwitch.util.Prefs
-import com.skiletro.wheelwitch.util.PrefsKeys
+import com.skiletro.wheelwitch.util.prefs.Prefs
+import com.skiletro.wheelwitch.util.prefs.PrefsKeys
 
 /**
  * Owns the app/theme and light/dark/oled mode state plus the

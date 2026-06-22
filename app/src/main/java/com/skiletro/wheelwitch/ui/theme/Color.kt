@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.Color
  * are either inlined in [Theme.kt] or left to Material 3 defaults.
  */
 
-// Hex palette (dark) — the default brand theme
+// Hex palette (dark): the default brand theme
 val Purple80 = Color(0xFFD0B0FF)
 val PurpleGrey80 = Color(0xFFB8A0CC)
 val LightPurple80 = Color(0xFFFFB3D0)
@@ -39,7 +39,7 @@ val SwampGreenGrey40 = Color(0xFF388E3C)
 val SwampLightGreen40 = Color(0xFF1B5E20)
 val OnSwampGreen40 = Color.White
 
-// Wizard palette (dark) — based on the WheelWizard project palette
+// Wizard palette (dark): based on the WheelWizard project palette
 val WizardTeal80 = Color(0xFF00A488)
 val WizardTealGrey80 = Color(0xFF4DB6AC)
 
@@ -53,19 +53,19 @@ val WizardTealGrey40 = Color(0xFF26A69A)
 val WizardNeutral40 = Color(0xFF5C5F73)
 val OnWizardTeal40 = Color.White
 
-// Catppuccin palette (dark) — Mocha
+// Catppuccin palette (dark): Mocha
 val CatppuccinMauve80 = Color(0xFFCBA6F7)
 val CatppuccinLavender80 = Color(0xFFB4BEFE)
 val CatppuccinSky80 = Color(0xFF89DCEB)
 val OnCatppuccinMauve80 = Color(0xFF2D1450)
 
-// Catppuccin palette (light) — Latte
+// Catppuccin palette (light): Latte
 val CatppuccinMauve40 = Color(0xFF8839EF)
 val CatppuccinLavender40 = Color(0xFF7287FD)
 val CatppuccinSky40 = Color(0xFF04A5E5)
 val OnCatppuccinMauve40 = Color.White
 
-// OLED overrides — applied on top of any dark scheme when ThemeMode.Oled is active
+// OLED overrides, applied on top of any dark scheme when ThemeMode.Oled is active
 val OledSurfaceVariant = Color(0xFF121212)
 val OledOnBackground = Color(0xFFE0E0E0)
 val OledOnSurface = Color(0xFFE0E0E0)

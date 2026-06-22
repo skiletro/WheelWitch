@@ -1,305 +1,330 @@
 package com.skiletro.wheelwitch.viewmodel
 
 import android.app.Application
+import android.content.Context
 import android.net.Uri
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.viewModelScope
 import com.skiletro.wheelwitch.R
+import com.skiletro.wheelwitch.data.DolphinTree
 import com.skiletro.wheelwitch.data.RksysParser
 import com.skiletro.wheelwitch.data.SaveManager
+import com.skiletro.wheelwitch.data.SaveManager.Region
 import com.skiletro.wheelwitch.model.LicenseInfo
 import com.skiletro.wheelwitch.model.SaveFileInfo
 import com.skiletro.wheelwitch.network.VersionFileParser
-import com.skiletro.wheelwitch.util.Prefs
-import com.skiletro.wheelwitch.util.PrefsKeys
+import com.skiletro.wheelwitch.util.prefs.Prefs
+import com.skiletro.wheelwitch.util.prefs.PrefsKeys
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import timber.log.Timber
 
-@Immutable
-sealed class SaveInfoState {
-    data object Idle : SaveInfoState()
-    data object Loading : SaveInfoState()
-    data class Success(val info: SaveFileInfo) : SaveInfoState()
-    data class Error(val message: String) : SaveInfoState()
-}
-
 /**
- * Owns the save file state: presence, backup/restore, per-slot info,
- * and the license currently active in the selected slot.
+ * Owns the save file state: per-region parse, leaderboard merge,
+ * backup/restore/delete, and slot selection.
  *
- * Registers itself as the [SaveDataDelegate] in [PackUpdateViewModel]
- * during [init] so it receives pack status change notifications. The
- * registration is overwritten if a new [SaveDataViewModel] is created
- * (e.g. on process death + restoration), which is fine because only the
- * latest instance is relevant.
+ * The pack install flow lives in [PackUpdateViewModel]. This VM
+ * listens to its [UiState] via [packStatusFlow] and re-parses the
+ * save whenever the pack state transitions to [UiState.Ready]. This
+ * keeps the two VMs decoupled (no static companion pointers like
+ * the deleted `SaveDataDelegate`) and survives process death
+ * naturally; both VMs are reconstructed on the next composition
+ * and re-collect the [packStatusFlow] from scratch.
+ *
+ * Multi-region: a user with multiple ROMs (one per region) has one
+ * save file per region. [SaveManager.listRegions] walks the user's
+ * [DolphinTree.romDir] and [refresh] reads + parses a save for each
+ * present region in parallel. [selectedRegion] defaults to the first
+ * region with a ROM.
+ *
+ * Tests can swap the [treeFactory], the [parser], and the
+ * [leaderboardFetcher] lambdas to inject mocks without going through
+ * SAF or the network.
  */
-class SaveDataViewModel(application: Application) : AndroidViewModel(application),
-    SaveDataDelegate {
-    private val prefs = Prefs.main(application)
-    private val app = application
+class SaveDataViewModel(
+  application: Application,
+  private val packStatusFlow: StateFlow<UiState>,
+  private val treeFactory: (Context) -> DolphinTree? = ::defaultTreeFactory,
+  private val parser: (ByteArray) -> SaveFileInfo = RksysParser::parse,
+  private val leaderboardFetcher: suspend (String) -> Result<Pair<Int, String?>> = { code ->
+    VersionFileParser.fetchPlayerLeaderboard(code)
+  },
+  private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+) : AndroidViewModel(application) {
+  private val app = application
+  private val prefs = Prefs.main(application)
 
-    private val _hasSave = MutableStateFlow(false)
-    val hasSave: StateFlow<Boolean> = _hasSave.asStateFlow()
+  private val _saveInfos = MutableStateFlow<Map<Region, SaveFileInfo>>(emptyMap())
+  val saveInfos: StateFlow<Map<Region, SaveFileInfo>> = _saveInfos.asStateFlow()
 
-    private val _saveInfoState = MutableStateFlow<SaveInfoState>(SaveInfoState.Idle)
-    val saveInfoState: StateFlow<SaveInfoState> = _saveInfoState.asStateFlow()
+  private val _hasSave = MutableStateFlow<Map<Region, Boolean>>(emptyMap())
+  val hasSave: StateFlow<Map<Region, Boolean>> = _hasSave.asStateFlow()
 
-    private val _selectedSlotIndex = MutableStateFlow(prefs.getInt(PrefsKeys.SELECTED_SLOT_KEY, 0))
-    val selectedSlotIndex: StateFlow<Int> = _selectedSlotIndex.asStateFlow()
+  private val _selectedRegion =
+    MutableStateFlow(loadPersistedRegion(prefs.getString(PrefsKeys.SELECTED_REGION_KEY, null)))
+  val selectedRegion: StateFlow<Region?> = _selectedRegion.asStateFlow()
 
-    private val _activeLicenseInfo = MutableStateFlow<LicenseInfo?>(null)
-    val activeLicenseInfo: StateFlow<LicenseInfo?> = _activeLicenseInfo.asStateFlow()
+  private val _selectedSlotIndex =
+    MutableStateFlow(prefs.getInt(PrefsKeys.SELECTED_SLOT_KEY, 0))
+  val selectedSlotIndex: StateFlow<Int> = _selectedSlotIndex.asStateFlow()
 
-    private val _cachedLeaderboardVrs = MutableStateFlow(readVrCache())
-    val cachedLeaderboardVrs: StateFlow<Map<Int, Int>> = _cachedLeaderboardVrs.asStateFlow()
+  private val _activeLicense = MutableStateFlow<LicenseInfo?>(null)
+  val activeLicense: StateFlow<LicenseInfo?> = _activeLicense.asStateFlow()
 
-    private var saveInfoJob: Job? = null
+  private val _cachedLeaderboardVrs = MutableStateFlow(readVrCache())
+  val cachedLeaderboardVrs: StateFlow<Map<Int, Int>> = _cachedLeaderboardVrs.asStateFlow()
 
-    init {
-        PackUpdateViewModel.saveDataDelegate = this
+  private val _isLoading = MutableStateFlow(false)
+  val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+  private val _error = MutableStateFlow<String?>(null)
+  val error: StateFlow<String?> = _error.asStateFlow()
+
+  init {
+    viewModelScope.launch {
+      packStatusFlow
+        .map { (it as? UiState.Ready)?.status }
+        .distinctUntilChanged()
+        .collect { status ->
+          if (status != null) refresh()
+        }
+    }
+  }
+
+  /**
+   * Re-reads every region's save from the SAF tree, parses them in
+   * parallel, and refreshes the leaderboard for the selected slot.
+   * No-op if [treeFactory] returns null (no persisted SAF grant).
+   */
+  fun refresh() {
+    viewModelScope.launch {
+      _isLoading.value = true
+      try {
+        val tree =
+          treeFactory(app)
+            ?: run {
+              _saveInfos.value = emptyMap()
+              _hasSave.value = emptyMap()
+              _activeLicense.value = null
+              return@launch
+            }
+        val regions = SaveManager.listRegions(tree)
+        if (regions.isEmpty()) {
+          _saveInfos.value = emptyMap()
+          _hasSave.value = emptyMap()
+          _selectedRegion.value = null
+          _activeLicense.value = null
+          return@launch
+        }
+        val parsed =
+          coroutineScope {
+            regions
+              .map { region ->
+                async(ioDispatcher) {
+                  val bytes = SaveManager.readSave(tree, region)
+                  if (bytes != null) {
+                    region to runCatching { parser(bytes) }.getOrNull()
+                  } else null
+                }
+              }
+              .awaitAll()
+          }
+        val infos =
+          parsed.filterNotNull().filter { it.second != null }.associate { it.first to it.second!! }
+        val hasSaves = regions.associateWith { SaveManager.hasSave(tree, it) }
+        _saveInfos.value = infos
+        _hasSave.value = hasSaves
+        val target = pickSelectedRegion(regions)
+        if (target != _selectedRegion.value) {
+          _selectedRegion.value = target
+        }
         refreshActiveLicense()
+      } catch (e: Exception) {
+        Timber.tag(TAG).e(e, "refresh failed")
+        _error.value =
+          e.message ?: app.getString(R.string.vm_failed_format, "read save data")
+      } finally {
+        _isLoading.value = false
+      }
     }
+  }
 
-    override fun onPackStatusChanged() {
-        refreshSaveState()
-        refreshActiveLicense()
+  /** Persists the selected region and refreshes the active license. */
+  fun selectRegion(region: Region) {
+    prefs.edit().putString(PrefsKeys.SELECTED_REGION_KEY, region.code).apply()
+    _selectedRegion.value = region
+    viewModelScope.launch { refreshActiveLicense() }
+  }
+
+  /**
+   * Persists [index] as the selected slot and refreshes the active
+   * license. The persisted value survives process death.
+   */
+  fun selectSlot(index: Int) {
+    prefs.edit().putInt(PrefsKeys.SELECTED_SLOT_KEY, index).apply()
+    _selectedSlotIndex.value = index
+    viewModelScope.launch { refreshActiveLicense() }
+  }
+
+  /** Copies the [region] save bytes to the user-picked [dest] URI. */
+  fun backupSave(region: Region, dest: Uri) {
+    viewModelScope.launch {
+      val tree = treeFactory(app)
+      if (tree == null) {
+        _error.value = app.getString(R.string.vm_save_not_configured)
+        return@launch
+      }
+      SaveManager.backup(tree, region, dest).onFailure { e ->
+        Timber.tag(TAG).e(e, "backup failed")
+        _error.value = app.getString(R.string.vm_save_write_failed)
+      }
+      refresh()
     }
+  }
 
-    /** Re-checks whether a save file exists under the current storage root. */
-    fun refreshSaveState() {
-        viewModelScope.launch {
-            try {
-                val storage = PackUpdateViewModel.currentStorage ?: return@launch
-                _hasSave.value = withContext(Dispatchers.IO) {
-                    SaveManager.hasSaveFile(storage)
-                }
-            } catch (e: Exception) {
-                Timber.tag("SaveData").w(e, "Failed to check save state")
-                _hasSave.value = false
-            }
+  /** Overwrites the [region] save with the bytes from [source]. */
+  fun restoreSave(region: Region, source: Uri) {
+    viewModelScope.launch {
+      val tree = treeFactory(app)
+      if (tree == null) {
+        _error.value = app.getString(R.string.vm_save_not_configured)
+        return@launch
+      }
+      SaveManager.restore(tree, region, source).onFailure { e ->
+        Timber.tag(TAG).e(e, "restore failed")
+        _error.value = app.getString(R.string.vm_save_read_failed)
+      }
+      refresh()
+    }
+  }
+
+  /** Deletes the [region] save file. Idempotent. */
+  fun deleteSave(region: Region) {
+    viewModelScope.launch {
+      val tree = treeFactory(app)
+      if (tree == null) {
+        _error.value = app.getString(R.string.vm_save_not_configured)
+        return@launch
+      }
+      SaveManager.delete(tree, region).onFailure { e ->
+        Timber.tag(TAG).e(e, "delete failed")
+        _error.value = e.message ?: app.getString(R.string.vm_failed_format, "delete save")
+      }
+      refresh()
+    }
+  }
+
+  /** Clears [error]. */
+  fun clearError() {
+    _error.value = null
+  }
+
+  // --- internals --------------------------------------------------------
+
+  private suspend fun refreshActiveLicense() {
+    val region = _selectedRegion.value ?: return
+    val saveInfo = _saveInfos.value[region] ?: run {
+      _activeLicense.value = null
+      return
+    }
+    val slotIndex = _selectedSlotIndex.value
+    val base = saveInfo.licenses.getOrNull(slotIndex)?.takeIf { it.exists }
+    if (base == null) {
+      _activeLicense.value = null
+      return
+    }
+    _activeLicense.value = base
+    if (base.friendCode != null) {
+      val result = withContext(ioDispatcher) { leaderboardFetcher(base.friendCode) }
+      if (result.isSuccess) {
+        val (vr, mii) = result.getOrThrow()
+        _activeLicense.value =
+          base.copy(leaderboardVr = vr, leaderboardMiiImageBase64 = mii)
+        cacheAndPersistLeaderboardVr(slotIndex, vr)
+      }
+    }
+  }
+
+  private fun pickSelectedRegion(regions: List<Region>): Region? {
+    if (regions.isEmpty()) return null
+    val current = _selectedRegion.value
+    return if (current != null && current in regions) current else regions.first()
+  }
+
+  /** Maps a persisted region code (e.g. `RMCP`) back to its [Region] enum, or null. */
+  private fun loadPersistedRegion(code: String?): Region? =
+    code?.let { c -> Region.entries.firstOrNull { it.code == c } }
+
+  private fun cacheAndPersistLeaderboardVr(slotIndex: Int, vr: Int) {
+    val current = _cachedLeaderboardVrs.value
+    if (current[slotIndex] == vr) return
+    val updated = current + (slotIndex to vr)
+    _cachedLeaderboardVrs.value = updated
+    val obj = JSONObject()
+    updated.forEach { (slot, value) -> obj.put(slot.toString(), value) }
+    prefs.edit().putString(PrefsKeys.LAST_LEADERBOARD_VR_KEY, obj.toString()).apply()
+  }
+
+  private fun readVrCache(): Map<Int, Int> {
+    val raw = prefs.getString(PrefsKeys.LAST_LEADERBOARD_VR_KEY, null) ?: return emptyMap()
+    return runCatching {
+      val obj = JSONObject(raw)
+      buildMap {
+        obj.keys().forEach { key ->
+          val slot = key.toIntOrNull() ?: return@forEach
+          put(slot, obj.optInt(key, 0))
         }
-    }
+      }
+    }.getOrElse { emptyMap() }
+  }
 
-    /** Backs up the save file to the user-picked [destUri]. */
-    fun backupSave(destUri: Uri) {
-        viewModelScope.launch {
-            val storage = PackUpdateViewModel.currentStorage ?: return@launch
-            try {
-                withContext(Dispatchers.IO) {
-                    val data = storage.readBytes(SaveManager.SAVE_RELATIVE)
-                        ?: throw Exception(app.getString(R.string.status_save_not_found))
-                    app.contentResolver.openOutputStream(destUri)?.use { it.write(data) }
-                        ?: throw Exception(app.getString(R.string.vm_save_write_failed))
-                }
-                Timber.tag("SaveData").i("Save backed up to %s", destUri)
-                refreshSaveState()
-            } catch (e: Exception) {
-                Timber.tag("SaveData").e(e, "Save backup failed")
-            }
-        }
-    }
+  /**
+   * Internal tag + default [DolphinTree] factory plus the public
+   * [factory] used by [androidx.lifecycle.viewmodel.compose.viewModel]
+   * in the composition root. The default [ViewModelProvider] for
+   * [AndroidViewModel] looks up a single-arg `(Application)`
+   * constructor, which doesn't exist anymore. The second
+   * `packStatusFlow` parameter requires a custom factory.
+   *
+   * The other constructor parameters (`treeFactory`, `parser`,
+   * `leaderboardFetcher`, `ioDispatcher`) use their production
+   * defaults; tests that need to swap them continue to construct
+   * the VM directly with explicit arguments.
+   */
+  companion object {
+    const val TAG = "SaveData"
 
-    /** Restores the save file from the user-picked [sourceUri]. */
-    fun restoreSave(sourceUri: Uri) {
-        viewModelScope.launch {
-            val storage = PackUpdateViewModel.currentStorage ?: return@launch
-            try {
-                withContext(Dispatchers.IO) {
-                    val data = app.contentResolver.openInputStream(sourceUri)?.use { it.readBytes() }
-                        ?: throw Exception(app.getString(R.string.vm_save_read_failed))
-                    storage.writeBytes(SaveManager.SAVE_RELATIVE, data)
-                }
-                Timber.tag("SaveData").i("Save restored from %s", sourceUri)
-                refreshSaveState()
-            } catch (e: Exception) {
-                Timber.tag("SaveData").e(e, "Save restore failed")
-            }
-        }
-    }
-
-    /** Deletes the save file under the current storage root. */
-    fun deleteSave() {
-        viewModelScope.launch {
-            val storage = PackUpdateViewModel.currentStorage ?: return@launch
-            withContext(Dispatchers.IO) {
-                SaveManager.deleteSave(storage)
-            }
-            Timber.tag("SaveData").i("Save deleted")
-            refreshSaveState()
-        }
-    }
+    fun defaultTreeFactory(context: Context): DolphinTree? = DolphinTree.fromPersisted(context)
 
     /**
-     * Persists [index] as the selected slot and refreshes [activeLicenseInfo]
-     * for the new slot.
+     * [ViewModelProvider.Factory] that wires the production
+     * dependencies; the [Application] from [ViewModelProvider]'s
+     * CreationExtras, and the [packStatusFlow] from the
+     * already-constructed [PackUpdateViewModel]. The pack VM lives
+     * in the parent scope (`MainScreen`) so it can be passed in
+     * here without a circular construction.
      */
-    fun selectSlot(index: Int) {
-        prefs.edit().putInt(PrefsKeys.SELECTED_SLOT_KEY, index).apply()
-        _selectedSlotIndex.value = index
-        refreshActiveLicense()
-    }
-
-    /**
-     * Loads the active license for the selected slot. Emits the base
-     * license first, then re-emits with leaderboard data once the
-     * network fetch resolves (so the UI shows something immediately
-     * and enriches it when the leaderboard arrives).
-     */
-    fun refreshActiveLicense() {
-        viewModelScope.launch {
-            val storage = PackUpdateViewModel.currentStorage ?: return@launch
-            val bytes = withContext(Dispatchers.IO) {
-                storage.readBytes(SaveManager.SAVE_RELATIVE)
-            }
-            if (bytes == null) {
-                _activeLicenseInfo.value = null
-                return@launch
-            }
-            val saveInfo = RksysParser.parse(bytes)
-            val selectedIndex = _selectedSlotIndex.value
-            val license = saveInfo.licenses.getOrNull(selectedIndex)?.takeIf { it.exists }
-
-            if (license != null) {
-                _activeLicenseInfo.value = license
-                if (license.friendCode != null) {
-                    val result = withContext(Dispatchers.IO) {
-                        VersionFileParser.fetchPlayerLeaderboard(license.friendCode)
-                    }
-                    if (result.isSuccess) {
-                        val (leaderboardVr, leaderboardMii) = result.getOrThrow()
-                        _activeLicenseInfo.value = license.copy(
-                            leaderboardVr = leaderboardVr,
-                            leaderboardMiiImageBase64 = leaderboardMii
-                        )
-                        cacheAndPersistLeaderboardVr(license.slotIndex, leaderboardVr)
-                    }
-                }
-            } else {
-                _activeLicenseInfo.value = null
-            }
+    fun factory(packUpdate: PackUpdateViewModel): ViewModelProvider.Factory =
+      viewModelFactory {
+        initializer {
+          val app =
+            this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as Application
+          SaveDataViewModel(application = app, packStatusFlow = packUpdate.state)
         }
-    }
-
-    /**
-     * Loads the full save file info for all 4 license slots, fetching
-     * leaderboard data for each existing license in parallel. Falls
-     * back to the first existing slot if the persisted selection is no
-     * longer valid.
-     */
-    fun refreshSaveFileInfo() {
-        saveInfoJob?.cancel()
-        saveInfoJob = viewModelScope.launch {
-            _saveInfoState.value = SaveInfoState.Loading
-            try {
-                val storage = PackUpdateViewModel.currentStorage
-                    ?: throw Exception(app.getString(R.string.error_storage_not_configured))
-                val bytes = withContext(Dispatchers.IO) {
-                    storage.readBytes(SaveManager.SAVE_RELATIVE)
-                }
-                if (bytes == null) {
-                    _saveInfoState.value =
-                        SaveInfoState.Error(app.getString(R.string.status_save_not_found))
-                    return@launch
-                }
-
-                val saveInfo = RksysParser.parse(bytes)
-                _saveInfoState.value = SaveInfoState.Success(saveInfo)
-
-                resolveFallbackSlot(saveInfo)
-                mergeLeaderboards(saveInfo)
-            } catch (e: Exception) {
-                Timber.tag("SaveData").e(e, "refreshSaveFileInfo failed")
-                _saveInfoState.value = SaveInfoState.Error(
-                    e.message ?: app.getString(
-                        R.string.vm_failed_format,
-                        "read save data"
-                    )
-                )
-            }
-        }
-    }
-
-    /**
-     * If the persisted slot selection is no longer valid (no license or
-     * missing), switch to the first existing slot (or slot 0 as a last
-     * resort).
-     */
-    private suspend fun resolveFallbackSlot(saveInfo: SaveFileInfo) {
-        val selectedIndex = _selectedSlotIndex.value
-        val isValid = saveInfo.licenses.getOrNull(selectedIndex)?.exists == true
-        if (!isValid) {
-            val idx = saveInfo.licenses.indexOfFirst { it.exists }
-            val fallback = if (idx >= 0) idx else 0
-            selectSlot(fallback)
-        }
-    }
-
-    /**
-     * Fetches leaderboard data for every existing license in parallel
-     * and re-emits [SaveInfoState.Success] with the merged VR/Mii data.
-     */
-    private suspend fun mergeLeaderboards(saveInfo: SaveFileInfo) {
-        val leaderboardResults = coroutineScope {
-            val leaderboardDeferred = saveInfo.licenses.mapNotNull { license ->
-                if (license.exists && license.friendCode != null) {
-                    async(Dispatchers.IO) {
-                        license.slotIndex to VersionFileParser.fetchPlayerLeaderboard(license.friendCode)
-                    }
-                } else null
-            }
-            leaderboardDeferred.awaitAll()
-        }
-
-        val current = _saveInfoState.value as? SaveInfoState.Success ?: return
-        val updatedLicenses = current.info.licenses.map { lic ->
-            val result = leaderboardResults.find { it.first == lic.slotIndex }?.second
-            if (result?.isSuccess == true) {
-                val (leaderboardVr, leaderboardMii) = result.getOrThrow()
-                cacheAndPersistLeaderboardVr(lic.slotIndex, leaderboardVr)
-                lic.copy(
-                    leaderboardVr = leaderboardVr,
-                    leaderboardMiiImageBase64 = leaderboardMii
-                )
-            } else lic
-        }
-        _saveInfoState.value = SaveInfoState.Success(current.info.copy(licenses = updatedLicenses))
-    }
-
-    /** Updates the in-memory VR cache and persists it to SharedPreferences. */
-    private fun cacheAndPersistLeaderboardVr(slotIndex: Int, vr: Int) {
-        val current = _cachedLeaderboardVrs.value
-        if (current[slotIndex] == vr) return
-        val updated = current + (slotIndex to vr)
-        _cachedLeaderboardVrs.value = updated
-        val obj = JSONObject()
-        updated.forEach { (slot, value) -> obj.put(slot.toString(), value) }
-        prefs.edit().putString(PrefsKeys.LAST_LEADERBOARD_VR_KEY, obj.toString()).apply()
-    }
-
-    private fun readVrCache(): Map<Int, Int> {
-        val raw = prefs.getString(PrefsKeys.LAST_LEADERBOARD_VR_KEY, null) ?: return emptyMap()
-        return runCatching {
-            val obj = JSONObject(raw)
-            buildMap {
-                obj.keys().forEach { key ->
-                    val slot = key.toIntOrNull() ?: return@forEach
-                    put(slot, obj.optInt(key, 0))
-                }
-            }
-        }.getOrElse {
-            Timber.tag("SaveData").w(it, "Failed to read VR cache")
-            emptyMap()
-        }
-    }
+      }
+  }
 }

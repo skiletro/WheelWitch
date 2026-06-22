@@ -8,10 +8,10 @@ import com.skiletro.wheelwitch.model.RaceStats
 import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.model.ServerHealth
 import com.skiletro.wheelwitch.model.TimeTrialTrack
-import com.skiletro.wheelwitch.model.parseRaceStats
 import com.skiletro.wheelwitch.network.VersionFileParser
-import com.skiletro.wheelwitch.util.Prefs
-import com.skiletro.wheelwitch.util.PrefsKeys
+import com.skiletro.wheelwitch.network.parseRaceStats
+import com.skiletro.wheelwitch.util.prefs.Prefs
+import com.skiletro.wheelwitch.util.prefs.PrefsKeys
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel.Companion.MAX_CACHE_AGE_MS
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel

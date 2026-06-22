@@ -34,9 +34,9 @@ import com.skiletro.wheelwitch.model.MemoryInfo
 import com.skiletro.wheelwitch.model.ServerHealth
 import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
 import com.skiletro.wheelwitch.ui.components.ScreenHeader
-import com.skiletro.wheelwitch.ui.components.container
-import com.skiletro.wheelwitch.ui.components.indicator
-import com.skiletro.wheelwitch.ui.components.statusColors
+import com.skiletro.wheelwitch.ui.theme.container
+import com.skiletro.wheelwitch.ui.theme.indicator
+import com.skiletro.wheelwitch.ui.theme.statusColors
 import com.skiletro.wheelwitch.viewmodel.HealthState
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
 

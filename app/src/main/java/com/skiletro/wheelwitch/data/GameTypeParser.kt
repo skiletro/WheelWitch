@@ -1,6 +1,6 @@
 package com.skiletro.wheelwitch.data
 
-import com.skiletro.wheelwitch.util.ByteReader
+import com.skiletro.wheelwitch.util.io.ByteReader
 import java.io.File
 import java.util.Locale
 
@@ -64,8 +64,8 @@ object GameTypeParser {
         if (wlbaOffset + 2 > bytes.size) return GameInfo(GameFormat.Invalid, null)
         // TODO: properly validate the game ID by seeking to firstWlbaEntry * wbfsSectorSize
         // and reading the 6-byte disc ID. Skipped because callers cap the read buffer at
-        // 4 KiB while the WBFS disc header can live hundreds of KiB into the file. Accept
-        // any structurally valid WBFS header for now and rely on a UI disclaimer.
+        // 4 KiB while the WBFS disc header can live hundreds of KiB into the file.
+        // Currently accepts any structurally valid WBFS header.
         return GameInfo(GameFormat.Wbfs, null)
     }
 
