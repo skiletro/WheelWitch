@@ -260,14 +260,19 @@ object DolphinLauncher {
     }
     val relPath = "WheelWitch/rom"
     val uri = DolphinConfig.dolphinUserTreeUri(relPath)
+    val physicalPath = DolphinPaths.romDir(context).absolutePath
+    // Register both: the SAF URI for modern Dolphin (which does the
+    // scoped-storage dance), the physical path as a fallback for
+    // builds that don't parse the URI form. DolphinConfig.upsert is
+    // idempotent per path; calling it twice adds whichever is missing.
     val existing = tree.readConfigIni().orEmpty()
-    val updated = DolphinConfig.upsert(existing, uri)
+    val updated = DolphinConfig.upsert(DolphinConfig.upsert(existing, uri), physicalPath)
     if (updated != existing) {
       tree.writeConfigIni(updated)
       Timber.tag(TAG)
-        .i("Registered %s in Dolphin.ini (added ISOPath entry)", uri)
+        .i("Registered %s and %s in Dolphin.ini (added ISOPath entries)", uri, physicalPath)
     } else {
-      Timber.tag(TAG).d("Dolphin.ini already contains %s; no edit needed", uri)
+      Timber.tag(TAG).d("Dolphin.ini already contains %s and %s; no edit needed", uri, physicalPath)
     }
   }
 

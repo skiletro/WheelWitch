@@ -109,10 +109,20 @@ object DolphinConfig {
 
   // --- internal helpers ---------------------------------------------------
 
-  /** Replaces (or creates) the `ISOPaths` block in [content] with [newBlock]. */
+  /**
+   * Replaces (or creates) the `ISOPaths` block in [content] with
+   * [newBlock]. Always returns a well-formed INI: a fresh upsert into
+   * blank input produces a `[General]` section header so the result
+   * is structurally identical to a non-blank upsert. The earlier
+   * behavior of returning just the bare block on blank input was
+   * inconsistent with the non-blank path and produced a broken file
+   * when the result was fed back into [upsert].
+   */
   private fun applyBlock(content: String, newPaths: IsoPaths): String {
-    if (content.isBlank()) return newPaths.toIniLines().joinToString("\n")
     val newBlock = newPaths.toIniLines()
+    if (content.isBlank()) {
+      return (listOf("[General]", "") + newBlock).joinToString("\n")
+    }
     val lines = content.lines()
     val generalIdx = lines.indexOfFirst { it.trim() == "[General]" }
     if (generalIdx < 0) return appendNewSection(lines, newBlock)

@@ -115,9 +115,13 @@ class DolphinConfigTest {
   // --- upsert ----------------------------------------------------------
 
   @Test
-  fun `upsert into empty content writes just the block`() {
+  fun `upsert into empty content writes a new General section with the block`() {
+    // The output is a well-formed INI: a [General] header followed by
+    // a blank line and the ISOPaths block. This matches the non-blank
+    // path so a caller can re-upsert into the result without producing
+    // a stray block.
     val out = DolphinConfig.upsert("", "/Games")
-    assertThat(out).isEqualTo("ISOPaths = 1\nISOPath0 = /Games")
+    assertThat(out).isEqualTo("[General]\n\nISOPaths = 1\nISOPath0 = /Games")
   }
 
   @Test
