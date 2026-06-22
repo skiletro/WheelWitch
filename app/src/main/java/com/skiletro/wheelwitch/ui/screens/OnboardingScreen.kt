@@ -148,6 +148,7 @@ fun OnboardingScreen(
   val storageRequired = stringResource(R.string.onboarding_storage_required)
   val isoInvalid = stringResource(R.string.onboarding_iso_invalid)
   val isoCopyFailed = stringResource(R.string.onboarding_iso_copy_failed)
+  val metadataWriteFailed = stringResource(R.string.onboarding_metadata_write_failed)
   val romVerifying = stringResource(R.string.onboarding_rom_verifying)
   val romCopying = stringResource(R.string.onboarding_rom_copying)
 
@@ -224,11 +225,22 @@ fun OnboardingScreen(
           val ext = File(displayName).extension.ifEmpty { "iso" }.lowercase()
 
           romStage = romCopying
-          withContext(Dispatchers.IO) { tree.copyRomFromSource(uri, gameId, ext) }
-          step = OnboardingStep.Complete
-        } catch (e: Exception) {
-          Timber.tag("Onboarding").e(e, "ROM copy failed")
-          romError = e.message ?: isoCopyFailed
+          // Track whether the ROM copy or the metadata write was the
+          // last step to run before a throw, so the catch block can
+          // pick the right error message. Declared before the try so
+          // the catch can read it on any failure path.
+          var metadataFailed = false
+          try {
+            withContext(Dispatchers.IO) { tree.copyRomFromSource(uri, gameId, ext) }
+            metadataFailed = true
+            withContext(Dispatchers.IO) { tree.writeRrMetadata() }
+            step = OnboardingStep.Complete
+          } catch (e: Exception) {
+            Timber.tag("Onboarding").e(e, if (metadataFailed) "Metadata write failed" else "ROM copy failed")
+            romError =
+              if (metadataFailed) (e.message ?: metadataWriteFailed)
+              else (e.message ?: isoCopyFailed)
+          }
         } finally {
           isRomLoading = false
           romStage = null

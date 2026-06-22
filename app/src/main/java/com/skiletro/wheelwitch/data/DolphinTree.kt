@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.documentfile.provider.DocumentFile
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.SemVersion
 import com.skiletro.wheelwitch.util.prefs.Prefs
 import com.skiletro.wheelwitch.util.prefs.PrefsKeys
@@ -78,6 +79,13 @@ data class ExtractProgress(
  */
 class DolphinTree(context: Context, val treeUri: Uri) {
   val resolver: ContentResolver = context.contentResolver
+
+  /**
+   * Context kept for resource lookups (raw resources, package name).
+   * The class only needs this to read app-shipped assets, not to do
+   * SAF I/O; [resolver] is the SAF counterpart.
+   */
+  private val appContext: Context = context
 
   val root: DocumentFile =
     DocumentFile.fromTreeUri(context, treeUri)
@@ -298,6 +306,30 @@ class DolphinTree(context: Context, val treeUri: Uri) {
   }
 
   /**
+   * Copies the app-shipped RR metadata + cover banner into [romDir]
+   * as `rr_autostartfile.xml` and `rr_autostartfile.cover.png`, so they
+   * sit alongside the launch descriptor (`rr_autostartfile.json`).
+   * Idempotent: replaces existing files of the same name.
+   *
+   * Called from the onboarding ROM step right after [copyRomFromSource]
+   * succeeds. The files are tiny (one short XML, one banner PNG) so a
+   * re-copy on every onboarding is cheap; the metadata survives pack
+   * updates because [extractZipToPack] only writes to [packDir].
+   */
+  suspend fun writeRrMetadata(): Unit = withContext(Dispatchers.IO) {
+    copyRawToRomFile(
+      resId = R.raw.rr_autostartfile,
+      fileName = "rr_autostartfile.xml",
+      mime = "text/xml",
+    )
+    copyRawToRomFile(
+      resId = R.raw.rr_autostartfile_cover,
+      fileName = "rr_autostartfile.cover.png",
+      mime = "image/png",
+    )
+  }
+
+  /**
    * Reads the `version.txt` file at the root of [packDir] and parses
    * it as a [SemVersion]. Returns null when the file is missing or
    * unparseable; both are treated as "no local version".
@@ -379,6 +411,25 @@ class DolphinTree(context: Context, val treeUri: Uri) {
   }
 
   // --- internals --------------------------------------------------------
+
+  /**
+   * Replaces any existing file named [fileName] under [romDir] with
+   * the contents of the raw resource at [resId]. Used by
+   * [writeRrMetadata] to copy the app-shipped metadata + banner.
+   */
+  private fun copyRawToRomFile(resId: Int, fileName: String, mime: String) {
+    val existing = romDir.findFile(fileName)
+    if (existing != null) existing.delete()
+    val file =
+      romDir.createFile(mime, fileName)
+        ?: error("Cannot create $fileName in rom/")
+    val output =
+      resolver.openOutputStream(file.uri)
+        ?: error("Cannot open output stream for $fileName")
+    appContext.resources.openRawResource(resId).use { input ->
+      output.use { out -> input.copyTo(out) }
+    }
+  }
 
   private fun writeZipEntry(
     entry: ZipEntry,

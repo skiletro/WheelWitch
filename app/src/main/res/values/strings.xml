@@ -83,6 +83,7 @@
     <string name="onboarding_storage_read_failed">Cannot read the selected folder.</string>
     <string name="onboarding_iso_invalid">This doesn\'t look like a Mario Kart Wii ROM. Pick an .iso, .rvz, or .wbfs file.</string>
     <string name="onboarding_iso_copy_failed">Couldn\'t copy the ROM into your Dolphin folder.</string>
+    <string name="onboarding_metadata_write_failed">Couldn\'t write the RR metadata into your Dolphin folder.</string>
     <string name="onboarding_storage_required">Pick a storage folder first.</string>
     <string name="onboarding_rom_verifying">Verifying ROM…</string>
     <string name="onboarding_rom_copying">Copying to Dolphin folder…</string>

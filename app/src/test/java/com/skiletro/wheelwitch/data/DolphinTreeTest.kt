@@ -8,6 +8,7 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.documentfile.provider.DocumentFile
 import com.google.common.truth.Truth.assertThat
+import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.util.prefs.PrefsKeys
 import io.mockk.every
 import io.mockk.mockk
@@ -523,6 +524,68 @@ class DolphinTreeTest {
 
     val tree = DolphinTree(context, treeUri)
     assertThat(tree.readLaunchJson()).isEqualTo("payload")
+  }
+
+  // --- writeRrMetadata -------------------------------------------------
+
+  @Test
+  fun `writeRrMetadata writes the metadata xml and cover png into romDir with the expected names`() =
+    runBlocking {
+      val (romDir, _, _) = setupDirChain()
+      val xmlBytes = "<metadata/>".encodeToByteArray()
+      val pngBytes = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
+      every { context.resources.openRawResource(R.raw.rr_autostartfile) } returns
+        ByteArrayInputStream(xmlBytes)
+      every { context.resources.openRawResource(R.raw.rr_autostartfile_cover) } returns
+        ByteArrayInputStream(pngBytes)
+      val xmlFile = mockk<DocumentFile>(relaxed = true)
+      val pngFile = mockk<DocumentFile>(relaxed = true)
+      val xmlUri = mockk<Uri>(relaxed = true)
+      val pngUri = mockk<Uri>(relaxed = true)
+      every { xmlFile.uri } returns xmlUri
+      every { pngFile.uri } returns pngUri
+      every { romDir.createFile("text/xml", "rr_autostartfile.xml") } returns xmlFile
+      every { romDir.createFile("image/png", "rr_autostartfile.cover.png") } returns pngFile
+      val xmlOutput = ByteArrayOutputStream()
+      val pngOutput = ByteArrayOutputStream()
+      every { resolver.openOutputStream(xmlUri) } returns xmlOutput
+      every { resolver.openOutputStream(pngUri) } returns pngOutput
+
+      val tree = DolphinTree(context, treeUri)
+      tree.writeRrMetadata()
+
+      // Each raw resource's bytes land in its matching file.
+      assertThat(xmlOutput.toByteArray()).isEqualTo(xmlBytes)
+      assertThat(pngOutput.toByteArray()).isEqualTo(pngBytes)
+      // Both files were created with the descriptor-adjacent names.
+      verify { romDir.createFile("text/xml", "rr_autostartfile.xml") }
+      verify { romDir.createFile("image/png", "rr_autostartfile.cover.png") }
+    }
+
+  @Test
+  fun `writeRrMetadata replaces existing files with the same name`() = runBlocking {
+    val (romDir, _, _) = setupDirChain()
+    every { context.resources.openRawResource(R.raw.rr_autostartfile) } returns
+      ByteArrayInputStream("<metadata/>".encodeToByteArray())
+    every { context.resources.openRawResource(R.raw.rr_autostartfile_cover) } returns
+      ByteArrayInputStream(byteArrayOf(0x89.toByte()))
+    val existingXml = mockk<DocumentFile>(relaxed = true)
+    val existingPng = mockk<DocumentFile>(relaxed = true)
+    every { romDir.findFile("rr_autostartfile.xml") } returns existingXml
+    every { romDir.findFile("rr_autostartfile.cover.png") } returns existingPng
+    val xmlFile = mockk<DocumentFile>(relaxed = true)
+    val pngFile = mockk<DocumentFile>(relaxed = true)
+    every { xmlFile.uri } returns mockk<Uri>(relaxed = true)
+    every { pngFile.uri } returns mockk<Uri>(relaxed = true)
+    every { romDir.createFile("text/xml", "rr_autostartfile.xml") } returns xmlFile
+    every { romDir.createFile("image/png", "rr_autostartfile.cover.png") } returns pngFile
+    every { resolver.openOutputStream(any()) } returns ByteArrayOutputStream()
+
+    val tree = DolphinTree(context, treeUri)
+    tree.writeRrMetadata()
+
+    verify { existingXml.delete() }
+    verify { existingPng.delete() }
   }
 
   // --- readVersion / writeVersion -------------------------------------
