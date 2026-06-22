@@ -1,5 +1,6 @@
 package com.skiletro.wheelwitch.ui.screens
 
+import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.activity.compose.BackHandler
@@ -31,9 +32,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -51,6 +55,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.documentfile.provider.DocumentFile
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.data.DolphinTree
 import com.skiletro.wheelwitch.data.GameTypeParser
@@ -70,8 +76,15 @@ private const val ONBOARDING_TRANSITION_MS = 300
 
 /**
  * Onboarding wizard. The flow is:
- * `Welcome → Beta → Storage → Rom → Complete`.
+ * `Welcome → Beta → Dolphin → Storage → Rom → Complete`.
  *
+ * - **Dolphin**: confirms [DolphinLauncher.isDolphinInstalled] before
+ *   the user is asked to grant access to its user folder. If the
+ *   package isn't installed, the step offers a Download button
+ *   (opens [DolphinLauncher]'s official download page) and a
+ *   re-check button. A lifecycle observer re-runs the check on every
+ *   `ON_RESUME` so the UI flips to the installed view automatically
+ *   when the user returns from the browser.
  * - **Storage**: fires the SAF `OpenDocumentTree` picker with
  *   `EXTRA_INITIAL_URI` deep-linked at the Dolphin user folder
  *   (`primary:Android/data/org.dolphinemu.dolphinemu/files`). The
@@ -98,6 +111,33 @@ fun OnboardingScreen(
   var romError by remember { mutableStateOf<String?>(null) }
   var isRomLoading by remember { mutableStateOf(false) }
   var romStage by remember { mutableStateOf<String?>(null) }
+  // Dolphin-check state. Both default to false / false so the
+  // first composition of the Dolphin step shows the "not installed"
+  // view until the lifecycle observer's first ON_RESUME fires.
+  // The observer handles the initial check, the re-check after
+  // returning from the browser, and the manual re-check via the
+  // "Check Again" button.
+  var dolphinInstalled by remember { mutableStateOf(false) }
+  var hasCheckedDolphin by remember { mutableStateOf(false) }
+
+  // Re-check the Dolphin install on every ON_RESUME while the
+  // Dolphin step is current. This catches the case where the user
+  // taps "Download Dolphin" -> browser opens -> user installs
+  // Dolphin -> returns to the app via the system back button.
+  // Without the observer the user would have to tap "Check Again"
+  // manually. The initial check is covered by ON_RESUME firing
+  // for the first display.
+  val lifecycleOwner = LocalLifecycleOwner.current
+  DisposableEffect(lifecycleOwner) {
+    val observer = LifecycleEventObserver { _, event ->
+      if (event == Lifecycle.Event.ON_RESUME && step == OnboardingStep.Dolphin) {
+        dolphinInstalled = DolphinLauncher.isDolphinInstalled(context)
+        hasCheckedDolphin = true
+      }
+    }
+    lifecycleOwner.lifecycle.addObserver(observer)
+    onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+  }
 
   // Resolve every error string up here so the activity-result
   // callbacks (which run outside the composition) can use them
@@ -239,7 +279,18 @@ fun OnboardingScreen(
             OnboardingStep.Welcome ->
               WelcomeStep(onNext = { step = OnboardingStep.Beta })
             OnboardingStep.Beta ->
-              BetaStep(onNext = { step = OnboardingStep.Storage })
+              BetaStep(onNext = { step = OnboardingStep.Dolphin })
+            OnboardingStep.Dolphin ->
+              DolphinStep(
+                installed = dolphinInstalled,
+                hasChecked = hasCheckedDolphin,
+                onContinue = { step = OnboardingStep.Storage },
+                onDownload = { openDolphinDownloadIntent(context) },
+                onCheckAgain = {
+                  dolphinInstalled = DolphinLauncher.isDolphinInstalled(context)
+                  hasCheckedDolphin = true
+                },
+              )
             OnboardingStep.Storage ->
               StorageStep(
                 onPick = {
@@ -273,10 +324,11 @@ fun OnboardingScreen(
   }
 }
 
-/** Onboarding flow. Five steps; TOTAL drives the dot count. */
+/** Onboarding flow. Six steps; TOTAL drives the dot count. */
 private enum class OnboardingStep {
   Welcome,
   Beta,
+  Dolphin,
   Storage,
   Rom,
   Complete;
@@ -313,6 +365,77 @@ private fun BetaStep(onNext: () -> Unit) {
   ) {
     StepPrimaryButton(text = stringResource(R.string.onboarding_beta_continue), onClick = onNext)
   }
+}
+
+/**
+ * Third onboarding step: confirms [DolphinLauncher.isDolphinInstalled]
+ * before the user is asked to grant access to its folder. If
+ * [installed] is true, only the Continue button shows; if false,
+ * the Download and Check Again buttons are both visible. [hasChecked]
+ * suppresses the "not installed" body until the first check has
+ * run, so the user doesn't see a false "not installed" message
+ * during the brief window between entering the step and the
+ * lifecycle observer's first ON_RESUME.
+ */
+@Composable
+private fun DolphinStep(
+  installed: Boolean,
+  hasChecked: Boolean,
+  onContinue: () -> Unit,
+  onDownload: () -> Unit,
+  onCheckAgain: () -> Unit,
+) {
+  StepCard(
+    title = stringResource(R.string.onboarding_dolphin_title),
+    titleStyle = MaterialTheme.typography.headlineSmall,
+    body =
+      if (installed) {
+        stringResource(R.string.onboarding_dolphin_installed_body)
+      } else if (hasChecked) {
+        stringResource(R.string.onboarding_dolphin_not_installed_body)
+      } else {
+        // First composition: lifecycle observer hasn't fired yet.
+        // Show a neutral message instead of the "not installed"
+        // body so the user doesn't see a flash of "Download Dolphin".
+        null
+      },
+  ) {
+    if (installed) {
+      StepPrimaryButton(
+        text = stringResource(R.string.onboarding_continue),
+        onClick = onContinue,
+      )
+    } else {
+      StepPrimaryButton(
+        text = stringResource(R.string.onboarding_download_dolphin),
+        onClick = onDownload,
+      )
+      Spacer(modifier = Modifier.height(8.dp))
+      OutlinedButton(
+        onClick = onCheckAgain,
+        shape = buttonShape,
+        modifier = Modifier.fillMaxWidth().height(48.dp),
+      ) {
+        Text(
+          text = stringResource(R.string.onboarding_check_again),
+          style = MaterialTheme.typography.titleMedium,
+          fontWeight = FontWeight.SemiBold,
+        )
+      }
+    }
+  }
+}
+
+/**
+ * Opens Dolphin's official download page in the user's default
+ * browser. Website-first per the design decision — avoids the
+ * `market://` Play Store intent and the resulting "no Play Store"
+ * fallback ladder that the website solves for free.
+ */
+private fun openDolphinDownloadIntent(context: android.content.Context) {
+  val intent =
+    Intent(Intent.ACTION_VIEW, Uri.parse("https://dolphin-emu.org/download/"))
+  context.startActivity(intent)
 }
 
 /** Third onboarding step: SAF tree picker for the Dolphin user folder. */
