@@ -83,6 +83,8 @@ jobs:
           set -euo pipefail
           mv app/build/outputs/apk/release/app-release.apk \
              "app/build/outputs/apk/release/wheelwitch-${VERSION}-${SHORT_HASH}.apk"
+          mv app/build/outputs/apk/release/app-release.apk.idsig \
+             "app/build/outputs/apk/release/wheelwitch-${VERSION}-${SHORT_HASH}.apk.idsig"
         env:
           VERSION: ${{ steps.appversion.outputs.version }}
           SHORT_HASH: ${{ steps.appversion.outputs.short_hash }}
@@ -91,7 +93,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wheelwitch-${{ steps.appversion.outputs.version }}-${{ steps.appversion.outputs.short_hash }}
-          path: app/build/outputs/apk/release/wheelwitch-${{ steps.appversion.outputs.version }}-${{ steps.appversion.outputs.short_hash }}.apk
+          path: |
+            app/build/outputs/apk/release/wheelwitch-${{ steps.appversion.outputs.version }}-${{ steps.appversion.outputs.short_hash }}.apk
+            app/build/outputs/apk/release/wheelwitch-${{ steps.appversion.outputs.version }}-${{ steps.appversion.outputs.short_hash }}.apk.idsig
           retention-days: 7
 
       - name: Update CI release
@@ -104,5 +108,7 @@ jobs:
           allowUpdates: true
           removeArtifacts: true
           replacesArtifacts: true
-          artifacts: app/build/outputs/apk/release/wheelwitch-${{ steps.appversion.outputs.version }}-${{ steps.appversion.outputs.short_hash }}.apk
+          artifacts: |
+            app/build/outputs/apk/release/wheelwitch-${{ steps.appversion.outputs.version }}-${{ steps.appversion.outputs.short_hash }}.apk
+            app/build/outputs/apk/release/wheelwitch-${{ steps.appversion.outputs.version }}-${{ steps.appversion.outputs.short_hash }}.apk.idsig
           token: ${{ secrets.GITHUB_TOKEN }}
