@@ -27,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
@@ -77,6 +78,11 @@ fun TopBar(
         label = "bobOffset"
     )
 
+    var onlineMenuFocused by remember { mutableStateOf(false) }
+    var saveInfoFocused by remember { mutableStateOf(false) }
+    var miiMakerFocused by remember { mutableStateOf(false) }
+    var settingsFocused by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -105,14 +111,25 @@ fun TopBar(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        IconButton(onClick = onOpenOnlineMenu, enabled = onlineMenuEnabled) {
+        IconButton(
+            onClick = onOpenOnlineMenu,
+            enabled = onlineMenuEnabled,
+            modifier = Modifier
+                .onFocusChanged { onlineMenuFocused = it.isFocused }
+                .focusBorder(onlineMenuFocused)
+        ) {
             Icon(
                 imageVector = ImageVector.vectorResource(R.drawable.ic_dns),
                 contentDescription = stringResource(R.string.cd_online_menu),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        IconButton(onClick = onOpenSaveInfo) {
+        IconButton(
+            onClick = onOpenSaveInfo,
+            modifier = Modifier
+                .onFocusChanged { saveInfoFocused = it.isFocused }
+                .focusBorder(saveInfoFocused)
+        ) {
             Icon(
                 imageVector = ImageVector.vectorResource(R.drawable.ic_id_card_2),
                 contentDescription = stringResource(R.string.cd_save_data),
@@ -121,7 +138,10 @@ fun TopBar(
         }
         IconButton(
             onClick = onLaunchMiiMaker,
-            enabled = miiMakerEnabled
+            enabled = miiMakerEnabled,
+            modifier = Modifier
+                .onFocusChanged { miiMakerFocused = it.isFocused }
+                .focusBorder(miiMakerFocused)
         ) {
             Icon(
                 imageVector = ImageVector.vectorResource(R.drawable.ic_face_up),
@@ -131,7 +151,12 @@ fun TopBar(
                 modifier = Modifier.size(24.dp)
             )
         }
-        IconButton(onClick = onOpenSettings) {
+        IconButton(
+            onClick = onOpenSettings,
+            modifier = Modifier
+                .onFocusChanged { settingsFocused = it.isFocused }
+                .focusBorder(settingsFocused)
+        ) {
             Icon(
                 imageVector = ImageVector.vectorResource(R.drawable.ic_settings),
                 contentDescription = stringResource(R.string.cd_settings),
