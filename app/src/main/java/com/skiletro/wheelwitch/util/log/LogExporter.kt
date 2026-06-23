@@ -20,6 +20,8 @@ object LogExporter {
   private const val DIR_NAME = "logs"
   private const val FILE_PREFIX = "wheelwitch-"
   private const val FILE_EXTENSION = ".log"
+  private const val ON_DISK_LOG_NAME = "wheelwitch.log"
+  private const val ON_DISK_LOG_ROTATED_NAME = "wheelwitch.log.1"
   private val TIMESTAMP_FORMAT = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US)
 
   /**
@@ -59,7 +61,34 @@ object LogExporter {
           .append('\n')
       }
     }
+    appendOnDiskLogs(sb, File(context.cacheDir, DIR_NAME))
     return sb.toString()
+  }
+
+  /**
+   * Appends the on-disk `wheelwitch.log.1` (older, rotated) and `wheelwitch.log`
+   * (newer, active) files to [sb] under labelled section headers, when present.
+   * Older history is appended first so the report reads chronologically.
+   */
+  private fun appendOnDiskLogs(sb: StringBuilder, logsDir: File) {
+    val rotated = File(logsDir, ON_DISK_LOG_ROTATED_NAME)
+    val active = File(logsDir, ON_DISK_LOG_NAME)
+    if (!rotated.exists() && !active.exists()) return
+    sb.append('\n')
+    if (rotated.exists()) {
+      sb.append("--- on-disk log: ").append(rotated.name).append(" ---\n")
+      appendFileContents(sb, rotated)
+    }
+    if (active.exists()) {
+      sb.append("--- on-disk log: ").append(active.name).append(" ---\n")
+      appendFileContents(sb, active)
+    }
+  }
+
+  private fun appendFileContents(sb: StringBuilder, file: File) {
+    val text = file.readText()
+    sb.append(text)
+    if (!text.endsWith('\n')) sb.append('\n')
   }
 
   /**

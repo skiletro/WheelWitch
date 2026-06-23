@@ -22,7 +22,7 @@ class WheelWitchApp : Application() {
     } else {
       Timber.plant(AppReleaseLogTree())
     }
-    Timber.plant(MemoryBufferTree(minPriority = if (BuildConfig.DEBUG) Log.VERBOSE else Log.WARN))
+    Timber.plant(MemoryBufferTree())
     Timber.plant(
       OptionalFileTree(
         isEnabled = { prefs.getBoolean(PrefsKeys.LOGGING_TO_FILE_KEY, false) },
