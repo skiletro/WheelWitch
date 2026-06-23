@@ -42,6 +42,16 @@ object SaveManager {
   const val SAVE_FILE_NAME = "rksys.dat"
 
   /**
+   * Path prefix inside the pack directory whose files are owned by
+   * the user, not the pack. The pack extraction
+   * ([com.skiletro.wheelwitch.data.DolphinTree.extractZipToPack]) skips
+   * any zip entry that starts with this prefix so an update never
+   * clobbers a `rksys.dat` that the user has actually played with.
+   * The trailing slash makes the match precise.
+   */
+  const val SAVE_PRESERVE_PREFIX = "riivolution/save/"
+
+  /**
    * Maps a ROM file name to its [Region]. Returns null if [name] does
    * not start with any known region code. Match is
    * case-insensitive so the helper tolerates the rare mixed-case pick

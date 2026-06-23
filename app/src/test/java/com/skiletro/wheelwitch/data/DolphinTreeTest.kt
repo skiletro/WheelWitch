@@ -508,6 +508,71 @@ class DolphinTreeTest {
     assertThat(output.toString(Charsets.UTF_8)).isEqualTo("deep")
   }
 
+  @Test
+  fun `extractZipToPack replaces a pre-existing file of the same name`(
+    @TempDir tempDir: Path
+  ) = runBlocking {
+    val (_, packDir, _) = setupDirChain()
+    val zip = File(tempDir.toFile(), "pack.zip")
+    ZipOutputStream(zip.outputStream()).use { zos ->
+      zos.putNextEntry(ZipEntry("file1.txt"))
+      zos.write("hello".encodeToByteArray())
+      zos.closeEntry()
+    }
+    val existing = mockk<DocumentFile>(relaxed = true)
+    val created = mockk<DocumentFile>(relaxed = true)
+    val uri = mockk<Uri>(relaxed = true)
+    every { created.uri } returns uri
+    every { packDir.findFile("file1.txt") } returns existing
+    every { packDir.createFile("application/octet-stream", "file1.txt") } returns created
+    val baos = ByteArrayOutputStream()
+    every { resolver.openOutputStream(uri) } returns baos
+
+    val tree = DolphinTree(context, treeUri)
+    tree.extractZipToPack(zip) { /* no-op */ }
+
+    verify { existing.delete() }
+    assertThat(baos.toString(Charsets.UTF_8)).isEqualTo("hello")
+  }
+
+  @Test
+  fun `extractZipToPack preserves files under riivolution save`(
+    @TempDir tempDir: Path
+  ) = runBlocking {
+    val (_, packDir, _) = setupDirChain()
+    val zip = File(tempDir.toFile(), "pack.zip")
+    ZipOutputStream(zip.outputStream()).use { zos ->
+      zos.putNextEntry(ZipEntry("riivolution/save/RetroWFC/PAL/rksys.dat"))
+      zos.write("template".encodeToByteArray())
+      zos.closeEntry()
+    }
+    val riivolutionDir = mockk<DocumentFile>(relaxed = true)
+    val saveDir = mockk<DocumentFile>(relaxed = true)
+    val retroWfcDir = mockk<DocumentFile>(relaxed = true)
+    val palDir = mockk<DocumentFile>(relaxed = true)
+    every { packDir.findFile("riivolution") } returns null
+    every { packDir.createDirectory("riivolution") } returns riivolutionDir
+    every { riivolutionDir.findFile("save") } returns null
+    every { riivolutionDir.createDirectory("save") } returns saveDir
+    every { saveDir.findFile("RetroWFC") } returns null
+    every { saveDir.createDirectory("RetroWFC") } returns retroWfcDir
+    every { retroWfcDir.findFile("PAL") } returns null
+    every { retroWfcDir.createDirectory("PAL") } returns palDir
+    val existing = mockk<DocumentFile>(relaxed = true)
+    val created = mockk<DocumentFile>(relaxed = true)
+    every { palDir.findFile("rksys.dat") } returns existing
+    every { palDir.createFile(any<String>(), any<String>()) } returns created
+
+    val tree = DolphinTree(context, treeUri)
+    tree.extractZipToPack(zip) { /* no-op */ }
+
+    // The carve-out must leave the existing save file alone AND must
+    // not even try to create a new one (which would otherwise get
+    // suffixed with `.1` on the next update).
+    verify(exactly = 0) { existing.delete() }
+    verify(exactly = 0) { palDir.createFile(any<String>(), any<String>()) }
+  }
+
   // --- writeLaunchJson / readLaunchJson --------------------------------
 
   @Test

@@ -153,6 +153,12 @@ class DolphinTree(context: Context, val treeUri: Uri) {
    * `ZipInputStream` (which re-parses each Local File Header
    * sequentially).
    *
+   * Existing files of the same name are replaced (the prior install
+   * is overwritten entry by entry). Zip entries under
+   * [com.skiletro.wheelwitch.data.SaveManager.SAVE_PRESERVE_PREFIX]
+   * are left untouched so the user's save data (`rksys.dat` per
+   * region) survives an update.
+   *
    * The flow is:
    * 1. Enumerate the central directory once to get [ZipEntry] objects
    *    with up-front size metadata.
@@ -437,6 +443,11 @@ class DolphinTree(context: Context, val treeUri: Uri) {
     fileName: String,
     input: InputStream,
   ) {
+    if (entry.name.startsWith(SaveManager.SAVE_PRESERVE_PREFIX)) {
+      Timber.tag(TAG).d("Skipping save path: %s", entry.name)
+      return
+    }
+    parent.findFile(fileName)?.delete()
     val target =
       parent.createFile("application/octet-stream", fileName)
         ?: error("Cannot create ${entry.name} in pack/")
