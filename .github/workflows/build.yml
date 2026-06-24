@@ -54,11 +54,11 @@ jobs:
           java-version: 17
           distribution: temurin
 
-      - name: Install Android SDK components
-        run: |
-          set -euo pipefail
-          yes | sdkmanager --licenses >/dev/null
-          sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          android-version: '36'
+          build-tools-version: '36.0.0'
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
