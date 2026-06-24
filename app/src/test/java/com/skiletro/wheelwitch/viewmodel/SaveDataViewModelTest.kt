@@ -35,7 +35,7 @@ class SaveDataViewModelTest {
   private lateinit var mockTree: DolphinTree
   private lateinit var vm: SaveDataViewModel
 
-  private val leaderboardResult = mutableMapOf<String, Result<Pair<Int, String?>>>()
+  private val leaderboardResult = mutableMapOf<String, Result<Int>>()
   private var leaderboardCalls = 0
 
   @BeforeEach
@@ -53,7 +53,7 @@ class SaveDataViewModelTest {
     mockkObject(SaveManager)
     leaderboardResult.clear()
     leaderboardCalls = 0
-    leaderboardResult["1234-5678-9012"] = Result.success(9999 to "mii-b64")
+    leaderboardResult["1234-5678-9012"] = Result.success(9999)
   }
 
   @AfterEach
@@ -66,7 +66,7 @@ class SaveDataViewModelTest {
 
   private fun buildVm(
     tree: DolphinTree? = mockTree,
-    leaderboard: suspend (String) -> Result<Pair<Int, String?>> = { code ->
+    leaderboard: suspend (String) -> Result<Int> = { code ->
       leaderboardCalls++
       leaderboardResult[code] ?: Result.failure(RuntimeException("no stub for $code"))
     },
@@ -161,8 +161,8 @@ class SaveDataViewModelTest {
       val info = RksysParser.parse(bytes)
       val fc0 = info.licenses[0].friendCode!!
       val fc1 = info.licenses[1].friendCode!!
-      leaderboardResult[fc0] = Result.success(1000 to "mii-0")
-      leaderboardResult[fc1] = Result.success(2000 to "mii-1")
+      leaderboardResult[fc0] = Result.success(1000)
+      leaderboardResult[fc1] = Result.success(2000)
 
       every { SaveManager.listRegions(mockTree) } returns listOf(Region.PAL)
       coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns bytes
@@ -174,9 +174,7 @@ class SaveDataViewModelTest {
       val merged = vm.mergedLicenses.value[Region.PAL]
       assertThat(merged).hasSize(4)
       assertThat(merged!![0].leaderboardVr).isEqualTo(1000)
-      assertThat(merged[0].leaderboardMiiImageBase64).isEqualTo("mii-0")
       assertThat(merged[1].leaderboardVr).isEqualTo(2000)
-      assertThat(merged[1].leaderboardMiiImageBase64).isEqualTo("mii-1")
       assertThat(merged[2].exists).isFalse()
       assertThat(merged[3].exists).isFalse()
       assertThat(leaderboardCalls).isEqualTo(2)
@@ -187,7 +185,7 @@ class SaveDataViewModelTest {
     val bytes = rksysWithLicense(pid = 0x00000001L, name = "X", slot = 0)
     val info = RksysParser.parse(bytes)
     val friendCode = info.licenses[0].friendCode!!
-    leaderboardResult[friendCode] = Result.success(9999 to "mii-b64")
+    leaderboardResult[friendCode] = Result.success(9999)
 
     every { SaveManager.listRegions(mockTree) } returns listOf(Region.PAL)
     coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns bytes
@@ -199,7 +197,6 @@ class SaveDataViewModelTest {
     assertThat(active).isNotNull()
     assertThat(active!!.friendCode).isEqualTo(friendCode)
     assertThat(active.leaderboardVr).isEqualTo(9999)
-    assertThat(active.leaderboardMiiImageBase64).isEqualTo("mii-b64")
   }
 
   @Test
@@ -225,8 +222,8 @@ class SaveDataViewModelTest {
       val usaInfo = RksysParser.parse(usaBytes)
       val palFc = palInfo.licenses[0].friendCode!!
       val usaFc = usaInfo.licenses[0].friendCode!!
-      leaderboardResult[palFc] = Result.success(1111 to "mii-pal")
-      leaderboardResult[usaFc] = Result.success(2222 to "mii-usa")
+      leaderboardResult[palFc] = Result.success(1111)
+      leaderboardResult[usaFc] = Result.success(2222)
 
       every { SaveManager.listRegions(mockTree) } returns listOf(Region.PAL, Region.USA)
       coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns palBytes
@@ -257,7 +254,7 @@ class SaveDataViewModelTest {
   fun `selectRegion with the same region is a no-op`() = runTest {
     val bytes = rksysWithLicense(pid = 0x00000001L, name = "X", slot = 0)
     val info = RksysParser.parse(bytes)
-    leaderboardResult[info.licenses[0].friendCode!!] = Result.success(100 to "img")
+    leaderboardResult[info.licenses[0].friendCode!!] = Result.success(100)
 
     every { SaveManager.listRegions(mockTree) } returns listOf(Region.PAL)
     coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns bytes
@@ -283,8 +280,8 @@ class SaveDataViewModelTest {
         writeUInt32Be(bytes, base + 0x5C, if (slot == 0) 0x00000010L else 0x00000011L)
       }
       val info = RksysParser.parse(bytes)
-      leaderboardResult[info.licenses[0].friendCode!!] = Result.success(1000 to "mii-0")
-      leaderboardResult[info.licenses[1].friendCode!!] = Result.success(2000 to "mii-1")
+      leaderboardResult[info.licenses[0].friendCode!!] = Result.success(1000)
+      leaderboardResult[info.licenses[1].friendCode!!] = Result.success(2000)
 
       every { SaveManager.listRegions(mockTree) } returns listOf(Region.PAL)
       coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns bytes

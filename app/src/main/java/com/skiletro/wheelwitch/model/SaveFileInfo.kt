@@ -31,5 +31,4 @@ data class LicenseInfo(
   val raceLosses: Int? = null,
   val miiDataBase64: String? = null,
   val leaderboardVr: Int? = null,
-  val leaderboardMiiImageBase64: String? = null,
 )

@@ -136,15 +136,11 @@ object VersionFileParser {
         parseTracks(json)
     }
 
-    /** Fetches leaderboard data (VR, Mii image) for a given friend code. */
-    fun fetchPlayerLeaderboard(friendCode: String): Result<Pair<Int, String?>> = runCatching {
+    /** Fetches the leaderboard VR for a given friend code. */
+    fun fetchPlayerLeaderboard(friendCode: String): Result<Int> = runCatching {
         val url = "$RWFC_API/api/leaderboard/player/$friendCode/"
         val json = fetchUrl(url)
-        val root = JSONObject(json)
-        Pair(
-            root.optInt("vr", 0),
-            root.optString("miiImageBase64", "").takeIf { it.isNotEmpty() }
-        )
+        JSONObject(json).optInt("vr", 0)
     }
 
     /** Blocking HTTP GET. Throws on non-2xx or empty body. */

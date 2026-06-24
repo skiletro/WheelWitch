@@ -59,9 +59,11 @@ import timber.log.Timber
  *
  * Leaderboard merge: the Licenses screen renders all 4 slots of the
  * selected region, so [mergedLicenses] holds a 4-entry list per
- * region with leaderboard VR/Mii merged in. The leaderboard fetch
- * is fanned out in parallel for all 4 slots of the selected region
- * (4 in-flight requests max) via [refreshMergedLicensesForRegion].
+ * region with leaderboard VR merged in. Mii faces are rendered from
+ * the local RFL payload via the Mii image service, not from the
+ * leaderboard. The VR fetch is fanned out in parallel for all 4
+ * slots of the selected region (4 in-flight requests max) via
+ * [refreshMergedLicensesForRegion].
  * [activeLicense] is derived from [mergedLicenses] × selected
  * region × selected slot via [combine], so selecting a slot never
  * triggers a network round trip.
@@ -75,7 +77,7 @@ class SaveDataViewModel(
   private val packStatusFlow: StateFlow<UiState>,
   private val treeFactory: (Context) -> DolphinTree? = ::defaultTreeFactory,
   private val parser: (ByteArray) -> SaveFileInfo = RksysParser::parse,
-  private val leaderboardFetcher: suspend (String) -> Result<Pair<Int, String?>> = { code ->
+  private val leaderboardFetcher: suspend (String) -> Result<Int> = { code ->
     VersionFileParser.fetchPlayerLeaderboard(code)
   },
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
@@ -298,9 +300,9 @@ class SaveDataViewModel(
                 } else {
                   val result = leaderboardFetcher(license.friendCode)
                   if (result.isSuccess) {
-                    val (vr, mii) = result.getOrThrow()
+                    val vr = result.getOrThrow()
                     cacheAndPersistLeaderboardVr(license.slotIndex, vr)
-                    license.copy(leaderboardVr = vr, leaderboardMiiImageBase64 = mii)
+                    license.copy(leaderboardVr = vr)
                   } else {
                     license
                   }

@@ -28,7 +28,7 @@ import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
 fun ActivePlayerCard(license: LicenseInfo, cachedLeaderboardVr: Int?, vrMultiplier: Float?) {
   Row(verticalAlignment = Alignment.CenterVertically) {
     MiiFace(
-      imageBase64 = license.leaderboardMiiImageBase64,
+      imageBase64 = null,
       miiDataBase64 = license.miiDataBase64,
       modifier = Modifier.size(40.dp),
     )

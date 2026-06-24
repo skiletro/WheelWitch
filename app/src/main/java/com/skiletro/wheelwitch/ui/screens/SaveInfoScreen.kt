@@ -227,7 +227,7 @@ private fun PopulatedCell(license: LicenseInfo) {
     verticalAlignment = Alignment.CenterVertically,
   ) {
     MiiFace(
-      imageBase64 = license.leaderboardMiiImageBase64,
+      imageBase64 = null,
       miiDataBase64 = license.miiDataBase64,
       modifier = Modifier.size(84.dp),
     )
