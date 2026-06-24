@@ -212,10 +212,13 @@ class DolphinTree(context: Context, val treeUri: Uri) {
    * sequentially).
    *
    * Existing files of the same name are replaced (the prior install
-   * is overwritten entry by entry). Zip entries under
-   * [com.skiletro.wheelwitch.data.SaveManager.SAVE_PRESERVE_PREFIX]
-   * are left untouched so the user's save data (`rksys.dat` per
-   * region) survives an update.
+   * is overwritten entry by entry). Zip entries under any of
+   * [com.skiletro.wheelwitch.data.SaveManager.userDataPathPrefixes]
+   * — the per-region `rksys.dat` tree, the Mii DB at
+   * `Wii/shared2/menu/FaceLib/`, and the Pulsar config and
+   * `Ghosts/` at `Wii/shared2/Pulsar/RetroRewind6/` — are left
+   * untouched so the user's save data, Miis, settings, and ghost
+   * data survive an update.
    *
    * The flow is:
    * 1. Enumerate the central directory once to get [ZipEntry] objects
@@ -529,8 +532,8 @@ class DolphinTree(context: Context, val treeUri: Uri) {
     fileName: String,
     input: InputStream,
   ) {
-    if (entry.name.startsWith(SaveManager.SAVE_PRESERVE_PREFIX)) {
-      Timber.tag(TAG).d("Skipping save path: %s", entry.name)
+    if (SaveManager.userDataPathPrefixes.any { entry.name.startsWith(it) }) {
+      Timber.tag(TAG).d("Skipping user data path: %s", entry.name)
       return
     }
     parent.findFile(fileName)?.delete()

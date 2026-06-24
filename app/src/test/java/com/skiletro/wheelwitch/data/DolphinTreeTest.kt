@@ -637,16 +637,27 @@ class DolphinTreeTest {
   }
 
   @Test
-  fun `extractZipToPack preserves files under riivolution save`(
+  fun `extractZipToPack preserves files under all user data paths`(
     @TempDir tempDir: Path
   ) = runBlocking {
     val (_, packDir, _) = setupDirChain()
     val zip = File(tempDir.toFile(), "pack.zip")
     ZipOutputStream(zip.outputStream()).use { zos ->
+      // One entry per protected prefix. The carve-out should leave
+      // each pre-existing file alone and not even try to create a
+      // replacement (which would otherwise get suffixed with `.1`
+      // on the next update).
       zos.putNextEntry(ZipEntry("riivolution/save/RetroWFC/PAL/rksys.dat"))
       zos.write("template".encodeToByteArray())
       zos.closeEntry()
+      zos.putNextEntry(ZipEntry("Wii/shared2/menu/FaceLib/RFL_DB.dat"))
+      zos.write("faces".encodeToByteArray())
+      zos.closeEntry()
+      zos.putNextEntry(ZipEntry("Wii/shared2/Pulsar/RetroRewind6/RRRating.pul"))
+      zos.write("rating".encodeToByteArray())
+      zos.closeEntry()
     }
+    // Chain: pack/riivolution/save/RetroWFC/PAL/rksys.dat
     val riivolutionDir = mockk<DocumentFile>(relaxed = true)
     val saveDir = mockk<DocumentFile>(relaxed = true)
     val retroWfcDir = mockk<DocumentFile>(relaxed = true)
@@ -659,19 +670,49 @@ class DolphinTreeTest {
     every { saveDir.createDirectory("RetroWFC") } returns retroWfcDir
     every { retroWfcDir.findFile("PAL") } returns null
     every { retroWfcDir.createDirectory("PAL") } returns palDir
-    val existing = mockk<DocumentFile>(relaxed = true)
-    val created = mockk<DocumentFile>(relaxed = true)
-    every { palDir.findFile("rksys.dat") } returns existing
-    every { palDir.createFile(any<String>(), any<String>()) } returns created
+    val existingSave = mockk<DocumentFile>(relaxed = true)
+    every { palDir.findFile("rksys.dat") } returns existingSave
+    every { palDir.createFile(any<String>(), any<String>()) } returns mockk(relaxed = true)
+
+    // Chain: pack/Wii/shared2/menu/FaceLib/RFL_DB.dat
+    val wiiDir = mockk<DocumentFile>(relaxed = true)
+    val shared2Dir = mockk<DocumentFile>(relaxed = true)
+    val menuDir = mockk<DocumentFile>(relaxed = true)
+    val faceLibDir = mockk<DocumentFile>(relaxed = true)
+    every { packDir.findFile("Wii") } returns null
+    every { packDir.createDirectory("Wii") } returns wiiDir
+    every { wiiDir.findFile("shared2") } returns null
+    every { wiiDir.createDirectory("shared2") } returns shared2Dir
+    every { shared2Dir.findFile("menu") } returns null
+    every { shared2Dir.createDirectory("menu") } returns menuDir
+    every { menuDir.findFile("FaceLib") } returns null
+    every { menuDir.createDirectory("FaceLib") } returns faceLibDir
+    val existingFaceLib = mockk<DocumentFile>(relaxed = true)
+    every { faceLibDir.findFile("RFL_DB.dat") } returns existingFaceLib
+    every { faceLibDir.createFile(any<String>(), any<String>()) } returns mockk(relaxed = true)
+
+    // Chain: pack/Wii/shared2/Pulsar/RetroRewind6/RRRating.pul
+    val pulsarDir = mockk<DocumentFile>(relaxed = true)
+    val pulsarRrDir = mockk<DocumentFile>(relaxed = true)
+    every { shared2Dir.findFile("Pulsar") } returns null
+    every { shared2Dir.createDirectory("Pulsar") } returns pulsarDir
+    every { pulsarDir.findFile(DolphinTree.RETRO_REWIND_DIR_NAME) } returns null
+    every { pulsarDir.createDirectory(DolphinTree.RETRO_REWIND_DIR_NAME) } returns pulsarRrDir
+    val existingPul = mockk<DocumentFile>(relaxed = true)
+    every { pulsarRrDir.findFile("RRRating.pul") } returns existingPul
+    every { pulsarRrDir.createFile(any<String>(), any<String>()) } returns mockk(relaxed = true)
 
     val tree = DolphinTree(context, treeUri)
     tree.extractZipToPack(zip) { /* no-op */ }
 
-    // The carve-out must leave the existing save file alone AND must
-    // not even try to create a new one (which would otherwise get
-    // suffixed with `.1` on the next update).
-    verify(exactly = 0) { existing.delete() }
+    // Every existing file is left alone and no replacement is
+    // created. The carve-out covers all three user-data prefixes.
+    verify(exactly = 0) { existingSave.delete() }
     verify(exactly = 0) { palDir.createFile(any<String>(), any<String>()) }
+    verify(exactly = 0) { existingFaceLib.delete() }
+    verify(exactly = 0) { faceLibDir.createFile(any<String>(), any<String>()) }
+    verify(exactly = 0) { existingPul.delete() }
+    verify(exactly = 0) { pulsarRrDir.createFile(any<String>(), any<String>()) }
   }
 
   // --- writeLaunchJson / readLaunchJson --------------------------------
