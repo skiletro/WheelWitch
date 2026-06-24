@@ -19,7 +19,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
@@ -36,6 +42,24 @@ import java.util.Base64
 
 /** Corner radius applied to rendered Mii face bitmaps. */
 private val MiiFaceCorner = 10.dp
+
+private val MiiFadeBrush =
+  Brush.verticalGradient(
+    colorStops =
+      arrayOf(
+        0.0f to Color.Black,
+        0.75f to Color.Black,
+        1.0f to Color.Transparent,
+      )
+  )
+
+private fun Modifier.miiFade() =
+  this
+    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+    .drawWithContent {
+      drawContent()
+      drawRect(brush = MiiFadeBrush, blendMode = BlendMode.DstIn)
+    }
 
 /** Default Mii RFL data shown when the real Mii fetch fails. */
 private const val DEFAULT_MII_DATA_BASE64 =
@@ -83,7 +107,7 @@ fun MiiFace(
         Image(
             bitmap = pngBitmap.asImageBitmap(),
             contentDescription = null,
-            modifier = modifier.clip(RoundedCornerShape(MiiFaceCorner))
+            modifier = modifier.miiFade().clip(RoundedCornerShape(MiiFaceCorner))
         )
         return
     }
@@ -130,7 +154,10 @@ fun MiiFace(
                 Image(
                     bitmap = bitmap.asImageBitmap(),
                     contentDescription = null,
-                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(MiiFaceCorner))
+                    modifier =
+                      Modifier.fillMaxSize()
+                        .miiFade()
+                        .clip(RoundedCornerShape(MiiFaceCorner))
                 )
             }
             fetchFailed && miiDataBase64 != null -> {
