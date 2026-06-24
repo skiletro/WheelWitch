@@ -635,66 +635,81 @@ class DolphinTreeTest {
     assertThat(tree.readLaunchJson()).isEqualTo("payload")
   }
 
-  // --- writeRrMetadata -------------------------------------------------
+  // --- writeRrCover / writeRrMetadata ----------------------------------
 
   @Test
-  fun `writeRrMetadata writes the metadata xml and cover png into romDir with the expected names`() =
+  fun `writeRrCover writes the cover png into romDir and replaces an existing one`() = runBlocking {
+    val (romDir, _, _) = setupDirChain()
+    val pngBytes = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
+    every { context.resources.openRawResource(R.raw.rr_autostartfile_cover) } returns
+      ByteArrayInputStream(pngBytes)
+    val existing = mockk<DocumentFile>(relaxed = true)
+    every { romDir.findFile("rr_autostartfile.cover.png") } returns existing
+    val file = mockk<DocumentFile>(relaxed = true)
+    val uri = mockk<Uri>(relaxed = true)
+    every { file.uri } returns uri
+    every { romDir.createFile("image/png", "rr_autostartfile.cover.png") } returns file
+    val output = ByteArrayOutputStream()
+    every { resolver.openOutputStream(uri) } returns output
+
+    val tree = DolphinTree(context, treeUri)
+    tree.writeRrCover()
+
+    verify { existing.delete() }
+    assertThat(output.toByteArray()).isEqualTo(pngBytes)
+    verify(exactly = 0) { romDir.createFile("text/xml", any<String>()) }
+  }
+
+  @Test
+  fun `writeRrMetadata replaces the version placeholder and writes the templated xml`() =
     runBlocking {
       val (romDir, _, _) = setupDirChain()
-      val xmlBytes = "<metadata/>".encodeToByteArray()
-      val pngBytes = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
+      val template =
+        """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<app version="1">
+  <name>Retro Rewind</name>
+  <version>{VERSION}</version>
+</app>
+""".trimIndent()
       every { context.resources.openRawResource(R.raw.rr_autostartfile) } returns
-        ByteArrayInputStream(xmlBytes)
-      every { context.resources.openRawResource(R.raw.rr_autostartfile_cover) } returns
-        ByteArrayInputStream(pngBytes)
-      val xmlFile = mockk<DocumentFile>(relaxed = true)
-      val pngFile = mockk<DocumentFile>(relaxed = true)
-      val xmlUri = mockk<Uri>(relaxed = true)
-      val pngUri = mockk<Uri>(relaxed = true)
-      every { xmlFile.uri } returns xmlUri
-      every { pngFile.uri } returns pngUri
-      every { romDir.createFile("text/xml", "rr_autostartfile.xml") } returns xmlFile
-      every { romDir.createFile("image/png", "rr_autostartfile.cover.png") } returns pngFile
-      val xmlOutput = ByteArrayOutputStream()
-      val pngOutput = ByteArrayOutputStream()
-      every { resolver.openOutputStream(xmlUri) } returns xmlOutput
-      every { resolver.openOutputStream(pngUri) } returns pngOutput
+        ByteArrayInputStream(template.encodeToByteArray())
+      val file = mockk<DocumentFile>(relaxed = true)
+      val uri = mockk<Uri>(relaxed = true)
+      every { file.uri } returns uri
+      every { romDir.createFile("text/xml", DolphinTree.METADATA_XML_NAME) } returns file
+      val output = ByteArrayOutputStream()
+      every { resolver.openOutputStream(uri) } returns output
 
       val tree = DolphinTree(context, treeUri)
-      tree.writeRrMetadata()
+      tree.writeRrMetadata(com.skiletro.wheelwitch.model.SemVersion(6, 11, 6))
 
-      // Each raw resource's bytes land in its matching file.
-      assertThat(xmlOutput.toByteArray()).isEqualTo(xmlBytes)
-      assertThat(pngOutput.toByteArray()).isEqualTo(pngBytes)
-      // Both files were created with the descriptor-adjacent names.
-      verify { romDir.createFile("text/xml", "rr_autostartfile.xml") }
-      verify { romDir.createFile("image/png", "rr_autostartfile.cover.png") }
+      val rendered = output.toString(Charsets.UTF_8)
+      assertThat(rendered).contains("<version>6.11.6</version>")
+      assertThat(rendered).doesNotContain("{VERSION}")
+      // The rest of the template is preserved.
+      assertThat(rendered).contains("<name>Retro Rewind</name>")
+      assertThat(rendered).contains("<app version=\"1\">")
     }
 
   @Test
-  fun `writeRrMetadata replaces existing files with the same name`() = runBlocking {
+  fun `writeRrMetadata deletes an existing xml before creating a new one`() = runBlocking {
     val (romDir, _, _) = setupDirChain()
     every { context.resources.openRawResource(R.raw.rr_autostartfile) } returns
-      ByteArrayInputStream("<metadata/>".encodeToByteArray())
-    every { context.resources.openRawResource(R.raw.rr_autostartfile_cover) } returns
-      ByteArrayInputStream(byteArrayOf(0x89.toByte()))
-    val existingXml = mockk<DocumentFile>(relaxed = true)
-    val existingPng = mockk<DocumentFile>(relaxed = true)
-    every { romDir.findFile("rr_autostartfile.xml") } returns existingXml
-    every { romDir.findFile("rr_autostartfile.cover.png") } returns existingPng
-    val xmlFile = mockk<DocumentFile>(relaxed = true)
-    val pngFile = mockk<DocumentFile>(relaxed = true)
-    every { xmlFile.uri } returns mockk<Uri>(relaxed = true)
-    every { pngFile.uri } returns mockk<Uri>(relaxed = true)
-    every { romDir.createFile("text/xml", "rr_autostartfile.xml") } returns xmlFile
-    every { romDir.createFile("image/png", "rr_autostartfile.cover.png") } returns pngFile
-    every { resolver.openOutputStream(any()) } returns ByteArrayOutputStream()
+      ByteArrayInputStream("<x>{VERSION}</x>".encodeToByteArray())
+    val existing = mockk<DocumentFile>(relaxed = true)
+    every { romDir.findFile(DolphinTree.METADATA_XML_NAME) } returns existing
+    val file = mockk<DocumentFile>(relaxed = true)
+    val uri = mockk<Uri>(relaxed = true)
+    every { file.uri } returns uri
+    every { romDir.createFile("text/xml", DolphinTree.METADATA_XML_NAME) } returns file
+    val output = ByteArrayOutputStream()
+    every { resolver.openOutputStream(uri) } returns output
 
     val tree = DolphinTree(context, treeUri)
-    tree.writeRrMetadata()
+    tree.writeRrMetadata(com.skiletro.wheelwitch.model.SemVersion(6, 11, 6))
 
-    verify { existingXml.delete() }
-    verify { existingPng.delete() }
+    verify { existing.delete() }
+    assertThat(output.toString(Charsets.UTF_8)).isEqualTo("<x>6.11.6</x>")
   }
 
   // --- readVersion / writeVersion -------------------------------------
@@ -702,7 +717,8 @@ class DolphinTreeTest {
   @Test
   fun `readVersion returns null when the version file is missing`() {
     val (_, packDir, _) = setupDirChain()
-    every { packDir.findFile(DolphinTree.VERSION_FILE_NAME) } returns null
+    val retroRewindDir = setupRetroRewindDir(packDir)
+    every { retroRewindDir.findFile(DolphinTree.VERSION_FILE_NAME) } returns null
 
     val tree = DolphinTree(context, treeUri)
     assertThat(tree.readVersion()).isNull()
@@ -711,9 +727,10 @@ class DolphinTreeTest {
   @Test
   fun `readVersion returns null when the file contents are not a valid semver`() {
     val (_, packDir, _) = setupDirChain()
+    val retroRewindDir = setupRetroRewindDir(packDir)
     val file = mockk<DocumentFile>(relaxed = true)
-    every { file.uri } returns Uri.parse("content://tree/pack/version.txt")
-    every { packDir.findFile(DolphinTree.VERSION_FILE_NAME) } returns file
+    every { file.uri } returns Uri.parse("content://tree/pack/RetroRewind6/version.txt")
+    every { retroRewindDir.findFile(DolphinTree.VERSION_FILE_NAME) } returns file
     every { resolver.openInputStream(file.uri) } returns
       ByteArrayInputStream("not-a-version".encodeToByteArray())
 
@@ -724,9 +741,10 @@ class DolphinTreeTest {
   @Test
   fun `readVersion parses a valid semver from the pack dir`() {
     val (_, packDir, _) = setupDirChain()
+    val retroRewindDir = setupRetroRewindDir(packDir)
     val file = mockk<DocumentFile>(relaxed = true)
-    every { file.uri } returns Uri.parse("content://tree/pack/version.txt")
-    every { packDir.findFile(DolphinTree.VERSION_FILE_NAME) } returns file
+    every { file.uri } returns Uri.parse("content://tree/pack/RetroRewind6/version.txt")
+    every { retroRewindDir.findFile(DolphinTree.VERSION_FILE_NAME) } returns file
     every { resolver.openInputStream(file.uri) } returns
       ByteArrayInputStream("3.2.6\n".encodeToByteArray())
 
@@ -741,13 +759,14 @@ class DolphinTreeTest {
   @Test
   fun `writeVersion replaces an existing version file and writes the toString form`() = runBlocking {
     val (_, packDir, _) = setupDirChain()
+    val retroRewindDir = setupRetroRewindDir(packDir)
     val existing = mockk<DocumentFile>(relaxed = true)
     val file = mockk<DocumentFile>(relaxed = true)
     val fileUri = mockk<Uri>(relaxed = true)
     every { file.uri } returns fileUri
-    every { packDir.findFile(DolphinTree.VERSION_FILE_NAME) } returns existing
+    every { retroRewindDir.findFile(DolphinTree.VERSION_FILE_NAME) } returns existing
     every {
-      packDir.createFile("text/plain", DolphinTree.VERSION_FILE_NAME)
+      retroRewindDir.createFile("text/plain", DolphinTree.VERSION_FILE_NAME)
     } returns file
     val output = ByteArrayOutputStream()
     every { resolver.openOutputStream(fileUri) } returns output
@@ -878,6 +897,18 @@ class DolphinTreeTest {
     every { romDir.isDirectory } returns true
     every { packDir.isDirectory } returns true
     return Triple(romDir, packDir, wheelWitchDir)
+  }
+
+  /**
+   * Stubs the [DolphinTree.retroRewindDir] lazy so it resolves to a
+   * fresh [DocumentFile] mock under the given [packDir]. Used by the
+   * version-related tests.
+   */
+  private fun setupRetroRewindDir(packDir: DocumentFile): DocumentFile {
+    val retroRewindDir = mockk<DocumentFile>(relaxed = true)
+    every { packDir.findFile(DolphinTree.RETRO_REWIND_DIR_NAME) } returns retroRewindDir
+    every { retroRewindDir.isDirectory } returns true
+    return retroRewindDir
   }
 
   /** Stubs a top-level pack entry write: a file `<name>` is created and its bytes captured. */

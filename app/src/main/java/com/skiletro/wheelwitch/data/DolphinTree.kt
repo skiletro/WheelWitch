@@ -55,15 +55,19 @@ data class ExtractProgress(
  * SAF-backed wrapper around the Dolphin user folder WheelWitch writes to.
  *
  * Holds a [ContentResolver] and a [DocumentFile] tree and exposes the
- * three subdirectories the rest of the app needs:
+ * subdirectories the rest of the app needs:
  *
  * ```
  * <tree root>/
  * └── WheelWitch/
- *     ├── pack/                       : extracted Retro Rewind contents
+ *     ├── pack/
+ *     │   └── RetroRewind6/           : extracted Retro Rewind contents
+ *     │       └── version.txt         : local pack version (mirror of zip's own version.txt)
  *     └── rom/
  *         ├── <GAMEID>.<ext>          : user-picked Mario Kart Wii ISO/RVZ/WBFS
- *         └── rr_autostartfile.json   : launch descriptor (dolphin-game-mod-descriptor)
+ *         ├── rr_autostartfile.json   : launch descriptor (dolphin-game-mod-descriptor)
+ *         ├── rr_autostartfile.xml    : app-shipped metadata (templated with current version)
+ *         └── rr_autostartfile.cover.png : app-shipped cover banner
  * ```
  *
  * Construction is cheap: lazy subdirectory properties defer their first
@@ -120,6 +124,21 @@ class DolphinTree(context: Context, val treeUri: Uri) {
   val packDir: DocumentFile by lazy {
     findOrCreateDir(wheelWitchDir, "pack")
       ?: error("Cannot create or find pack/ in WheelWitch dir")
+  }
+
+  /**
+   * The Retro Rewind subdirectory under [packDir]. The pack zip
+   * extracts into this directory (so a zip entry `RetroRewind6/version.txt`
+   * lands at `pack/RetroRewind6/version.txt`), and it's also where the
+   * launcher's `riivolution/RetroRewind6.xml` lives. Read/write the
+   * `version.txt` here, not at the root of [packDir] — WheelWitch used
+   * to write to `pack/version.txt`, which is a path the pack zip
+   * never touches, so the local version file drifted from the actual
+   * pack version on every incremental update.
+   */
+  val retroRewindDir: DocumentFile by lazy {
+    findOrCreateDir(packDir, RETRO_REWIND_DIR_NAME)
+      ?: error("Cannot create or find $RETRO_REWIND_DIR_NAME/ in pack/")
   }
 
   /**
@@ -312,22 +331,17 @@ class DolphinTree(context: Context, val treeUri: Uri) {
   }
 
   /**
-   * Copies the app-shipped RR metadata + cover banner into [romDir]
-   * as `rr_autostartfile.xml` and `rr_autostartfile.cover.png`, so they
-   * sit alongside the launch descriptor (`rr_autostartfile.json`).
-   * Idempotent: replaces existing files of the same name.
+   * Copies the app-shipped cover banner into [romDir] as
+   * `rr_autostartfile.cover.png`, so it sits alongside the launch
+   * descriptor (`rr_autostostfile.json`). Idempotent: replaces an
+   * existing file of the same name.
    *
    * Called from the onboarding ROM step right after [copyRomFromSource]
-   * succeeds. The files are tiny (one short XML, one banner PNG) so a
-   * re-copy on every onboarding is cheap; the metadata survives pack
-   * updates because [extractZipToPack] only writes to [packDir].
+   * succeeds. The banner is tiny so a re-copy on every onboarding is
+   * cheap; the cover survives pack updates because [extractZipToPack]
+   * only writes to [packDir].
    */
-  suspend fun writeRrMetadata(): Unit = withContext(Dispatchers.IO) {
-    copyRawToRomFile(
-      resId = R.raw.rr_autostartfile,
-      fileName = "rr_autostartfile.xml",
-      mime = "text/xml",
-    )
+  suspend fun writeRrCover(): Unit = withContext(Dispatchers.IO) {
     copyRawToRomFile(
       resId = R.raw.rr_autostartfile_cover,
       fileName = "rr_autostartfile.cover.png",
@@ -336,12 +350,44 @@ class DolphinTree(context: Context, val treeUri: Uri) {
   }
 
   /**
-   * Reads the `version.txt` file at the root of [packDir] and parses
-   * it as a [SemVersion]. Returns null when the file is missing or
-   * unparseable; both are treated as "no local version".
+   * Copies the app-shipped RR metadata into [romDir] as
+   * `rr_autostartfile.xml`, with the `{VERSION}` placeholder in the
+   * raw resource replaced by [version]. Sits alongside the launch
+   * descriptor (`rr_autostartfile.json`). Idempotent: replaces an
+   * existing file of the same name.
+   *
+   * Called from [com.skiletro.wheelwitch.domain.RewindPackManager]
+   * after every successful install/update so the version field
+   * Dolphin's launch-descriptor UI displays tracks the installed
+   * pack version. A throw here is non-fatal for the install: the
+   * cover banner and the version.txt under the pack root are the
+   * load-bearing state for the launcher; this is cosmetic.
+   */
+  suspend fun writeRrMetadata(version: SemVersion): Unit =
+    withContext(Dispatchers.IO) {
+      val template =
+        appContext.resources.openRawResource(R.raw.rr_autostartfile).use {
+          it.readBytes().toString(Charsets.UTF_8)
+        }
+      val rendered = template.replace(VERSION_PLACEHOLDER, version.toString())
+      val existing = romDir.findFile(METADATA_XML_NAME)
+      if (existing != null) existing.delete()
+      val file =
+        romDir.createFile("text/xml", METADATA_XML_NAME)
+          ?: error("Cannot create $METADATA_XML_NAME in rom/")
+      val output =
+        resolver.openOutputStream(file.uri)
+          ?: error("Cannot open output stream for $METADATA_XML_NAME")
+      output.use { it.write(rendered.encodeToByteArray()) }
+    }
+
+  /**
+   * Reads the `version.txt` file at `pack/RetroRewind6/version.txt`
+   * and parses it as a [SemVersion]. Returns null when the file is
+   * missing or unparseable; both are treated as "no local version".
    */
   fun readVersion(): SemVersion? {
-    val file = packDir.findFile(VERSION_FILE_NAME) ?: return null
+    val file = retroRewindDir.findFile(VERSION_FILE_NAME) ?: return null
     val text =
       resolver.openInputStream(file.uri)?.use { it.readBytes().toString(Charsets.UTF_8) }
         ?: return null
@@ -354,22 +400,23 @@ class DolphinTree(context: Context, val treeUri: Uri) {
   }
 
   /**
-   * Writes [version] to `version.txt` at the root of [packDir],
-   * replacing any existing file. Called by
-   * [com.skiletro.wheelwitch.domain.RewindPackManager] only after a
-   * successful install/extract, so a failed extract leaves the
-   * previous version (or no file) on disk.
+   * Writes [version] to `pack/RetroRewind6/version.txt`, replacing
+   * any existing file. Called by
+   * [com.skiletro.wheelwitch.domain.RewindPackManager] only when the
+   * pack zip's own `version.txt` is missing or stale (typical for
+   * hotfix zips that don't ship a new `version.txt`), so a failed
+   * extract leaves the previous version on disk.
    */
   suspend fun writeVersion(version: SemVersion): Unit =
     withContext(Dispatchers.IO) {
-      val existing = packDir.findFile(VERSION_FILE_NAME)
+      val existing = retroRewindDir.findFile(VERSION_FILE_NAME)
       if (existing != null) existing.delete()
       val file =
-        packDir.createFile("text/plain", VERSION_FILE_NAME)
-          ?: error("Cannot create $VERSION_FILE_NAME")
+        retroRewindDir.createFile("text/plain", VERSION_FILE_NAME)
+          ?: error("Cannot create $RETRO_REWIND_DIR_NAME/$VERSION_FILE_NAME")
       val output =
         resolver.openOutputStream(file.uri)
-          ?: error("Cannot open output stream for $VERSION_FILE_NAME")
+          ?: error("Cannot open output stream for $RETRO_REWIND_DIR_NAME/$VERSION_FILE_NAME")
       output.use { it.write(version.toString().encodeToByteArray()) }
     }
 
@@ -421,7 +468,7 @@ class DolphinTree(context: Context, val treeUri: Uri) {
   /**
    * Replaces any existing file named [fileName] under [romDir] with
    * the contents of the raw resource at [resId]. Used by
-   * [writeRrMetadata] to copy the app-shipped metadata + banner.
+   * [writeRrCover] to copy the app-shipped cover banner.
    */
   private fun copyRawToRomFile(resId: Int, fileName: String, mime: String) {
     val existing = romDir.findFile(fileName)
@@ -500,8 +547,26 @@ class DolphinTree(context: Context, val treeUri: Uri) {
      */
     const val LAUNCH_JSON_NAME = com.skiletro.wheelwitch.util.launcher.DolphinLauncher.RR_JSON_NAME
 
-    /** Filename of the pack version file at the root of the pack directory. */
+    /**
+     * Name of the Retro Rewind subdirectory inside the pack dir. The
+     * pack zip extracts here (so a zip entry `RetroRewind6/version.txt`
+     * lands at `pack/RetroRewind6/version.txt`) and it's also where
+     * the launcher's `riivolution/RetroRewind6.xml` is rooted.
+     */
+    const val RETRO_REWIND_DIR_NAME = "RetroRewind6"
+
+    /** Filename of the pack version file under [RETRO_REWIND_DIR_NAME]. */
     const val VERSION_FILE_NAME = "version.txt"
+
+    /** Filename of the `rr_autostartfile.xml` metadata file under the rom dir. */
+    const val METADATA_XML_NAME = "rr_autostartfile.xml"
+
+    /**
+     * Placeholder in `R.raw.rr_autostartfile` that
+     * [DolphinTree.writeRrMetadata] replaces with the current pack
+     * version on every install/update.
+     */
+    const val VERSION_PLACEHOLDER = "{VERSION}"
 
     /** Filename of Dolphin's `Config/Dolphin.ini` library-paths config. */
     const val CONFIG_INI_NAME = "Dolphin.ini"

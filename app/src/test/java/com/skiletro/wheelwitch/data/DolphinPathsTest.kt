@@ -140,18 +140,6 @@ class DolphinPathsTest {
   }
 
   @Test
-  fun `versionFile is at packDir slash version txt`() {
-    val ctx = mockWheelWitchContext()
-
-    val file = DolphinPaths.versionFile(ctx)
-
-    assertThat(file.absolutePath)
-      .isEqualTo(
-        "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/WheelWitch/pack/version.txt"
-      )
-  }
-
-  @Test
   fun `configIni is at the physical root Config Dolphin ini`() {
     val ctx = mockWheelWitchContext()
 

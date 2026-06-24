@@ -122,12 +122,11 @@ class RewindPackManagerTest {
   // --- installLatest ---------------------------------------------------
 
   @Test
-  fun `installLatest downloads the full zip, extracts, and writes the version`() = runBlocking {
+  fun `installLatest writes the version when the zip's version txt is missing`() = runBlocking {
     val server = serverInfo()
     every { VersionFileParser.fetchServerInfo() } returns Result.success(server)
     every { VersionFileParser.getFullZipUrl() } returns "https://example.com/RetroRewind.zip"
     val progressReports = mutableListOf<RewindPackManager.InstallProgress>()
-    // Simulate a download: just touch the target file.
     every { FileDownloader.downloadToFile(any(), any(), any(), any(), any(), any()) } answers
       {
         val target = it.invocation.args[1] as File
@@ -136,7 +135,9 @@ class RewindPackManagerTest {
         target
       }
     coEvery { tree.extractZipToPack(any(), any()) } returns Unit
+    coEvery { tree.readVersion() } returns null
     coEvery { tree.writeVersion(server.latestVersion) } returns Unit
+    coEvery { tree.writeRrMetadata(server.latestVersion) } returns Unit
 
     val result =
       manager().installLatest { progress -> progressReports.add(progress) }
@@ -153,6 +154,57 @@ class RewindPackManagerTest {
       )
     }
     coVerify(exactly = 1) { tree.extractZipToPack(any(), any()) }
+    coVerify(exactly = 1) { tree.writeVersion(server.latestVersion) }
+    coVerify(exactly = 1) { tree.writeRrMetadata(server.latestVersion) }
+  }
+
+  @Test
+  fun `installLatest skips writeVersion when the zip's version txt already matches the server`() =
+    runBlocking {
+      val server = serverInfo()
+      every { VersionFileParser.fetchServerInfo() } returns Result.success(server)
+      every { VersionFileParser.getFullZipUrl() } returns "https://example.com/RetroRewind.zip"
+      every { FileDownloader.downloadToFile(any(), any(), any(), any(), any(), any()) } answers
+        {
+          val target = it.invocation.args[1] as File
+          target.parentFile?.mkdirs()
+          target.writeBytes(byteArrayOf(0x50, 0x4B, 0x03, 0x04))
+          target
+        }
+      coEvery { tree.extractZipToPack(any(), any()) } returns Unit
+      coEvery { tree.readVersion() } returns server.latestVersion
+      coEvery { tree.writeRrMetadata(server.latestVersion) } returns Unit
+
+      val result = manager().installLatest { /* no-op */ }
+
+      assertThat(result.isSuccess).isTrue()
+      coVerify(exactly = 0) { tree.writeVersion(any()) }
+      coVerify(exactly = 1) { tree.writeRrMetadata(server.latestVersion) }
+    }
+
+  @Test
+  fun `installLatest reports success even when writeRrMetadata throws`() = runBlocking {
+    val server = serverInfo()
+    every { VersionFileParser.fetchServerInfo() } returns Result.success(server)
+    every { VersionFileParser.getFullZipUrl() } returns "https://example.com/RetroRewind.zip"
+    every { FileDownloader.downloadToFile(any(), any(), any(), any(), any(), any()) } answers
+      {
+        val target = it.invocation.args[1] as File
+        target.parentFile?.mkdirs()
+        target.writeBytes(byteArrayOf(0x50, 0x4B, 0x03, 0x04))
+        target
+      }
+    coEvery { tree.extractZipToPack(any(), any()) } returns Unit
+    coEvery { tree.readVersion() } returns null
+    coEvery { tree.writeVersion(server.latestVersion) } returns Unit
+    coEvery { tree.writeRrMetadata(server.latestVersion) } throws
+      IllegalStateException("metadata boom")
+
+    val result = manager().installLatest { /* no-op */ }
+
+    // The version.txt is load-bearing; the metadata XML is cosmetic.
+    // A metadata write failure must not turn a successful install red.
+    assertThat(result.isSuccess).isTrue()
     coVerify(exactly = 1) { tree.writeVersion(server.latestVersion) }
   }
 
@@ -178,7 +230,9 @@ class RewindPackManagerTest {
         cb(ExtractProgress(ExtractingPhase.WritingFiles, 2, 3, "f3", 66L, 100L))
         cb(ExtractProgress(ExtractingPhase.WritingFiles, 3, 3, "f3", 100L, 100L))
       }
+    coEvery { tree.readVersion() } returns null
     coEvery { tree.writeVersion(server.latestVersion) } returns Unit
+    coEvery { tree.writeRrMetadata(server.latestVersion) } returns Unit
 
     val result = manager().installLatest { phase -> phases.add(phase) }
 
@@ -233,6 +287,7 @@ class RewindPackManagerTest {
       .isFalse()
     // The version is NOT written because the extract failed.
     coVerify(exactly = 0) { tree.writeVersion(any()) }
+    coVerify(exactly = 0) { tree.writeRrMetadata(any()) }
   }
 
   @Test
@@ -249,7 +304,11 @@ class RewindPackManagerTest {
 
   @Test
   fun `update falls back to full reinstall when no local version`() = runBlocking {
-    coEvery { tree.readVersion() } returns null
+    // First readVersion (initial local version check) returns null.
+    // Second readVersion (post-extract check) also returns null so the
+    // pack's own version.txt is missing — the typical hotfix shape —
+    // and writeVersion is exercised.
+    coEvery { tree.readVersion() } returns null andThen null
     val server = serverInfo()
     every { VersionFileParser.fetchServerInfo() } returns Result.success(server)
     every { VersionFileParser.getFullZipUrl() } returns "https://example.com/full.zip"
@@ -262,6 +321,7 @@ class RewindPackManagerTest {
       }
     coEvery { tree.extractZipToPack(any(), any()) } returns Unit
     coEvery { tree.writeVersion(server.latestVersion) } returns Unit
+    coEvery { tree.writeRrMetadata(server.latestVersion) } returns Unit
 
     val result = manager().update { /* no-op */ }
 
@@ -277,11 +337,13 @@ class RewindPackManagerTest {
         initialBackoffMillis = any(),
       )
     }
+    coVerify(exactly = 1) { tree.writeVersion(server.latestVersion) }
+    coVerify(exactly = 1) { tree.writeRrMetadata(server.latestVersion) }
   }
 
   @Test
   fun `update falls back to full reinstall when local version is below 3_2_6`() = runBlocking {
-    coEvery { tree.readVersion() } returns SemVersion(3, 2, 0)
+    coEvery { tree.readVersion() } returns SemVersion(3, 2, 0) andThen null
     val server = serverInfo()
     every { VersionFileParser.fetchServerInfo() } returns Result.success(server)
     every { VersionFileParser.getFullZipUrl() } returns "https://example.com/full.zip"
@@ -294,6 +356,7 @@ class RewindPackManagerTest {
       }
     coEvery { tree.extractZipToPack(any(), any()) } returns Unit
     coEvery { tree.writeVersion(server.latestVersion) } returns Unit
+    coEvery { tree.writeRrMetadata(server.latestVersion) } returns Unit
 
     val result = manager().update { /* no-op */ }
 
@@ -308,11 +371,13 @@ class RewindPackManagerTest {
         initialBackoffMillis = any(),
       )
     }
+    coVerify(exactly = 1) { tree.writeVersion(server.latestVersion) }
+    coVerify(exactly = 1) { tree.writeRrMetadata(server.latestVersion) }
   }
 
   @Test
   fun `update applies incremental steps when local is at or above 3_2_6`() = runBlocking {
-    coEvery { tree.readVersion() } returns SemVersion(3, 3, 0)
+    coEvery { tree.readVersion() } returns SemVersion(3, 3, 0) andThen null
     val server =
       ServerInfo(
         latestVersion = SemVersion(3, 3, 2),
@@ -349,6 +414,7 @@ class RewindPackManagerTest {
       }
     coEvery { tree.extractZipToPack(any(), any()) } returns Unit
     coEvery { tree.writeVersion(server.latestVersion) } returns Unit
+    coEvery { tree.writeRrMetadata(server.latestVersion) } returns Unit
 
     val result = manager().update { /* no-op */ }
 
@@ -385,6 +451,8 @@ class RewindPackManagerTest {
         initialBackoffMillis = any(),
       )
     }
+    coVerify(exactly = 1) { tree.writeVersion(server.latestVersion) }
+    coVerify(exactly = 1) { tree.writeRrMetadata(server.latestVersion) }
   }
 
   // --- helpers ---------------------------------------------------------

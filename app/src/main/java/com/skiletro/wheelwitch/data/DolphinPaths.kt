@@ -56,7 +56,7 @@ object DolphinPaths {
   /** The directory where WheelWitch stores its pack, ROM, and launch descriptor. */
   fun wheelWitchDir(context: Context): File = File(physicalRoot(context), WHEELWITCH_SUBPATH)
 
-  /** Directory containing the extracted pack contents (with `pack/version.txt` at its root). */
+  /** Directory containing the extracted pack contents (the Retro Rewind zip extracts into the [RETRO_REWIND_SUBPATH] subdir). */
   fun packDir(context: Context): File = File(wheelWitchDir(context), "pack")
 
   /** Directory containing the user-picked Mario Kart Wii ROM, renamed to `<GAMEID>.<ext>`. */
@@ -64,9 +64,6 @@ object DolphinPaths {
 
   /** Path to the launch descriptor that Riivolution reads to launch Retro Rewind. */
   fun rrJsonFile(context: Context): File = File(romDir(context), "rr_autostartfile.json")
-
-  /** Path to the version file written by [com.skiletro.wheelwitch.domain.RewindPackManager] after a successful install. */
-  fun versionFile(context: Context): File = File(packDir(context), "version.txt")
 
   /** Path to Dolphin's `Dolphin.ini` (where the `ISOPathN` block lives). */
   fun configIni(context: Context): File = File(physicalRoot(context), "Config/Dolphin.ini")

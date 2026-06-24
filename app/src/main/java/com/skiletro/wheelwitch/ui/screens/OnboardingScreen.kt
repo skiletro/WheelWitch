@@ -233,7 +233,7 @@ fun OnboardingScreen(
           try {
             withContext(Dispatchers.IO) { tree.copyRomFromSource(uri, gameId, ext) }
             metadataFailed = true
-            withContext(Dispatchers.IO) { tree.writeRrMetadata() }
+            withContext(Dispatchers.IO) { tree.writeRrCover() }
             step = OnboardingStep.Complete
           } catch (e: Exception) {
             Timber.tag("Onboarding").e(e, if (metadataFailed) "Metadata write failed" else "ROM copy failed")

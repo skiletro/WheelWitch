@@ -95,7 +95,7 @@ The sub-packages under `util/` are intentional. Keep new files in the right sub-
 | Delete file | `RetroRewind/RetroRewindDelete.txt` |
 | Full zip | `RetroRewind/zip/RetroRewind.zip` |
 | Min reinstall version | `3.2.6` |
-| Local version file | `<SAF tree>/WheelWitch/pack/version.txt` |
+| Local version file | `<SAF tree>/WheelWitch/pack/RetroRewind6/version.txt` |
 | Launch descriptor path | `<SAF tree>/WheelWitch/rom/rr_autostartfile.json` |
 | Save path | `<packRoot>/riivolution/save/RetroWFC/<regionCode>/rksys.dat` |
 | Dolphin.ini path | `<SAF tree>/Config/Dolphin.ini` |

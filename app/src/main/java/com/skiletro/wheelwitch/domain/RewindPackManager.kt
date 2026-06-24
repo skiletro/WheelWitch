@@ -19,13 +19,16 @@ import timber.log.Timber
  * Owns the install/update flow for the Retro Rewind Pack.
  *
  * Reads the local pack version from [DolphinTree.readVersion] (the
- * `pack/version.txt` inside the SAF tree) and compares it against
- * the server manifest; performs full or incremental installs by
- * downloading the pack zip to [Context.getCacheDir] (where
- * `java.io.File` works) and then streaming it into the SAF tree via
- * [DolphinTree.extractZipToPack]. Writes the new version file *only
- * after* a successful extract, so a failed install leaves the
- * previous version (or no file) on disk.
+ * `pack/RetroRewind6/version.txt` inside the SAF tree) and compares
+ * it against the server manifest; performs full or incremental
+ * installs by downloading the pack zip to [Context.getCacheDir]
+ * (where `java.io.File` works) and then streaming it into the SAF
+ * tree via [DolphinTree.extractZipToPack]. After a successful
+ * extract, the version file is only written if the pack zip's own
+ * `version.txt` is missing or stale (typical for hotfix zips that
+ * don't ship a new `version.txt`), and the `rr_autostartfile.xml`
+ * metadata in `rom/` is always re-templated with the installed
+ * version so Dolphin's launch-descriptor UI shows the right value.
  *
  * The downloader is [FileDownloader], the hand-rolled OkHttp wrapper.
  * The pack zip is multi-MB so we use the
@@ -86,7 +89,10 @@ class RewindPackManager(
         val server = VersionFileParser.fetchServerInfo().getOrThrow()
         Timber.tag(TAG).i("Starting full install of %s", server.latestVersion)
         performInstall(VersionFileParser.getFullZipUrl(), onProgress)
-        tree.writeVersion(server.latestVersion)
+        if (tree.readVersion() != server.latestVersion) {
+          tree.writeVersion(server.latestVersion)
+        }
+        writeRrMetadataSafe(server.latestVersion)
       }
     }
 
@@ -129,7 +135,10 @@ class RewindPackManager(
             performInstall(step.url, onProgress)
           }
         }
-        tree.writeVersion(server.latestVersion)
+        if (tree.readVersion() != server.latestVersion) {
+          tree.writeVersion(server.latestVersion)
+        }
+        writeRrMetadataSafe(server.latestVersion)
       }
     }
 
@@ -207,6 +216,23 @@ class RewindPackManager(
       }
     } finally {
       zipFile.delete()
+    }
+  }
+
+  /**
+   * Writes the templated `rr_autostartfile.xml` metadata with [version],
+   * swallowing and logging any throwable so a metadata write failure
+   * never rolls back a successful install. The version.txt under
+   * `pack/RetroRewind6/` is the load-bearing state for the launcher;
+   * this is cosmetic for Dolphin's launch-descriptor UI, so we'd
+   * rather report "installed" and log the metadata miss than surface
+   * a red screen for a one-line XML refresh.
+   */
+  private suspend fun writeRrMetadataSafe(version: SemVersion) {
+    try {
+      tree.writeRrMetadata(version)
+    } catch (e: Exception) {
+      Timber.tag(TAG).w(e, "Failed to write rr metadata for version %s", version)
     }
   }
 
