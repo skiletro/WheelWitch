@@ -12,9 +12,13 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v4
@@ -29,18 +33,20 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
 
       - name: Run tests
         run: ./gradlew testDebugUnitTest --build-cache
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: test
 
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 2
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -56,15 +62,18 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
 
       - name: Get app version
         id: appversion
         run: |
           set -euo pipefail
-          VERSION=$(./gradlew -q :app:printVersionName 2>/dev/null)
+          COMMIT_COUNT=$(git rev-list --count HEAD)
           SHORT_HASH=$(git rev-parse --short HEAD)
-          if [ -z "$VERSION" ]; then
-            echo "::error::Failed to read versionName from gradle"
+          VERSION="0.${COMMIT_COUNT}.0"
+          if [ -z "$VERSION" ] || [ -z "$SHORT_HASH" ]; then
+            echo "::error::Failed to derive version from git"
             exit 1
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
