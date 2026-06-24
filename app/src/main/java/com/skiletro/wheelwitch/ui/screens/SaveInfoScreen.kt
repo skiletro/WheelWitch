@@ -29,7 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
@@ -208,8 +208,9 @@ private fun LicenseCell(
     color = background,
   ) {
     Box(modifier = Modifier.fillMaxSize()) {
-      if (exists && license != null) {
-        PopulatedCell(license = license)
+      val populated = license?.takeIf { it.exists }
+      if (populated != null) {
+        PopulatedCell(license = populated)
         if (isSelected) {
           SelectedBadge(modifier = Modifier.align(Alignment.TopEnd).padding(6.dp))
         }
