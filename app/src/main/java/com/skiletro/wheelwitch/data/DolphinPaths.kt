@@ -68,6 +68,27 @@ object DolphinPaths {
   /** Path to Dolphin's `Dolphin.ini` (where the `ISOPathN` block lives). */
   fun configIni(context: Context): File = File(physicalRoot(context), "Config/Dolphin.ini")
 
+  /** Dolphin's virtual NAND root. Used by the unified save backup to reach user data. */
+  fun wiiDir(context: Context): File = File(physicalRoot(context), "Wii")
+
+  /** `Wii/shared2/` under [wiiDir]. */
+  fun shared2Dir(context: Context): File = File(physicalRoot(context), "Wii/shared2")
+
+  /** `Wii/shared2/menu/FaceLib/` — home of the system-wide Mii database (`RFL_DB.dat`). */
+  fun faceLibDir(context: Context): File =
+    File(physicalRoot(context), "Wii/shared2/menu/FaceLib")
+
+  /** `Wii/shared2/Pulsar/` — Pulsar mod settings. */
+  fun pulsarDir(context: Context): File = File(physicalRoot(context), "Wii/shared2/Pulsar")
+
+  /** `Wii/shared2/Pulsar/RetroRewind6/` — Retro Rewind's Pulsar subdir (rating, game settings, ghosts). */
+  fun pulsarRrDir(context: Context): File =
+    File(physicalRoot(context), "Wii/shared2/Pulsar/RetroRewind6")
+
+  /** `pack/riivolution/save/RetroWFC/` — per-region `rksys.dat` parent directory. */
+  fun rrSaveDir(context: Context): File =
+    File(packDir(context), "riivolution/save/RetroWFC")
+
   /**
    * The expected SAF tree document id for the Dolphin user folder.
    *

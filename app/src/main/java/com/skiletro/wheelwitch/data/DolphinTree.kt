@@ -59,15 +59,21 @@ data class ExtractProgress(
  *
  * ```
  * <tree root>/
- * └── WheelWitch/
- *     ├── pack/
- *     │   └── RetroRewind6/           : extracted Retro Rewind contents
- *     │       └── version.txt         : local pack version (mirror of zip's own version.txt)
- *     └── rom/
- *         ├── <GAMEID>.<ext>          : user-picked Mario Kart Wii ISO/RVZ/WBFS
- *         ├── rr_autostartfile.json   : launch descriptor (dolphin-game-mod-descriptor)
- *         ├── rr_autostartfile.xml    : app-shipped metadata (templated with current version)
- *         └── rr_autostartfile.cover.png : app-shipped cover banner
+ * ├── WheelWitch/
+ * │   ├── pack/
+ * │   │   └── RetroRewind6/           : extracted Retro Rewind contents
+ * │   │       └── version.txt         : local pack version (mirror of zip's own version.txt)
+ * │   └── rom/
+ * │       ├── <GAMEID>.<ext>          : user-picked Mario Kart Wii ISO/RVZ/WBFS
+ * │       ├── rr_autostartfile.json   : launch descriptor (dolphin-game-mod-descriptor)
+ * │       ├── rr_autostartfile.xml    : app-shipped metadata (templated with current version)
+ * │       └── rr_autostartfile.cover.png : app-shipped cover banner
+ * ├── Config/
+ * │   └── Dolphin.ini                 : library-paths config
+ * └── Wii/                            : Dolphin's virtual NAND root
+ *     └── shared2/
+ *         ├── menu/FaceLib/RFL_DB.dat : system-wide Mii database
+ *         └── Pulsar/RetroRewind6/    : Retro Rewind's Pulsar config + Ghosts/
  * ```
  *
  * Construction is cheap: lazy subdirectory properties defer their first
@@ -140,6 +146,39 @@ class DolphinTree(context: Context, val treeUri: Uri) {
     findOrCreateDir(packDir, RETRO_REWIND_DIR_NAME)
       ?: error("Cannot create or find $RETRO_REWIND_DIR_NAME/ in pack/")
   }
+
+  /**
+   * The Dolphin's `Wii/` directory under the tree root. Used by the
+   * unified save backup to reach `Wii/shared2/...` (Mii DB, Pulsar
+   * settings, ghost data). May be null when the user has never run
+   * Retro Rewind; the unified backup tolerates that and just skips
+   * the corresponding entries.
+   */
+  val wiiDir: DocumentFile? by lazy { findDir(root, "Wii") }
+
+  /**
+   * `Wii/shared2/` under [wiiDir]. Null if [wiiDir] is null or the
+   * `shared2/` subdir hasn't been created by Dolphin yet.
+   */
+  val shared2Dir: DocumentFile? by lazy { findDir(wiiDir, "shared2") }
+
+  /**
+   * `Wii/shared2/menu/FaceLib/` under [shared2Dir] — home of the
+   * system-wide Mii database (`RFL_DB.dat`).
+   */
+  val faceLibDir: DocumentFile? by lazy { findDir(findDir(shared2Dir, "menu"), "FaceLib") }
+
+  /**
+   * `Wii/shared2/Pulsar/` under [shared2Dir] — Pulsar mod settings.
+   */
+  val pulsarDir: DocumentFile? by lazy { findDir(shared2Dir, "Pulsar") }
+
+  /**
+   * `Wii/shared2/Pulsar/RetroRewind6/` under [pulsarDir] — the
+   * Retro Rewind specific Pulsar subdir. Holds the rating pul
+   * files and the Ghosts/ directory backed up by the unified save.
+   */
+  val pulsarRrDir: DocumentFile? by lazy { findDir(pulsarDir, RETRO_REWIND_DIR_NAME) }
 
   /**
    * Copies the bytes at [source] into [romDir] as `<gameId>.<ext>`.
@@ -527,12 +566,6 @@ class DolphinTree(context: Context, val treeUri: Uri) {
     }
   }
 
-  private fun findOrCreateDir(parent: DocumentFile, name: String): DocumentFile? {
-    val existing = parent.findFile(name)
-    if (existing != null && existing.isDirectory) return existing
-    return parent.createDirectory(name)
-  }
-
   companion object {
     /** Tag used by Timber in this file's log lines. */
     const val TAG = "DolphinTree"
@@ -681,4 +714,109 @@ class DolphinTree(context: Context, val treeUri: Uri) {
         .i("persist: stored tree URI authority=%s", tree.treeUri.authority)
     }
   }
+}
+
+// --- top-level SAF helpers used by SaveManager and the unified save backup ---
+//
+// Kept as free functions (not methods on DolphinTree) so a mocked DolphinTree
+// in unit tests doesn't intercept them with MockK's relaxed defaults — the real
+// implementation runs against the mocked ContentResolver / DocumentFile chain
+// the test wires up.
+
+internal fun findOrCreateDir(parent: DocumentFile, name: String): DocumentFile? {
+  val existing = parent.findFile(name)
+  if (existing != null && existing.isDirectory) return existing
+  return parent.createDirectory(name)
+}
+
+/** Returns the existing child of [parent] named [name] when it's a directory, or null. */
+internal fun findDir(parent: DocumentFile?, name: String): DocumentFile? {
+  if (parent == null) return null
+  val existing = parent.findFile(name) ?: return null
+  return if (existing.isDirectory) existing else null
+}
+
+/**
+ * Walks [parts] under [root], creating intermediate directories as
+ * needed. Used by the unified save backup to reach nested user-data
+ * paths like `Wii/shared2/menu/FaceLib/`.
+ */
+internal fun navigateOrCreate(root: DocumentFile, parts: List<String>): DocumentFile {
+  var current = root
+  for (part in parts) {
+    current = findOrCreateDir(current, part) ?: error("Cannot create $part under ${current.uri}")
+  }
+  return current
+}
+
+/** Reads raw bytes from [file], or null when [file] is null or unreadable. */
+internal fun readDolphinBytes(resolver: ContentResolver, file: DocumentFile?): ByteArray? {
+  if (file == null || !file.exists() || !file.isFile) return null
+  val input = resolver.openInputStream(file.uri) ?: return null
+  return input.use { it.readBytes() }
+}
+
+/** Writes [bytes] to [name] under [parent], replacing any existing file. */
+internal fun writeDolphinBytes(
+  resolver: ContentResolver,
+  parent: DocumentFile,
+  name: String,
+  bytes: ByteArray,
+): DocumentFile {
+  parent.findFile(name)?.delete()
+  val file =
+    parent.createFile("application/octet-stream", name)
+      ?: error("Cannot create $name in ${parent.uri}")
+  val output =
+    resolver.openOutputStream(file.uri)
+      ?: error("Cannot open output stream for $name")
+  output.use { it.write(bytes) }
+  return file
+}
+
+/**
+ * Recursively walks [dir] and writes every file into [out] as a
+ * `ZipEntry` whose name is [basePath] joined with the file's
+ * relative path. Missing or non-directory [dir] is a no-op. The
+ * JDK's `ZipInputStream` creates directories on the fly during
+ * restore, so no explicit directory entries are emitted.
+ */
+internal fun recursiveCopyToStream(
+  resolver: ContentResolver,
+  dir: DocumentFile?,
+  out: java.util.zip.ZipOutputStream,
+  basePath: String,
+) {
+  if (dir == null || !dir.exists() || !dir.isDirectory) return
+  writeFilesRecursive(resolver, dir, out, basePath)
+}
+
+private fun writeFilesRecursive(
+  resolver: ContentResolver,
+  dir: DocumentFile,
+  out: java.util.zip.ZipOutputStream,
+  basePath: String,
+) {
+  val children = dir.listFiles() ?: return
+  for (child in children) {
+    val name = child.name ?: continue
+    val entryName = if (basePath.isEmpty()) name else "$basePath/$name"
+    if (child.isDirectory) {
+      writeFilesRecursive(resolver, child, out, entryName)
+    } else if (child.isFile) {
+      out.putNextEntry(java.util.zip.ZipEntry(entryName))
+      val bytes = readDolphinBytes(resolver, child) ?: ByteArray(0)
+      out.write(bytes)
+      out.closeEntry()
+    }
+  }
+}
+
+/** Recursively deletes [dir] (children first). Missing [dir] is a no-op. */
+internal fun recursiveDelete(dir: DocumentFile?) {
+  if (dir == null || !dir.exists()) return
+  if (dir.isDirectory) {
+    for (child in dir.listFiles()) recursiveDelete(child)
+  }
+  dir.delete()
 }

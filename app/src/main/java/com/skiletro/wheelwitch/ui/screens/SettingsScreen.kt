@@ -1,5 +1,6 @@
 package com.skiletro.wheelwitch.ui.screens
 
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -42,8 +43,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.BuildConfig
 import com.skiletro.wheelwitch.R
-import com.skiletro.wheelwitch.data.SaveManager
-import com.skiletro.wheelwitch.data.SaveManager.Region
 import com.skiletro.wheelwitch.ui.components.SettingsCategoryHeader
 import com.skiletro.wheelwitch.ui.components.SettingsItem
 import com.skiletro.wheelwitch.ui.theme.AppTheme
@@ -83,10 +82,7 @@ fun SettingsScreen(
   val hasWad by miiMaker.hasWad.collectAsState()
   val isInstallingWad by miiMaker.isInstallingWad.collectAsState()
   val miiMakerError by miiMaker.miiMakerError.collectAsState()
-  val hasSaveMap by saveData.hasSave.collectAsState()
-  val selectedRegion by saveData.selectedRegion.collectAsState()
-  val showSaveData = hasSaveMap.isNotEmpty()
-  val activeRegion = selectedRegion
+  val hasAnySave by saveData.hasAnySave.collectAsState()
 
   var showWadDeleteConfirm by remember { mutableStateOf(false) }
 
@@ -152,14 +148,11 @@ fun SettingsScreen(
           onRequestDelete = { showWadDeleteConfirm = true },
         )
       }
-      if (showSaveData && activeRegion != null) {
-        item {
-          SaveDataSection(
-            saveData = saveData,
-            selectedRegion = activeRegion,
-            presentRegions = hasSaveMap.keys,
-          )
-        }
+      item {
+        SaveDataSection(
+          saveData = saveData,
+          hasAnySave = hasAnySave,
+        )
       }
       item { LoggingSection() }
       item {
@@ -173,59 +166,44 @@ fun SettingsScreen(
   }
 }
 
-/** Save Data section: region picker + backup / restore / delete for the selected region. */
+/** Save Data section: unified backup / restore / delete over every user-data file. */
 @Composable
-private fun SaveDataSection(
-  saveData: SaveDataViewModel,
-  selectedRegion: Region,
-  presentRegions: Set<Region>,
-) {
-  val hasSaveMap by saveData.hasSave.collectAsState()
-  val context = LocalContext.current
+private fun SaveDataSection(saveData: SaveDataViewModel, hasAnySave: Boolean) {
+  val lastBackup by saveData.lastBackupTimestamp.collectAsState()
+  val lastBackupLabel = remember(lastBackup) { saveData.formatLastBackup() }
   var pendingBackup by remember { mutableStateOf(false) }
   var pendingRestore by remember { mutableStateOf(false) }
+  var pendingRestoreUri by remember { mutableStateOf<Uri?>(null) }
   var showDeleteConfirm by remember { mutableStateOf(false) }
-  var showRegionDropdown by remember { mutableStateOf(false) }
+  var showRestoreConfirm by remember { mutableStateOf(false) }
 
   val backupLauncher =
     rememberLauncherForActivityResult(
-      contract = ActivityResultContracts.CreateDocument("application/octet-stream")
+      contract = ActivityResultContracts.CreateDocument("application/zip")
     ) { uri ->
-      if (uri != null) saveData.backupSave(selectedRegion, uri)
+      if (uri != null) saveData.backupAll(uri)
       pendingBackup = false
     }
   val restoreLauncher =
     rememberLauncherForActivityResult(
       contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
-      if (uri != null) saveData.restoreSave(selectedRegion, uri)
+      if (uri != null) {
+        pendingRestoreUri = uri
+        showRestoreConfirm = true
+      }
       pendingRestore = false
     }
 
-  LaunchedEffect(pendingBackup, selectedRegion) {
-    if (pendingBackup) {
-      val fileName = "rksys-${selectedRegion.code}-${System.currentTimeMillis()}.dat"
-      backupLauncher.launch(fileName)
-    }
-  }
-  LaunchedEffect(pendingRestore) {
-    if (pendingRestore) {
-      restoreLauncher.launch(arrayOf("application/octet-stream", "*/*"))
-    }
-  }
-
   if (showDeleteConfirm) {
-    val name = stringResource(regionLabelRes(selectedRegion))
     AlertDialog(
       onDismissRequest = { showDeleteConfirm = false },
       title = { Text(stringResource(R.string.settings_save_data_delete_confirm_title)) },
-      text = {
-        Text(stringResource(R.string.settings_save_data_delete_confirm_message, name))
-      },
+      text = { Text(stringResource(R.string.settings_save_data_delete_confirm_message)) },
       confirmButton = {
         Button(
           onClick = {
-            saveData.deleteSave(selectedRegion)
+            saveData.deleteAll()
             showDeleteConfirm = false
           },
         ) {
@@ -240,65 +218,81 @@ private fun SaveDataSection(
     )
   }
 
+  if (showRestoreConfirm) {
+    val uri = pendingRestoreUri
+    AlertDialog(
+      onDismissRequest = {
+        showRestoreConfirm = false
+        pendingRestoreUri = null
+      },
+      title = { Text(stringResource(R.string.settings_save_data_restore_confirm_title)) },
+      text = { Text(stringResource(R.string.settings_save_data_restore_confirm_message)) },
+      confirmButton = {
+        Button(
+          enabled = uri != null,
+          onClick = {
+            uri?.let { saveData.restoreAll(it) }
+            pendingRestoreUri = null
+            showRestoreConfirm = false
+          },
+        ) {
+          Text(stringResource(R.string.settings_save_data_restore))
+        }
+      },
+      dismissButton = {
+        TextButton(onClick = {
+          pendingRestoreUri = null
+          showRestoreConfirm = false
+        }) {
+          Text(stringResource(R.string.action_cancel))
+        }
+      },
+    )
+  }
+
+  LaunchedEffect(pendingBackup) {
+    if (pendingBackup) {
+      val fileName = "wheelwitch-save-${System.currentTimeMillis()}.zip"
+      backupLauncher.launch(fileName)
+    }
+  }
+  LaunchedEffect(pendingRestore) {
+    if (pendingRestore) {
+      restoreLauncher.launch(arrayOf("application/zip", "*/*"))
+    }
+  }
+
   SettingsCategoryHeader(stringResource(R.string.settings_save_data_section))
 
   SettingsItem(
-    icon = ImageVector.vectorResource(R.drawable.ic_dns),
-    title = stringResource(R.string.settings_save_data_region_label),
-    summary = stringResource(regionLabelRes(selectedRegion)),
-    trailing = {
-      Box {
-        TextButton(
-          onClick = { showRegionDropdown = true },
-          shape = buttonShape,
-        ) {
-          Text(stringResource(regionLabelRes(selectedRegion)))
-        }
-        DropdownMenu(
-          expanded = showRegionDropdown,
-          onDismissRequest = { showRegionDropdown = false },
-        ) {
-          Region.entries.forEach { region ->
-            val enabled = region in presentRegions
-            DropdownMenuItem(
-              text = { Text(stringResource(regionLabelRes(region))) },
-              enabled = enabled,
-              onClick = {
-                saveData.selectRegion(region)
-                showRegionDropdown = false
-              },
-            )
-          }
-        }
-      }
-    },
-  )
-
-  val hasSave = presentRegions.contains(selectedRegion) && (hasSaveMap[selectedRegion] == true)
-  SettingsItem(
     icon = ImageVector.vectorResource(R.drawable.ic_save),
-    title = stringResource(R.string.settings_save_data_actions, stringResource(regionLabelRes(selectedRegion))),
+    title = stringResource(R.string.settings_save_data_section),
     summary =
-      if (hasSave) null
-      else stringResource(R.string.settings_save_data_no_save),
+      when {
+        !hasAnySave -> stringResource(R.string.settings_save_data_no_save)
+        lastBackupLabel != null ->
+          stringResource(R.string.settings_save_data_last_backup_format, lastBackupLabel)
+        else -> null
+      },
     trailing = {
       Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         TextButton(
           onClick = { pendingBackup = true },
-          enabled = hasSave,
+          enabled = hasAnySave,
           shape = buttonShape,
         ) {
           Text(stringResource(R.string.settings_save_data_backup))
         }
         TextButton(
           onClick = { pendingRestore = true },
+          enabled = hasAnySave,
           shape = buttonShape,
         ) {
           Text(stringResource(R.string.settings_save_data_restore))
         }
         TextButton(
           onClick = { showDeleteConfirm = true },
-          enabled = hasSave,
+          enabled = hasAnySave,
           shape = buttonShape,
         ) {
           Text(
@@ -310,13 +304,6 @@ private fun SaveDataSection(
     },
   )
 }
-
-private fun regionLabelRes(region: Region): Int =
-  when (region) {
-    Region.PAL -> R.string.save_info_region_pal
-    Region.USA -> R.string.save_info_region_usa
-    Region.JPN -> R.string.save_info_region_jpn
-  }
 
 /** Appearance section: app theme picker and dark-mode picker. */
 @Composable

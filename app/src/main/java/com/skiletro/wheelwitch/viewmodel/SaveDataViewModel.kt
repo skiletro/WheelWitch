@@ -18,6 +18,8 @@ import com.skiletro.wheelwitch.model.SaveFileInfo
 import com.skiletro.wheelwitch.network.VersionFileParser
 import com.skiletro.wheelwitch.util.prefs.Prefs
 import com.skiletro.wheelwitch.util.prefs.PrefsKeys
+import java.text.DateFormat
+import java.util.Date
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -39,7 +41,7 @@ import timber.log.Timber
 
 /**
  * Owns the save file state: per-region parse, leaderboard merge,
- * backup/restore/delete, and slot selection.
+ * unified backup/restore/delete, and slot selection.
  *
  * The pack install flow lives in [PackUpdateViewModel]. This VM
  * listens to its [UiState] via [packStatusFlow] and re-parses the
@@ -53,9 +55,9 @@ import timber.log.Timber
  * save file per region. [SaveManager.listRegions] walks the user's
  * [DolphinTree.romDir] and [refresh] reads + parses a save for each
  * present region in parallel. [selectedRegion] defaults to the first
- * region with a ROM, and is changed from the Settings screen's
- * Save Data section. The Licenses screen is a pure viewer of
- * (selectedRegion × selectedSlotIndex) and never picks a region.
+ * region with a ROM, and is persisted across launches. The Licenses
+ * screen is a pure viewer of (selectedRegion × selectedSlotIndex) and
+ * never picks a region.
  *
  * Leaderboard merge: the Licenses screen renders all 4 slots of the
  * selected region, so [mergedLicenses] holds a 4-entry list per
@@ -68,9 +70,20 @@ import timber.log.Timber
  * region × selected slot via [combine], so selecting a slot never
  * triggers a network round trip.
  *
- * Tests can swap the [treeFactory], the [parser], and the
- * [leaderboardFetcher] lambdas to inject mocks without going through
- * SAF or the network.
+ * Unified save data: [hasAnySave] is the single source of truth for
+ * whether the user has anything worth backing up (any region's
+ * `rksys.dat`, the Mii DB, any Pulsar pul file, or any ghost). The
+ * Save Data section in Settings uses it to drive the enabled/disabled
+ * state of the three buttons, and to switch between the
+ * "no save data" status line and the "Last backed up" line.
+ * [lastBackupTimestamp] is read from
+ * [PrefsKeys.LAST_BACKUP_TIMESTAMP_KEY] on construction and updated
+ * after every successful [backupAll] call.
+ *
+ * Tests can swap the [treeFactory], the [parser], the
+ * [leaderboardFetcher], the [backupAllSaver] (for the timestamp),
+ * the [now] lambda (for the same), and the [ioDispatcher] to inject
+ * mocks without going through SAF, the network, or real time.
  */
 class SaveDataViewModel(
   application: Application,
@@ -80,6 +93,12 @@ class SaveDataViewModel(
   private val leaderboardFetcher: suspend (String) -> Result<Int> = { code ->
     VersionFileParser.fetchPlayerLeaderboard(code)
   },
+  private val backupAllSaver: suspend (DolphinTree, Uri) -> Result<SaveManager.BackupSummary> =
+    SaveManager::backupAll,
+  private val restoreAllSaver:
+    suspend (DolphinTree, Uri) -> Result<SaveManager.RestoreSummary> = SaveManager::restoreAll,
+  private val deleteAllSaver: suspend (DolphinTree) -> Result<Unit> = SaveManager::deleteAll,
+  private val now: () -> Long = System::currentTimeMillis,
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : AndroidViewModel(application) {
   private val app = application
@@ -90,6 +109,12 @@ class SaveDataViewModel(
 
   private val _hasSave = MutableStateFlow<Map<Region, Boolean>>(emptyMap())
   val hasSave: StateFlow<Map<Region, Boolean>> = _hasSave.asStateFlow()
+
+  private val _hasAnySave = MutableStateFlow(false)
+  val hasAnySave: StateFlow<Boolean> = _hasAnySave.asStateFlow()
+
+  private val _lastBackupTimestamp = MutableStateFlow(prefs.getLong(PrefsKeys.LAST_BACKUP_TIMESTAMP_KEY, 0L))
+  val lastBackupTimestamp: StateFlow<Long> = _lastBackupTimestamp.asStateFlow()
 
   private val _selectedRegion =
     MutableStateFlow(loadPersistedRegion(prefs.getString(PrefsKeys.SELECTED_REGION_KEY, null)))
@@ -131,8 +156,9 @@ class SaveDataViewModel(
   /**
    * Re-reads every region's save from the SAF tree, parses them in
    * parallel, and refreshes the leaderboard for the selected
-   * region's 4 slots. No-op if [treeFactory] returns null (no
-   * persisted SAF grant).
+   * region's 4 slots. Also recomputes [hasAnySave] for the unified
+   * backup UI. No-op if [treeFactory] returns null (no persisted
+   * SAF grant).
    */
   fun refresh() {
     viewModelScope.launch {
@@ -143,6 +169,7 @@ class SaveDataViewModel(
             ?: run {
               _saveInfos.value = emptyMap()
               _hasSave.value = emptyMap()
+              _hasAnySave.value = false
               _mergedLicenses.value = emptyMap()
               return@launch
             }
@@ -152,6 +179,7 @@ class SaveDataViewModel(
           _hasSave.value = emptyMap()
           _selectedRegion.value = null
           _mergedLicenses.value = emptyMap()
+          _hasAnySave.value = computeHasAnySave(tree)
           return@launch
         }
         val parsed =
@@ -172,6 +200,7 @@ class SaveDataViewModel(
         val hasSaves = regions.associateWith { SaveManager.hasSave(tree, it) }
         _saveInfos.value = infos
         _hasSave.value = hasSaves
+        _hasAnySave.value = computeHasAnySave(tree)
         val target = pickSelectedRegion(regions)
         if (target != _selectedRegion.value) {
           _selectedRegion.value = target
@@ -212,52 +241,87 @@ class SaveDataViewModel(
     _selectedSlotIndex.value = index
   }
 
-  /** Copies the [region] save bytes to the user-picked [dest] URI. */
-  fun backupSave(region: Region, dest: Uri) {
+  /**
+   * Bundles every save file the user owns (all regions' `rksys.dat`,
+   * the Mii DB, all Pulsar pul files, and the Ghosts directory) into
+   * a single zip at [dest] (typically from `ACTION_CREATE_DOCUMENT`).
+   * On success, the current wall-clock time is written to
+   * [PrefsKeys.LAST_BACKUP_TIMESTAMP_KEY] so the Settings screen can
+   * show "Last backed up: …" on next launch.
+   */
+  fun backupAll(dest: Uri) {
     viewModelScope.launch {
       val tree = treeFactory(app)
       if (tree == null) {
         _error.value = app.getString(R.string.vm_save_not_configured)
         return@launch
       }
-      SaveManager.backup(tree, region, dest).onFailure { e ->
-        Timber.tag(TAG).e(e, "backup failed")
-        _error.value = app.getString(R.string.vm_save_write_failed)
-      }
-      refresh()
+      backupAllSaver(tree, dest)
+        .onSuccess {
+          val timestamp = now()
+          prefs.edit().putLong(PrefsKeys.LAST_BACKUP_TIMESTAMP_KEY, timestamp).apply()
+          _lastBackupTimestamp.value = timestamp
+          refresh()
+        }
+        .onFailure { e ->
+          Timber.tag(TAG).e(e, "backup failed")
+          _error.value = e.message ?: app.getString(R.string.vm_save_write_failed)
+        }
     }
   }
 
-  /** Overwrites the [region] save with the bytes from [source]. */
-  fun restoreSave(region: Region, source: Uri) {
+  /**
+   * Restores the user's save data from the zip at [source]
+   * (typically from `ACTION_OPEN_DOCUMENT`). Refreshes the parsed
+   * state on success.
+   */
+  fun restoreAll(source: Uri) {
     viewModelScope.launch {
       val tree = treeFactory(app)
       if (tree == null) {
         _error.value = app.getString(R.string.vm_save_not_configured)
         return@launch
       }
-      SaveManager.restore(tree, region, source).onFailure { e ->
-        Timber.tag(TAG).e(e, "restore failed")
-        _error.value = app.getString(R.string.vm_save_read_failed)
-      }
-      refresh()
+      restoreAllSaver(tree, source)
+        .onSuccess { refresh() }
+        .onFailure { e ->
+          Timber.tag(TAG).e(e, "restore failed")
+          _error.value = e.message ?: app.getString(R.string.vm_save_read_failed)
+        }
     }
   }
 
-  /** Deletes the [region] save file. Idempotent. */
-  fun deleteSave(region: Region) {
+  /**
+   * Wipes every save file the user owns (all regions' `rksys.dat`,
+   * the Mii DB, all Pulsar pul files, and the contents of Ghosts/).
+   * Refreshes the parsed state and [hasAnySave] on success.
+   */
+  fun deleteAll() {
     viewModelScope.launch {
       val tree = treeFactory(app)
       if (tree == null) {
         _error.value = app.getString(R.string.vm_save_not_configured)
         return@launch
       }
-      SaveManager.delete(tree, region).onFailure { e ->
-        Timber.tag(TAG).e(e, "delete failed")
-        _error.value = e.message ?: app.getString(R.string.vm_failed_format, "delete save")
-      }
-      refresh()
+      deleteAllSaver(tree)
+        .onSuccess { refresh() }
+        .onFailure { e ->
+          Timber.tag(TAG).e(e, "delete failed")
+          _error.value = e.message ?: app.getString(R.string.vm_failed_format, "delete save")
+        }
     }
+  }
+
+  /**
+   * Formats [lastBackupTimestamp] as a localized date + time for the
+   * Save Data section. Returns null when the user has never backed
+   * up so the UI can show the "no save data" / "never backed up"
+   * status line instead.
+   */
+  fun formatLastBackup(): String? {
+    val ts = _lastBackupTimestamp.value
+    if (ts <= 0L) return null
+    return DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(ts))
   }
 
   /** Clears [error]. */
@@ -315,6 +379,8 @@ class SaveDataViewModel(
     _mergedLicenses.update { current -> current + (region to enriched) }
   }
 
+  private fun computeHasAnySave(tree: DolphinTree): Boolean = SaveManager.hasAnySave(tree)
+
   private fun pickSelectedRegion(regions: List<Region>): Region? {
     if (regions.isEmpty()) return null
     val current = _selectedRegion.value
@@ -357,7 +423,8 @@ class SaveDataViewModel(
    * `packStatusFlow` parameter requires a custom factory.
    *
    * The other constructor parameters (`treeFactory`, `parser`,
-   * `leaderboardFetcher`, `ioDispatcher`) use their production
+   * `leaderboardFetcher`, `backupAllSaver`, `restoreAllSaver`,
+   * `deleteAllSaver`, `now`, `ioDispatcher`) use their production
    * defaults; tests that need to swap them continue to construct
    * the VM directly with explicit arguments.
    */

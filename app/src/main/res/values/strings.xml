@@ -225,14 +225,15 @@
 
     <!-- settings save data -->
     <string name="settings_save_data_section">Save Data</string>
-    <string name="settings_save_data_region_label">Region</string>
-    <string name="settings_save_data_actions">%1$s licenses</string>
-    <string name="settings_save_data_backup">Backup</string>
-    <string name="settings_save_data_restore">Restore</string>
-    <string name="settings_save_data_delete">Delete</string>
-    <string name="settings_save_data_no_save">No save file</string>
-    <string name="settings_save_data_delete_confirm_title">Delete save?</string>
-    <string name="settings_save_data_delete_confirm_message">This permanently deletes the %s save file. This cannot be undone.</string>
+    <string name="settings_save_data_backup">Back up save data</string>
+    <string name="settings_save_data_restore">Restore save data</string>
+    <string name="settings_save_data_delete">Delete save data</string>
+    <string name="settings_save_data_no_save">No save data</string>
+    <string name="settings_save_data_last_backup_format">Last backed up: %1$s</string>
+    <string name="settings_save_data_restore_confirm_title">Restore save data?</string>
+    <string name="settings_save_data_restore_confirm_message">This will overwrite your current save data, Miis, and game settings. This cannot be undone.</string>
+    <string name="settings_save_data_delete_confirm_title">Delete all save data?</string>
+    <string name="settings_save_data_delete_confirm_message">This permanently deletes your save data, Miis, and game settings. This cannot be undone.</string>
 
     <!-- version history -->
     <string name="version_history_title">Version History</string>

@@ -150,6 +150,65 @@ class DolphinPathsTest {
   }
 
   @Test
+  fun `wiiDir sits at the physical root`() {
+    val ctx = mockWheelWitchContext()
+
+    val dir = DolphinPaths.wiiDir(ctx)
+
+    assertThat(dir.absolutePath)
+      .isEqualTo("/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/Wii")
+  }
+
+  @Test
+  fun `shared2Dir sits under wiiDir`() {
+    val ctx = mockWheelWitchContext()
+
+    val dir = DolphinPaths.shared2Dir(ctx)
+
+    assertThat(dir.absolutePath)
+      .isEqualTo(
+        "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/Wii/shared2"
+      )
+  }
+
+  @Test
+  fun `faceLibDir sits under shared2 menu FaceLib`() {
+    val ctx = mockWheelWitchContext()
+
+    val dir = DolphinPaths.faceLibDir(ctx)
+
+    assertThat(dir.absolutePath)
+      .isEqualTo(
+        "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/Wii/shared2/menu/FaceLib"
+      )
+  }
+
+  @Test
+  fun `pulsarRrDir sits under shared2 Pulsar RetroRewind6`() {
+    val ctx = mockWheelWitchContext()
+
+    val dir = DolphinPaths.pulsarRrDir(ctx)
+
+    assertThat(dir.absolutePath)
+      .isEqualTo(
+        "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/Wii/shared2/Pulsar/RetroRewind6"
+      )
+  }
+
+  @Test
+  fun `rrSaveDir sits under pack riivolution save RetroWFC`() {
+    val ctx = mockWheelWitchContext()
+
+    val dir = DolphinPaths.rrSaveDir(ctx)
+
+    assertThat(dir.absolutePath)
+      .isEqualTo(
+        "/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/WheelWitch/pack/" +
+          "riivolution/save/RetroWFC"
+      )
+  }
+
+  @Test
   fun `expectedTreeId matches the SAF picker format for the dolphin user folder`() {
     assertThat(DolphinPaths.expectedTreeId())
       .isEqualTo("primary:Android/data/org.dolphinemu.dolphinemu/files")

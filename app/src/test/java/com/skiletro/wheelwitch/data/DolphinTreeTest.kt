@@ -108,6 +108,107 @@ class DolphinTreeTest {
     assertThat(tree.packDir).isEqualTo(packDir)
   }
 
+  // --- new lazy user-data subdirs (Wii/shared2/...) -------------------
+
+  @Test
+  fun `wiiDir is null when Wii is absent from the tree root`() {
+    val tree = DolphinTree(context, treeUri)
+    assertThat(tree.wiiDir).isNull()
+  }
+
+  @Test
+  fun `wiiDir returns the existing Wii directory without creating`() {
+    val wiiDir = mockk<DocumentFile>(relaxed = true)
+    every { root.findFile("Wii") } returns wiiDir
+    every { wiiDir.isDirectory } returns true
+
+    val tree = DolphinTree(context, treeUri)
+    assertThat(tree.wiiDir).isEqualTo(wiiDir)
+    verify(exactly = 0) { root.createDirectory("Wii") }
+  }
+
+  @Test
+  fun `shared2Dir is null when wiiDir is null`() {
+    val tree = DolphinTree(context, treeUri)
+    assertThat(tree.shared2Dir).isNull()
+  }
+
+  @Test
+  fun `faceLibDir is null when the Wii tree is shallow`() {
+    val tree = DolphinTree(context, treeUri)
+    assertThat(tree.faceLibDir).isNull()
+  }
+
+  @Test
+  fun `pulsarRrDir returns the existing RetroRewind6 directory under Wii shared2 Pulsar`() {
+    val wii = mockk<DocumentFile>(relaxed = true)
+    val shared2 = mockk<DocumentFile>(relaxed = true)
+    val pulsar = mockk<DocumentFile>(relaxed = true)
+    val rr = mockk<DocumentFile>(relaxed = true)
+    every { root.findFile("Wii") } returns wii
+    every { wii.isDirectory } returns true
+    every { wii.findFile("shared2") } returns shared2
+    every { shared2.isDirectory } returns true
+    every { shared2.findFile("Pulsar") } returns pulsar
+    every { pulsar.isDirectory } returns true
+    every { pulsar.findFile(DolphinTree.RETRO_REWIND_DIR_NAME) } returns rr
+    every { rr.isDirectory } returns true
+
+    val tree = DolphinTree(context, treeUri)
+    assertThat(tree.pulsarRrDir).isEqualTo(rr)
+  }
+
+  // --- top-level helpers (used by SaveManager) ------------------------
+
+  @Test
+  fun `navigateOrCreate walks the parts and returns the deepest directory`() {
+    val a = mockDir("a")
+    val b = mockDir("b")
+    val c = mockDir("c")
+    val start = mockk<DocumentFile>(relaxed = true)
+    every { start.findFile("a") } returns a
+    every { a.findFile("b") } returns b
+    every { b.findFile("c") } returns c
+
+    val result = navigateOrCreate(start, listOf("a", "b", "c"))
+    assertThat(result).isEqualTo(c)
+  }
+
+  @Test
+  fun `navigateOrCreate creates a missing intermediate directory`() {
+    val a = mockDir("a")
+    val b = mockk<DocumentFile>(relaxed = true)
+    val start = mockk<DocumentFile>(relaxed = true)
+    every { start.findFile("a") } returns a
+    every { a.findFile("b") } returns null
+    every { a.createDirectory("b") } returns b
+    every { b.isDirectory } returns true
+
+    val result = navigateOrCreate(start, listOf("a", "b"))
+    assertThat(result).isEqualTo(b)
+  }
+
+  @Test
+  fun `findDir returns null when the parent is null`() {
+    assertThat(findDir(null, "Wii")).isNull()
+  }
+
+  @Test
+  fun `findDir returns null when the named child is absent`() {
+    val parent = mockk<DocumentFile>(relaxed = true)
+    every { parent.findFile("Wii") } returns null
+    assertThat(findDir(parent, "Wii")).isNull()
+  }
+
+  @Test
+  fun `findDir returns null when the named child is a file not a directory`() {
+    val parent = mockk<DocumentFile>(relaxed = true)
+    val child = mockk<DocumentFile>(relaxed = true)
+    every { parent.findFile("Wii") } returns child
+    every { child.isDirectory } returns false
+    assertThat(findDir(parent, "Wii")).isNull()
+  }
+
   // --- validate --------------------------------------------------------
 
   @Test
@@ -933,5 +1034,13 @@ class DolphinTreeTest {
   private fun mockPrefsMain(prefs: SharedPreferences) {
     mockkStatic("com.skiletro.wheelwitch.util.prefs.Prefs")
     io.mockk.every { com.skiletro.wheelwitch.util.prefs.Prefs.main(context) } returns prefs
+  }
+
+  /** A DocumentFile mock with `isDirectory = true` so `navigateOrCreate` / `findDir` keep the chain. */
+  private fun mockDir(name: String): DocumentFile {
+    val dir = mockk<DocumentFile>(relaxed = true)
+    every { dir.name } returns name
+    every { dir.isDirectory } returns true
+    return dir
   }
 }

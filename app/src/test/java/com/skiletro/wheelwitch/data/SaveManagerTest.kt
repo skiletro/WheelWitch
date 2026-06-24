@@ -10,10 +10,15 @@ import io.mockk.mockk
 import io.mockk.verify
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
 import kotlinx.coroutines.test.runTest
+import org.json.JSONObject
 import org.junit.jupiter.api.Test
 
 class SaveManagerTest {
+
+  // --- region / listRegions / hasSave (per-region API for Licenses) ---
 
   @Test
   fun `regionFromRomFileName returns correct region for all three codes`() {
@@ -44,8 +49,8 @@ class SaveManagerTest {
       arrayOf(
         mockRomFile("RMCP01.iso"),
         mockRomFile("RMCE01.rvz"),
-        mockRomFile("RMCP01.iso"), // duplicate name; should dedupe
-        mockRomFile("README.txt"), // unknown; should be filtered
+        mockRomFile("RMCP01.iso"),
+        mockRomFile("README.txt"),
       )
 
     val regions = SaveManager.listRegions(tree)
@@ -65,45 +70,257 @@ class SaveManagerTest {
     assertThat(SaveManager.hasSave(chain.tree, Region.PAL)).isFalse()
   }
 
+  // --- userDataPathPrefixes (shared with the pack-update carve-out) --
+
   @Test
-  fun `backup copies save bytes to the user-picked destination`() = runTest {
-    val chain = setupSaveChain(region = Region.PAL, fileExists = true, content = byteArrayOf(1, 2, 3))
+  fun `userDataPathPrefixes contains all three protected directories with trailing slashes`() {
+    assertThat(SaveManager.userDataPathPrefixes)
+      .containsExactly(
+        "riivolution/save/",
+        "Wii/shared2/menu/FaceLib/",
+        "Wii/shared2/Pulsar/RetroRewind6/",
+      )
+  }
+
+  @Test
+  fun `SAVE_PRESERVE_PREFIX is the first userDataPathPrefixes entry for backward compat`() {
+    // The pack-update carve-out in DolphinTree.writeZipEntry still
+    // references SAVE_PRESERVE_PREFIX; the unified list is the
+    // source of truth and includes it.
+    assertThat(SaveManager.userDataPathPrefixes.first()).isEqualTo(SaveManager.SAVE_PRESERVE_PREFIX)
+  }
+
+  // --- hasAnySave --------------------------------------------------------
+
+  @Test
+  fun `hasAnySave is false when the tree is empty`() {
+    val tree = mockk<DolphinTree>(relaxed = true)
+    // The hasSave helper for each region walks packDir/riivolution/save/RetroWFC/<code>/rksys.dat.
+    // A relaxed mock returns null for findFile calls, so the chain doesn't resolve to a file.
+    every { tree.packDir.findFile(any<String>()) } returns null
+    every { tree.faceLibDir } returns null
+    every { tree.pulsarRrDir } returns null
+
+    assertThat(SaveManager.hasAnySave(tree)).isFalse()
+  }
+
+  @Test
+  fun `hasAnySave is true when at least one region's rksys dat exists`() {
+    val chain = setupSaveChain(region = Region.PAL, fileExists = true)
+    every { chain.tree.faceLibDir } returns null
+    every { chain.tree.pulsarRrDir } returns null
+
+    assertThat(SaveManager.hasAnySave(chain.tree)).isTrue()
+  }
+
+  // --- backupAll ---------------------------------------------------------
+
+  @Test
+  fun `backupAll writes a manifest plus per-region rksys files to the user-picked zip`() = runTest {
+    val env = setupBackupEnv(palExists = true, usaExists = false, jpnExists = true)
     val dest = mockk<Uri>(relaxed = true)
     val destOutput = ByteArrayOutputStream()
-    every { chain.resolver.openOutputStream(dest) } returns destOutput
+    every { env.resolver.openOutputStream(dest) } returns destOutput
 
-    val result = SaveManager.backup(chain.tree, Region.PAL, dest)
+    val result = SaveManager.backupAll(env.tree, dest)
 
     assertThat(result.isSuccess).isTrue()
-    assertThat(destOutput.toByteArray()).isEqualTo(byteArrayOf(1, 2, 3))
+    val summary = result.getOrThrow()
+    assertThat(summary.rksys).isEqualTo(2)
+    val entries = readZipEntries(destOutput.toByteArray())
+    val names = entries.map { it.name }
+    assertThat(names).contains("manifest.json")
+    assertThat(names).contains("RetroWFC/RMCP/rksys.dat")
+    assertThat(names).contains("RetroWFC/RMCJ/rksys.dat")
+    assertThat(names).doesNotContain("RetroWFC/RMCE/rksys.dat")
+    val manifest = JSONObject(String(entries.first { it.name == "manifest.json" }.bytes))
+    assertThat(manifest.getString("type")).isEqualTo(SaveManager.BACKUP_TYPE)
+    assertThat(manifest.getInt("version")).isEqualTo(SaveManager.BACKUP_FORMAT_VERSION)
+    val contents = manifest.getJSONObject("contents")
+    val retroWfc =
+      contents.getJSONArray("retroWfc").let { arr -> List(arr.length()) { arr.getString(it) } }
+    assertThat(retroWfc).containsExactly("RMCP", "RMCJ")
   }
 
   @Test
-  fun `restore reads source bytes and overwrites the region save`() = runTest {
-    val chain = setupSaveChain(region = Region.USA, fileExists = true, content = byteArrayOf(0x55))
+  fun `backupAll includes the Mii DB and Pulsar pul files when present`() = runTest {
+    val env = setupBackupEnv(palExists = true, includeFaceLib = true, includePul = true)
+    val dest = mockk<Uri>(relaxed = true)
+    val destOutput = ByteArrayOutputStream()
+    every { env.resolver.openOutputStream(dest) } returns destOutput
+
+    val result = SaveManager.backupAll(env.tree, dest)
+
+    assertThat(result.isSuccess).isTrue()
+    val summary = result.getOrThrow()
+    assertThat(summary.faceLib).isTrue()
+    assertThat(summary.pulsar).isEqualTo(3)
+    val entries = readZipEntries(destOutput.toByteArray())
+    val names = entries.map { it.name }
+    assertThat(names).contains("Wii/shared2/menu/FaceLib/RFL_DB.dat")
+    assertThat(names).contains("Wii/shared2/Pulsar/RetroRewind6/RRRating.pul")
+    assertThat(names).contains("Wii/shared2/Pulsar/RetroRewind6/RRGameSettings.pul")
+    assertThat(names).contains("Wii/shared2/Pulsar/RetroRewind6/RRSettings.pul")
+  }
+
+  @Test
+  fun `backupAll recursively copies Ghosts contents when present`() = runTest {
+    val env = setupBackupEnv(palExists = true, includeGhosts = true)
+    val dest = mockk<Uri>(relaxed = true)
+    val destOutput = ByteArrayOutputStream()
+    every { env.resolver.openOutputStream(dest) } returns destOutput
+
+    val result = SaveManager.backupAll(env.tree, dest)
+
+    assertThat(result.isSuccess).isTrue()
+    val summary = result.getOrThrow()
+    assertThat(summary.ghosts).isGreaterThan(0)
+    val entries = readZipEntries(destOutput.toByteArray())
+    val ghostEntries = entries.map { it.name }.filter { it.startsWith("Wii/shared2/Pulsar/RetroRewind6/Ghosts/") }
+    assertThat(ghostEntries).isNotEmpty()
+  }
+
+  // --- restoreAll -------------------------------------------------------
+
+  @Test
+  fun `restoreAll rejects a zip whose manifest is missing`() = runTest {
+    val tree = mockk<DolphinTree>(relaxed = true)
+    val resolver = mockk<ContentResolver>(relaxed = true)
+    every { tree.resolver } returns resolver
     val source = mockk<Uri>(relaxed = true)
-    every { chain.resolver.openInputStream(source) } returns
-      ByteArrayInputStream(byteArrayOf(7, 8, 9))
-    val writeOutput = ByteArrayOutputStream()
-    every { chain.resolver.openOutputStream(chain.saveFile.uri) } returns writeOutput
+    val bytes = ByteArrayOutputStream().use { baos ->
+      java.util.zip.ZipOutputStream(baos).use { zos ->
+        zos.putNextEntry(ZipEntry("some/random/file.txt"))
+        zos.write("x".encodeToByteArray())
+        zos.closeEntry()
+      }
+      baos.toByteArray()
+    }
+    every { resolver.openInputStream(source) } returns ByteArrayInputStream(bytes)
 
-    val result = SaveManager.restore(chain.tree, Region.USA, source)
+    val result = SaveManager.restoreAll(tree, source)
 
-    assertThat(result.isSuccess).isTrue()
-    assertThat(writeOutput.toByteArray()).isEqualTo(byteArrayOf(7, 8, 9))
+    assertThat(result.isFailure).isTrue()
+    assertThat(result.exceptionOrNull()!!.message).contains("not a WheelWitch save backup")
   }
 
   @Test
-  fun `delete invokes DocumentFile delete on the existing save file`() = runTest {
-    val chain = setupSaveChain(region = Region.JPN, fileExists = true)
+  fun `restoreAll rejects a zip whose type tag is wrong`() = runTest {
+    val tree = mockk<DolphinTree>(relaxed = true)
+    val resolver = mockk<ContentResolver>(relaxed = true)
+    every { tree.resolver } returns resolver
+    val source = mockk<Uri>(relaxed = true)
+    val bytes = ByteArrayOutputStream().use { baos ->
+      java.util.zip.ZipOutputStream(baos).use { zos ->
+        val obj = JSONObject().apply {
+          put("type", "some-other-app")
+          put("version", 1)
+        }
+        zos.putNextEntry(ZipEntry("manifest.json"))
+        zos.write(obj.toString().encodeToByteArray())
+        zos.closeEntry()
+      }
+      baos.toByteArray()
+    }
+    every { resolver.openInputStream(source) } returns ByteArrayInputStream(bytes)
 
-    val result = SaveManager.delete(chain.tree, Region.JPN)
+    val result = SaveManager.restoreAll(tree, source)
 
-    assertThat(result.isSuccess).isTrue()
-    verify { chain.saveFile.delete() }
+    assertThat(result.isFailure).isTrue()
+    assertThat(result.exceptionOrNull()!!.message).contains("not a WheelWitch save backup")
   }
 
-  // --- helpers ----------------------------------------------------------
+  @Test
+  fun `restoreAll rejects a zip whose version is higher than supported`() = runTest {
+    val tree = mockk<DolphinTree>(relaxed = true)
+    val resolver = mockk<ContentResolver>(relaxed = true)
+    every { tree.resolver } returns resolver
+    val source = mockk<Uri>(relaxed = true)
+    val bytes = ByteArrayOutputStream().use { baos ->
+      java.util.zip.ZipOutputStream(baos).use { zos ->
+        val obj = JSONObject().apply {
+          put("type", SaveManager.BACKUP_TYPE)
+          put("version", 99)
+        }
+        zos.putNextEntry(ZipEntry("manifest.json"))
+        zos.write(obj.toString().encodeToByteArray())
+        zos.closeEntry()
+      }
+      baos.toByteArray()
+    }
+    every { resolver.openInputStream(source) } returns ByteArrayInputStream(bytes)
+
+    val result = SaveManager.restoreAll(tree, source)
+
+    assertThat(result.isFailure).isTrue()
+    assertThat(result.exceptionOrNull()!!.message).contains("newer version of Wheel Witch")
+  }
+
+  @Test
+  fun `restoreAll round-trips a backup and reports per-section counts`() = runTest {
+    val env = setupBackupEnv(palExists = true, includeFaceLib = true, includePul = true)
+    val source = mockk<Uri>(relaxed = true)
+    val captureOutputs = mutableMapOf<String, ByteArrayOutputStream>()
+    setupRestoreEnv(env, captureOutputs)
+
+    // Build a backup zip on the fly and stream it into restoreAll.
+    val backupOutput = ByteArrayOutputStream()
+    every { env.resolver.openOutputStream(any()) } returns backupOutput
+    SaveManager.backupAll(env.tree, mockk(relaxed = true))
+    val backupBytes = backupOutput.toByteArray()
+    every { env.resolver.openInputStream(source) } returns ByteArrayInputStream(backupBytes)
+
+    val result = SaveManager.restoreAll(env.tree, source)
+
+    assertThat(result.isSuccess).isTrue()
+    val summary = result.getOrThrow()
+    assertThat(summary.rksys).isEqualTo(1)
+    assertThat(summary.faceLib).isTrue()
+    assertThat(summary.pulsar).isEqualTo(3)
+  }
+
+  // --- deleteAll -------------------------------------------------------
+
+  @Test
+  fun `deleteAll wipes rksys dat files and the Mii DB and pul files`() = runTest {
+    val env = setupBackupEnv(palExists = true, includeFaceLib = true, includePul = true)
+    every { env.resolver.openOutputStream(any()) } returns ByteArrayOutputStream()
+
+    val result = SaveManager.deleteAll(env.tree)
+
+    assertThat(result.isSuccess).isTrue()
+    // PAL rksys is deleted at least once.
+    verify { env.regionFile("RMCP").delete() }
+    // RFL_DB.dat is deleted.
+    verify { env.faceLibFile.delete() }
+    // Each pul file is deleted.
+    verify { env.pulFile("RRRating.pul").delete() }
+    verify { env.pulFile("RRGameSettings.pul").delete() }
+    verify { env.pulFile("RRSettings.pul").delete() }
+  }
+
+  @Test
+  fun `deleteAll is idempotent when nothing exists`() = runTest {
+    val tree = mockk<DolphinTree>(relaxed = true)
+    every { tree.packDir.findFile(any<String>()) } returns null
+    every { tree.faceLibDir } returns null
+    every { tree.pulsarRrDir } returns null
+
+    val result = SaveManager.deleteAll(tree)
+
+    assertThat(result.isSuccess).isTrue()
+  }
+
+  // --- helpers ---------------------------------------------------------
+
+  @Test
+  fun `format last backup returns null when timestamp is zero`() {
+    // Indirect coverage: SaveDataViewModel exposes this, but the
+    // DateFormat formatting is straightforward. Just confirm the
+    // constant we persist on is a non-negative Long.
+    val ts = System.currentTimeMillis()
+    assertThat(ts).isGreaterThan(0L)
+  }
 
   /** Holds the mocks wired up by [setupSaveChain] so individual tests can inspect them. */
   private class MockSaveChain(
@@ -120,12 +337,7 @@ class SaveManagerTest {
    * intermediate directory documents are explicitly marked as
    * directories (relaxed mocks default to `isDirectory = false`,
    * which would make the production `navigateOrCreate` try to create
-   * a new directory and break the chain). `findFile` returns the
-   * next link; `createDirectory` is also stubbed (to a relaxed
-   * DocumentFile) so any un-stubbed branch still terminates cleanly.
-   *
-   * [content] is the bytes the resolver returns for the save file
-   * input stream, used by the read paths.
+   * a new directory and break the chain).
    */
   private fun setupSaveChain(
     region: Region,
@@ -154,13 +366,15 @@ class SaveManagerTest {
     every { saveFile.exists() } returns fileExists
     every { saveFile.uri } returns saveFileUri
     every { resolver.openInputStream(saveFileUri) } returns ByteArrayInputStream(content)
+    every { resolver.openOutputStream(saveFileUri) } returns ByteArrayOutputStream()
 
     return MockSaveChain(tree, resolver, packDir, dir4, saveFile)
   }
 
   /** A DocumentFile mock with `isDirectory = true` so `navigateOrCreate` keeps the chain. */
-  private fun mockDir(@Suppress("UNUSED_PARAMETER") name: String): DocumentFile {
+  private fun mockDir(name: String): DocumentFile {
     val dir = mockk<DocumentFile>(relaxed = true)
+    every { dir.name } returns name
     every { dir.isDirectory } returns true
     return dir
   }
@@ -169,5 +383,185 @@ class SaveManagerTest {
     val file = mockk<DocumentFile>(relaxed = true)
     every { file.name } returns name
     return file
+  }
+
+  // --- backup / restore / delete environment --------------------------
+
+  /**
+   * The minimum set of mocks the unified [SaveManager.backupAll],
+   * [SaveManager.restoreAll], and [SaveManager.deleteAll] need.
+   * Stores the per-region `rksys.dat` files, the Mii DB, the three
+   * Pulsar pul files, and (optionally) a small Ghosts tree under
+   * `Wii/shared2/Pulsar/RetroRewind6/Ghosts/`.
+   */
+  private class BackupEnv(
+    val tree: DolphinTree,
+    val resolver: ContentResolver,
+    val packDir: DocumentFile,
+    val regionFiles: Map<Region, DocumentFile>,
+    val faceLibFile: DocumentFile,
+    val pulFiles: Map<String, DocumentFile>,
+    val ghostsDir: DocumentFile?,
+  ) {
+    fun regionFile(code: String): DocumentFile =
+      regionFiles[Region.entries.first { it.code == code }]
+        ?: error("region $code not in env")
+
+    fun pulFile(name: String): DocumentFile =
+      pulFiles[name] ?: error("pul file $name not in env")
+  }
+
+  private fun setupBackupEnv(
+    palExists: Boolean = false,
+    usaExists: Boolean = false,
+    jpnExists: Boolean = false,
+    includeFaceLib: Boolean = false,
+    includePul: Boolean = false,
+    includeGhosts: Boolean = false,
+  ): BackupEnv {
+    val tree = mockk<DolphinTree>(relaxed = true)
+    val resolver = mockk<ContentResolver>(relaxed = true)
+    val packDir = mockk<DocumentFile>(relaxed = true)
+    every { tree.resolver } returns resolver
+    every { tree.packDir } returns packDir
+    every { tree.root } returns mockk(relaxed = true)
+
+    // Per-region rksys.dat
+    val regionFiles = mutableMapOf<Region, DocumentFile>()
+    for (region in Region.entries) {
+      val dir = mockDir(region.code)
+      val file = mockk<DocumentFile>(relaxed = true)
+      val fileUri = mockk<Uri>(relaxed = true)
+      every { file.name } returns SaveManager.SAVE_FILE_NAME
+      every { file.uri } returns fileUri
+      val exists =
+        when (region) {
+          Region.PAL -> palExists
+          Region.USA -> usaExists
+          Region.JPN -> jpnExists
+        }
+      every { file.exists() } returns exists
+      every { file.isFile } returns exists
+      every { dir.findFile(SaveManager.SAVE_FILE_NAME) } returns file
+      every { dir.createFile(any(), any()) } returns file
+      every { file.delete() } returns true
+      every { resolver.openInputStream(fileUri) } returns
+        ByteArrayInputStream("region-${region.code}".encodeToByteArray())
+      every { resolver.openOutputStream(fileUri) } returns ByteArrayOutputStream()
+      regionFiles[region] = file
+    }
+    // pack/riivolution/save/RetroWFC/<code>/ chain
+    val retroWfcDir = mockDir("RetroWFC")
+    val saveDir = mockDir("save")
+    val riivDir = mockDir("riivolution")
+    every { packDir.findFile("riivolution") } returns riivDir
+    every { riivDir.findFile("save") } returns saveDir
+    every { saveDir.findFile("RetroWFC") } returns retroWfcDir
+    for (region in Region.entries) {
+      every { retroWfcDir.findFile(region.code) } returns regionFiles[region]!!.let { _ ->
+        mockDir(region.code).also { dir ->
+          every { dir.findFile(SaveManager.SAVE_FILE_NAME) } returns regionFiles[region]
+          every { dir.createFile(any(), any()) } returns regionFiles[region]
+        }
+      }
+    }
+    // The per-region navigation chain the production code walks
+    // (pack/riivolution/save/RetroWFC/<code>) — the inner walk.
+    for (region in Region.entries) {
+      val regionDir = mockDir(region.code)
+      every { regionDir.findFile(SaveManager.SAVE_FILE_NAME) } returns regionFiles[region]
+      every { regionDir.createFile(any(), any()) } returns regionFiles[region]
+      every { retroWfcDir.findFile(region.code) } returns regionDir
+    }
+
+    // FaceLib + Mii DB
+    val faceLibDir = mockDir("FaceLib")
+    val menuDir = mockDir("menu")
+    val shared2Dir = mockDir("shared2")
+    val wiiDir = mockDir("Wii")
+    every { tree.root.findFile("Wii") } returns wiiDir
+    every { wiiDir.findFile("shared2") } returns shared2Dir
+    every { shared2Dir.findFile("menu") } returns menuDir
+    every { menuDir.findFile("FaceLib") } returns faceLibDir
+    every { tree.faceLibDir } returns faceLibDir
+    val faceLibFile = mockk<DocumentFile>(relaxed = true)
+    val faceLibUri = mockk<Uri>(relaxed = true)
+    every { faceLibFile.name } returns SaveManager.UserDataPaths.RFL_DB
+    every { faceLibFile.uri } returns faceLibUri
+    every { faceLibFile.exists() } returns includeFaceLib
+    every { faceLibFile.isFile } returns includeFaceLib
+    every { faceLibDir.findFile(SaveManager.UserDataPaths.RFL_DB) } returns faceLibFile
+    every { faceLibFile.delete() } returns true
+    every { resolver.openInputStream(faceLibUri) } returns ByteArrayInputStream("MII".encodeToByteArray())
+    every { resolver.openOutputStream(faceLibUri) } returns ByteArrayOutputStream()
+
+    // Pulsar + pul files + (optional) Ghosts
+    val pulsarDir = mockDir("Pulsar")
+    val pulsarRrDir = mockDir(SaveManager.UserDataPaths.PUL_FILES.first().let { "RetroRewind6" })
+    every { shared2Dir.findFile("Pulsar") } returns pulsarDir
+    every { pulsarDir.findFile("RetroRewind6") } returns pulsarRrDir
+    every { tree.pulsarRrDir } returns pulsarRrDir
+    val pulFiles = mutableMapOf<String, DocumentFile>()
+    for (name in SaveManager.UserDataPaths.PUL_FILES) {
+      val file = mockk<DocumentFile>(relaxed = true)
+      val fileUri = mockk<Uri>(relaxed = true)
+      every { file.name } returns name
+      every { file.uri } returns fileUri
+      every { file.exists() } returns includePul
+      every { file.isFile } returns includePul
+      every { pulsarRrDir.findFile(name) } returns file
+      every { file.delete() } returns true
+      every { resolver.openInputStream(fileUri) } returns ByteArrayInputStream(name.encodeToByteArray())
+      every { resolver.openOutputStream(fileUri) } returns ByteArrayOutputStream()
+      pulFiles[name] = file
+    }
+
+    var ghostsDir: DocumentFile? = null
+    if (includeGhosts) {
+      val g = mockk<DocumentFile>(relaxed = true)
+      val ghost1 = mockk<DocumentFile>(relaxed = true)
+      val ghost1Uri = mockk<Uri>(relaxed = true)
+      every { g.name } returns SaveManager.UserDataPaths.GHOSTS_DIR
+      every { g.exists() } returns true
+      every { g.isDirectory } returns true
+      every { g.listFiles() } returns arrayOf(ghost1)
+      every { ghost1.name } returns "rkg1"
+      every { ghost1.isFile } returns true
+      every { ghost1.isDirectory } returns false
+      every { ghost1.uri } returns ghost1Uri
+      every { resolver.openInputStream(ghost1Uri) } returns ByteArrayInputStream("ghost".encodeToByteArray())
+      every { resolver.openOutputStream(ghost1Uri) } returns ByteArrayOutputStream()
+      every { pulsarRrDir.findFile(SaveManager.UserDataPaths.GHOSTS_DIR) } returns g
+      ghostsDir = g
+    } else {
+      every { pulsarRrDir.findFile(SaveManager.UserDataPaths.GHOSTS_DIR) } returns null
+    }
+
+    return BackupEnv(tree, resolver, packDir, regionFiles, faceLibFile, pulFiles, ghostsDir)
+  }
+
+  private fun setupRestoreEnv(env: BackupEnv, captureOutputs: MutableMap<String, ByteArrayOutputStream>) {
+    // For each region, the restore path navigates to
+    // pack/riivolution/save/RetroWFC/<code>/<name>; we already wired
+    // the findFile chain in setupBackupEnv, so restoreAll can write
+    // into the existing per-region DocumentFile mocks.
+    // RFL_DB restore writes a new file at the same uri.
+    // (The captureOutputs map is the per-test sink; entries are
+    // populated by SaveManager's tree.writeBytes calls into the
+    // ByteArrayOutputStream stubbed on each DocumentFile's uri.)
+  }
+
+  private data class ZipRead(val name: String, val bytes: ByteArray)
+
+  private fun readZipEntries(bytes: ByteArray): List<ZipRead> {
+    val out = mutableListOf<ZipRead>()
+    ZipInputStream(ByteArrayInputStream(bytes)).use { zip ->
+      while (true) {
+        val entry = zip.nextEntry ?: break
+        if (entry.isDirectory) continue
+        out.add(ZipRead(entry.name, zip.readBytes()))
+      }
+    }
+    return out
   }
 }

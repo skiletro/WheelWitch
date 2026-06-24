@@ -1,6 +1,7 @@
 package com.skiletro.wheelwitch.viewmodel
 
 import android.app.Application
+import android.net.Uri
 import com.google.common.truth.Truth.assertThat
 import com.skiletro.wheelwitch.data.DolphinTree
 import com.skiletro.wheelwitch.data.RksysParser
@@ -37,14 +38,10 @@ class SaveDataViewModelTest {
 
   private val leaderboardResult = mutableMapOf<String, Result<Int>>()
   private var leaderboardCalls = 0
+  private var fixedNow: Long = 1_700_000_000_000L
 
   @BeforeEach
   fun setUp() {
-    // Replace both Main and IO with the test dispatcher so the
-    // `async(Dispatchers.IO)` blocks inside refresh() synchronize
-    // with the test scheduler. Without this, the IO work runs on
-    // real IO threads that the test never waits for, and
-    // `saveInfos` ends up empty when the test asserts.
     val testDispatcher = UnconfinedTestDispatcher()
     Dispatchers.setMain(testDispatcher)
     ioDispatcher = testDispatcher
@@ -70,14 +67,32 @@ class SaveDataViewModelTest {
       leaderboardCalls++
       leaderboardResult[code] ?: Result.failure(RuntimeException("no stub for $code"))
     },
+    backupSaver:
+      suspend (DolphinTree, Uri) -> Result<SaveManager.BackupSummary> = { _, _ ->
+        Result.success(
+          SaveManager.BackupSummary(rksys = 1, faceLib = false, pulsar = 0, ghosts = 0, bytes = 0L)
+        )
+      },
+    restoreSaver:
+      suspend (DolphinTree, Uri) -> Result<SaveManager.RestoreSummary> = { _, _ ->
+        Result.success(SaveManager.RestoreSummary(rksys = 1, faceLib = false, pulsar = 0, ghosts = 0))
+      },
+    deleteSaver: suspend (DolphinTree) -> Result<Unit> = { Result.success(Unit) },
+    now: () -> Long = { fixedNow },
   ): SaveDataViewModel =
     SaveDataViewModel(
       application = app,
       packStatusFlow = packStatus as StateFlow<UiState>,
       treeFactory = { tree },
       leaderboardFetcher = leaderboard,
+      backupAllSaver = backupSaver,
+      restoreAllSaver = restoreSaver,
+      deleteAllSaver = deleteSaver,
+      now = now,
       ioDispatcher = ioDispatcher,
     )
+
+  // --- per-region Licenses viewer tests (unchanged behaviour) ---------
 
   @Test
   fun `init with no tree keeps saveInfos empty and no error`() = runTest {
@@ -88,11 +103,13 @@ class SaveDataViewModelTest {
     assertThat(vm.mergedLicenses.value).isEmpty()
     assertThat(vm.activeLicense.value).isNull()
     assertThat(vm.error.value).isNull()
+    assertThat(vm.hasAnySave.value).isFalse()
   }
 
   @Test
   fun `init with tree refreshes when packStatusFlow emits Ready`() = runTest {
     every { SaveManager.listRegions(mockTree) } returns emptyList()
+    every { SaveManager.hasAnySave(mockTree) } returns false
     vm = buildVm()
 
     packStatus.value = UiState.Ready(PackStatus.UpToDate(SemVersion(3, 2, 6), SemVersion(3, 2, 6)))
@@ -109,12 +126,14 @@ class SaveDataViewModelTest {
     assertThat(vm.saveInfos.value).isEmpty()
     assertThat(vm.hasSave.value).isEmpty()
     assertThat(vm.mergedLicenses.value).isEmpty()
+    assertThat(vm.hasAnySave.value).isFalse()
     assertThat(vm.error.value).isNull()
   }
 
   @Test
   fun `refresh with tree but no ROMs clears save state`() = runTest {
     every { SaveManager.listRegions(mockTree) } returns emptyList()
+    every { SaveManager.hasAnySave(mockTree) } returns false
     vm = buildVm()
 
     vm.refresh()
@@ -124,6 +143,7 @@ class SaveDataViewModelTest {
     assertThat(vm.selectedRegion.value).isNull()
     assertThat(vm.mergedLicenses.value).isEmpty()
     assertThat(vm.activeLicense.value).isNull()
+    assertThat(vm.hasAnySave.value).isFalse()
   }
 
   @Test
@@ -138,6 +158,7 @@ class SaveDataViewModelTest {
     coEvery { SaveManager.readSave(mockTree, Region.USA) } returns usaBytes
     coEvery { SaveManager.hasSave(mockTree, Region.PAL) } returns true
     coEvery { SaveManager.hasSave(mockTree, Region.USA) } returns true
+    every { SaveManager.hasAnySave(mockTree) } returns true
     vm = buildVm()
 
     vm.refresh()
@@ -145,12 +166,12 @@ class SaveDataViewModelTest {
     assertThat(vm.saveInfos.value).containsExactly(Region.PAL, palInfo, Region.USA, usaInfo)
     assertThat(vm.hasSave.value).containsExactly(Region.PAL, true, Region.USA, true)
     assertThat(vm.selectedRegion.value).isEqualTo(Region.PAL)
+    assertThat(vm.hasAnySave.value).isTrue()
   }
 
   @Test
   fun `refresh populates mergedLicenses with leaderboard data for all 4 slots of selected region`() =
     runTest {
-      // Slots 0 and 1 valid with leaderboard results; slots 2 and 3 empty.
       val bytes = ByteArray(0x20000)
       for ((slot, base) in RksysParser.LICENSE_BASES.withIndex()) {
         if (slot > 1) break
@@ -167,6 +188,7 @@ class SaveDataViewModelTest {
       every { SaveManager.listRegions(mockTree) } returns listOf(Region.PAL)
       coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns bytes
       coEvery { SaveManager.hasSave(mockTree, Region.PAL) } returns true
+      every { SaveManager.hasAnySave(mockTree) } returns true
       vm = buildVm()
 
       vm.refresh()
@@ -190,6 +212,7 @@ class SaveDataViewModelTest {
     every { SaveManager.listRegions(mockTree) } returns listOf(Region.PAL)
     coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns bytes
     coEvery { SaveManager.hasSave(mockTree, Region.PAL) } returns true
+    every { SaveManager.hasAnySave(mockTree) } returns true
     vm = buildVm()
 
     vm.refresh()
@@ -205,9 +228,10 @@ class SaveDataViewModelTest {
     every { SaveManager.listRegions(mockTree) } returns listOf(Region.PAL)
     coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns bytes
     coEvery { SaveManager.hasSave(mockTree, Region.PAL) } returns true
+    every { SaveManager.hasAnySave(mockTree) } returns true
     vm = buildVm()
 
-    vm.selectSlot(2) // slot 2 is `exists = false`
+    vm.selectSlot(2)
     vm.refresh()
 
     assertThat(vm.activeLicense.value).isNull()
@@ -229,10 +253,9 @@ class SaveDataViewModelTest {
       coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns palBytes
       coEvery { SaveManager.readSave(mockTree, Region.USA) } returns usaBytes
       coEvery { SaveManager.hasSave(mockTree, any()) } returns true
+      every { SaveManager.hasAnySave(mockTree) } returns true
       vm = buildVm()
       vm.refresh()
-      // After the initial refresh only the selected region (PAL) is
-      // merged; USA is not.
       assertThat(vm.mergedLicenses.value).doesNotContainKey(Region.USA)
       val callsAfterRefresh = leaderboardCalls
 
@@ -246,7 +269,6 @@ class SaveDataViewModelTest {
       assertThat(active).isNotNull()
       assertThat(active!!.friendCode).isEqualTo(usaFc)
       assertThat(active.leaderboardVr).isEqualTo(2222)
-      // Exactly one new leaderboard call (USA slot 0).
       assertThat(leaderboardCalls - callsAfterRefresh).isEqualTo(1)
     }
 
@@ -259,11 +281,12 @@ class SaveDataViewModelTest {
     every { SaveManager.listRegions(mockTree) } returns listOf(Region.PAL)
     coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns bytes
     coEvery { SaveManager.hasSave(mockTree, Region.PAL) } returns true
+    every { SaveManager.hasAnySave(mockTree) } returns true
     vm = buildVm()
     vm.refresh()
     val callsAfterRefresh = leaderboardCalls
 
-    vm.selectRegion(Region.PAL) // same region
+    vm.selectRegion(Region.PAL)
 
     assertThat(leaderboardCalls).isEqualTo(callsAfterRefresh)
   }
@@ -271,7 +294,6 @@ class SaveDataViewModelTest {
   @Test
   fun `selectSlot persists to prefs and updates activeLicense from mergedLicenses without re-fetching`() =
     runTest {
-      // Two valid slots: 0 and 1
       val bytes = ByteArray(0x20000)
       for ((slot, base) in RksysParser.LICENSE_BASES.withIndex()) {
         if (slot > 1) break
@@ -286,6 +308,7 @@ class SaveDataViewModelTest {
       every { SaveManager.listRegions(mockTree) } returns listOf(Region.PAL)
       coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns bytes
       coEvery { SaveManager.hasSave(mockTree, Region.PAL) } returns true
+      every { SaveManager.hasAnySave(mockTree) } returns true
       vm = buildVm()
       vm.refresh()
       val callsAfterRefresh = leaderboardCalls
@@ -293,8 +316,6 @@ class SaveDataViewModelTest {
       vm.selectSlot(1)
 
       assertThat(vm.selectedSlotIndex.value).isEqualTo(1)
-      // The combined activeLicense re-projects from mergedLicenses
-      // without an extra leaderboard round trip.
       val active = vm.activeLicense.first()
       assertThat(active).isNotNull()
       assertThat(active!!.slotIndex).isEqualTo(1)
@@ -304,64 +325,23 @@ class SaveDataViewModelTest {
     }
 
   @Test
-  fun `backupSave delegates to SaveManager backup and refreshes on success`() = runTest {
-    coEvery { SaveManager.backup(mockTree, Region.PAL, any()) } returns Result.success(Unit)
-    every { SaveManager.listRegions(mockTree) } returns listOf(Region.PAL)
-    coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns null
-    coEvery { SaveManager.hasSave(mockTree, Region.PAL) } returns false
-    vm = buildVm()
-
-    vm.backupSave(Region.PAL, mockk(relaxed = true))
-
-    coVerify { SaveManager.backup(mockTree, Region.PAL, any()) }
-    coVerify { SaveManager.listRegions(mockTree) }
-  }
-
-  @Test
-  fun `restoreSave delegates to SaveManager restore and refreshes on success`() = runTest {
-    coEvery { SaveManager.restore(mockTree, Region.USA, any()) } returns Result.success(Unit)
-    every { SaveManager.listRegions(mockTree) } returns listOf(Region.USA)
-    coEvery { SaveManager.readSave(mockTree, Region.USA) } returns null
-    coEvery { SaveManager.hasSave(mockTree, Region.USA) } returns false
-    vm = buildVm()
-
-    vm.restoreSave(Region.USA, mockk(relaxed = true))
-
-    coVerify { SaveManager.restore(mockTree, Region.USA, any()) }
-    coVerify { SaveManager.listRegions(mockTree) }
-  }
-
-  @Test
-  fun `deleteSave delegates to SaveManager delete and refreshes on success`() = runTest {
-    coEvery { SaveManager.delete(mockTree, Region.JPN) } returns Result.success(Unit)
-    every { SaveManager.listRegions(mockTree) } returns listOf(Region.JPN)
-    coEvery { SaveManager.readSave(mockTree, Region.JPN) } returns null
-    coEvery { SaveManager.hasSave(mockTree, Region.JPN) } returns false
-    vm = buildVm()
-
-    vm.deleteSave(Region.JPN)
-
-    coVerify { SaveManager.delete(mockTree, Region.JPN) }
-    coVerify { SaveManager.listRegions(mockTree) }
-  }
-
-  @Test
   fun `deleteSave updates mergedLicenses to four empty slots for the deleted region`() = runTest {
     val bytes = rksysWithLicense(pid = 0x00000010L, name = "Alice", slot = 0)
     every { SaveManager.listRegions(mockTree) } returns listOf(Region.PAL)
-    // First refresh: save exists and parses.
     coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns bytes
     coEvery { SaveManager.hasSave(mockTree, Region.PAL) } returns true
+    every { SaveManager.hasAnySave(mockTree) } returns true
     vm = buildVm()
     vm.refresh()
     assertThat(vm.mergedLicenses.value[Region.PAL]?.get(0)?.exists).isTrue()
 
     // After delete: save is gone, refresh must publish 4 empty slots.
-    coEvery { SaveManager.delete(mockTree, Region.PAL) } returns Result.success(Unit)
+    coEvery { SaveManager.deleteAll(mockTree) } returns Result.success(Unit)
     coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns null
     coEvery { SaveManager.hasSave(mockTree, Region.PAL) } returns false
+    every { SaveManager.hasAnySave(mockTree) } returns false
 
-    vm.deleteSave(Region.PAL)
+    vm.deleteAll()
 
     val merged = vm.mergedLicenses.value[Region.PAL]
     assertThat(merged).hasSize(4)
@@ -378,14 +358,13 @@ class SaveDataViewModelTest {
     val palInfo = RksysParser.parse(palBytes)
     every { SaveManager.listRegions(mockTree) } returns listOf(Region.PAL, Region.USA)
     coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns palBytes
-    // USA has no save from the start.
     coEvery { SaveManager.readSave(mockTree, Region.USA) } returns null
     coEvery { SaveManager.hasSave(mockTree, Region.PAL) } returns true
     coEvery { SaveManager.hasSave(mockTree, Region.USA) } returns false
+    every { SaveManager.hasAnySave(mockTree) } returns true
     vm = buildVm()
     vm.refresh()
 
-    // PAL is the initially selected region with real data.
     assertThat(vm.mergedLicenses.value[Region.PAL]).isEqualTo(palInfo.licenses)
     assertThat(vm.mergedLicenses.value).doesNotContainKey(Region.USA)
 
@@ -398,6 +377,134 @@ class SaveDataViewModelTest {
       assertThat(license.exists).isFalse()
     }
     assertThat(vm.activeLicense.value).isNull()
+  }
+
+  // --- unified save data tests ----------------------------------------
+
+  @Test
+  fun `backupAll delegates to the saver and persists the timestamp on success`() = runTest {
+    val uri = mockk<Uri>(relaxed = true)
+    var savedUri: Uri? = null
+    var savedTree: DolphinTree? = null
+    val saver: suspend (DolphinTree, Uri) -> Result<SaveManager.BackupSummary> = { tree, u ->
+      savedTree = tree
+      savedUri = u
+      Result.success(
+        SaveManager.BackupSummary(rksys = 2, faceLib = true, pulsar = 3, ghosts = 4, bytes = 100L)
+      )
+    }
+    every { SaveManager.listRegions(mockTree) } returns emptyList()
+    every { SaveManager.hasAnySave(mockTree) } returns true
+    vm = buildVm(backupSaver = saver)
+
+    vm.backupAll(uri)
+
+    assertThat(savedTree).isEqualTo(mockTree)
+    assertThat(savedUri).isEqualTo(uri)
+    assertThat(vm.lastBackupTimestamp.value).isEqualTo(fixedNow)
+  }
+
+  @Test
+  fun `backupAll sets an error when the saver fails and does not persist a timestamp`() = runTest {
+    val uri = mockk<Uri>(relaxed = true)
+    val saver: suspend (DolphinTree, Uri) -> Result<SaveManager.BackupSummary> = { _, _ ->
+      Result.failure(RuntimeException("disk full"))
+    }
+    every { SaveManager.listRegions(mockTree) } returns emptyList()
+    every { SaveManager.hasAnySave(mockTree) } returns true
+    vm = buildVm(backupSaver = saver)
+
+    vm.backupAll(uri)
+
+    assertThat(vm.error.value).isEqualTo("disk full")
+    assertThat(vm.lastBackupTimestamp.value).isEqualTo(0L)
+  }
+
+  @Test
+  fun `backupAll surfaces a not-configured error when the tree factory returns null`() = runTest {
+    val uri = mockk<Uri>(relaxed = true)
+    vm = buildVm(tree = null)
+    every {
+      app.getString(com.skiletro.wheelwitch.R.string.vm_save_not_configured)
+    } returns "no storage"
+
+    vm.backupAll(uri)
+
+    assertThat(vm.error.value).isEqualTo("no storage")
+  }
+
+  @Test
+  fun `restoreAll delegates to the saver and refreshes on success`() = runTest {
+    val uri = mockk<Uri>(relaxed = true)
+    var savedUri: Uri? = null
+    var savedTree: DolphinTree? = null
+    val saver: suspend (DolphinTree, Uri) -> Result<SaveManager.RestoreSummary> = { tree, u ->
+      savedTree = tree
+      savedUri = u
+      Result.success(SaveManager.RestoreSummary(rksys = 2, faceLib = true, pulsar = 3, ghosts = 4))
+    }
+    every { SaveManager.listRegions(mockTree) } returns emptyList()
+    every { SaveManager.hasAnySave(mockTree) } returns false
+    vm = buildVm(restoreSaver = saver)
+
+    vm.restoreAll(uri)
+
+    assertThat(savedTree).isEqualTo(mockTree)
+    assertThat(savedUri).isEqualTo(uri)
+  }
+
+  @Test
+  fun `restoreAll surfaces a not-configured error when the tree factory returns null`() = runTest {
+    val uri = mockk<Uri>(relaxed = true)
+    vm = buildVm(tree = null)
+    every {
+      app.getString(com.skiletro.wheelwitch.R.string.vm_save_not_configured)
+    } returns "no storage"
+
+    vm.restoreAll(uri)
+
+    assertThat(vm.error.value).isEqualTo("no storage")
+  }
+
+  @Test
+  fun `deleteAll delegates to the saver and refreshes on success`() = runTest {
+    var calls = 0
+    val saver: suspend (DolphinTree) -> Result<Unit> = {
+      calls++
+      Result.success(Unit)
+    }
+    every { SaveManager.listRegions(mockTree) } returns emptyList()
+    every { SaveManager.hasAnySave(mockTree) } returns false
+    vm = buildVm(deleteSaver = saver)
+
+    vm.deleteAll()
+
+    assertThat(calls).isEqualTo(1)
+  }
+
+  @Test
+  fun `formatLastBackup returns null when the timestamp is zero`() {
+    vm = buildVm()
+    assertThat(vm.formatLastBackup()).isNull()
+  }
+
+  @Test
+  fun `formatLastBackup returns a localized timestamp after a successful backup`() = runTest {
+    val uri = mockk<Uri>(relaxed = true)
+    val saver: suspend (DolphinTree, Uri) -> Result<SaveManager.BackupSummary> = { _, _ ->
+      Result.success(
+        SaveManager.BackupSummary(rksys = 1, faceLib = false, pulsar = 0, ghosts = 0, bytes = 0L)
+      )
+    }
+    every { SaveManager.listRegions(mockTree) } returns emptyList()
+    every { SaveManager.hasAnySave(mockTree) } returns true
+    vm = buildVm(backupSaver = saver)
+
+    vm.backupAll(uri)
+
+    val label = vm.formatLastBackup()
+    assertThat(label).isNotNull()
+    assertThat(label).isNotEmpty()
   }
 
   // --- helpers ----------------------------------------------------------
