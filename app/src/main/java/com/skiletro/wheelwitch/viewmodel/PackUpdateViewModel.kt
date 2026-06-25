@@ -12,9 +12,14 @@ import com.skiletro.wheelwitch.data.DolphinTree
 import com.skiletro.wheelwitch.data.ExtractingPhase
 import com.skiletro.wheelwitch.domain.RewindPackManager
 import com.skiletro.wheelwitch.model.PackStatus
+import com.skiletro.wheelwitch.util.io.DownloadProgress
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -50,6 +55,23 @@ class PackUpdateViewModel(
 
   private val _state = MutableStateFlow<UiState>(UiState.Idle)
   val state: StateFlow<UiState> = _state.asStateFlow()
+
+  /**
+   * Hot derivation of the in-flight download progress (fraction, byte
+   * rate, byte counts) for the [HomeScreen] progress bar. Distinct from
+   * [state] so the home screen doesn't re-compose the whole
+   * `Scaffold` + `TopBar` + `Scaffold` content lambda on every 1%
+   * progress callback. Emits null when not downloading.
+   *
+   * `distinctUntilChanged` coalesces duplicate progress events
+   * (e.g. when the downloader is throttled to a sub-1% delta). The
+   * downstream [HomeBottomBar] only collects this flow.
+   */
+  val installProgress: StateFlow<DownloadProgress?> =
+    _state
+      .map { (it as? UiState.Installing.Downloading)?.progress }
+      .distinctUntilChanged()
+      .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
   init {
     checkStatus()

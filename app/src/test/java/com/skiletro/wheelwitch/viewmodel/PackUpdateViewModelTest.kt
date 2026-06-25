@@ -3,10 +3,12 @@ package com.skiletro.wheelwitch.viewmodel
 import android.app.Application
 import com.google.common.truth.Truth.assertThat
 import com.skiletro.wheelwitch.R
+import com.skiletro.wheelwitch.data.ExtractingPhase
 import com.skiletro.wheelwitch.domain.RewindPackManager
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.SemVersion
 import com.skiletro.wheelwitch.model.ServerInfo
+import com.skiletro.wheelwitch.util.io.DownloadProgress
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -179,6 +181,60 @@ class PackUpdateViewModelTest {
     assertThat(vm.state.value).isEqualTo(stateBefore)
     // No additional checkStatus call.
     coVerify(exactly = 1) { manager.checkStatus() }
+  }
+
+  // --- installProgress ------------------------------------------------
+
+  @Test
+  fun `installProgress emits null when no install is in flight`() = runTest {
+    val vm = viewModel()
+
+    assertThat(vm.installProgress.value).isNull()
+  }
+
+  @Test
+  fun `installProgress clears to null after install completes`() = runTest {
+    coEvery { manager.checkStatus() } returns PackStatus.NotInstalled
+    coEvery { manager.installLatest(any()) } answers
+      {
+        val cb = firstArg<(RewindPackManager.InstallProgress) -> Unit>()
+        cb(RewindPackManager.InstallProgress.Downloading(DownloadProgress(0.5f, 1024L, 512L, 1024L)))
+        Result.success(Unit)
+      }
+    val vm = viewModel()
+
+    vm.installLatest()
+
+    // After the install completes, the VM auto-calls checkStatus
+    // and lands on Ready; installProgress is the derived flow of
+    // (it as? Installing.Downloading)?.progress, so it is null when
+    // state is no longer Downloading.
+    assertThat(vm.installProgress.value).isNull()
+  }
+
+  @Test
+  fun `installProgress is null during Extracting phase`() = runTest {
+    coEvery { manager.checkStatus() } returns PackStatus.NotInstalled
+    coEvery { manager.installLatest(any()) } answers
+      {
+        val cb = firstArg<(RewindPackManager.InstallProgress) -> Unit>()
+        cb(
+          RewindPackManager.InstallProgress.Extracting(
+            phase = ExtractingPhase.PreparingFolders,
+            filesDone = 0,
+            filesTotal = 0,
+            currentFile = null,
+            bytesDone = 0L,
+            bytesTotal = 0L,
+          )
+        )
+        Result.success(Unit)
+      }
+    val vm = viewModel()
+
+    vm.installLatest()
+
+    assertThat(vm.installProgress.value).isNull()
   }
 
   // --- refreshManager ------------------------------------------------

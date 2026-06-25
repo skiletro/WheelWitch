@@ -66,6 +66,7 @@ import com.skiletro.wheelwitch.ui.components.VersionHistoryContent
 import com.skiletro.wheelwitch.ui.components.focusBorder
 import com.skiletro.wheelwitch.ui.theme.buttonShape
 import com.skiletro.wheelwitch.ui.theme.sectionShape
+import com.skiletro.wheelwitch.util.io.DownloadProgress
 import com.skiletro.wheelwitch.util.launcher.DolphinLauncher
 import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
@@ -91,6 +92,7 @@ fun HomeScreen(
   onOpenSettings: () -> Unit,
 ) {
   val state by packUpdate.state.collectAsState()
+  val installProgress by packUpdate.installProgress.collectAsState()
   val hasWad by miiMaker.hasWad.collectAsState()
   val roomsState by onlineViewModel.roomsState.collectAsState()
   val activeLicense by saveData.activeLicense.collectAsState()
@@ -141,10 +143,11 @@ fun HomeScreen(
   }
 
   val context = LocalContext.current
-  LaunchedEffect(state) {
-    if (state is UiState.Error) {
-      val error = (state as UiState.Error).message
-      Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+  val errorMessage = (state as? UiState.Error)?.message
+  LaunchedEffect(errorMessage) {
+    val message = errorMessage
+    if (message != null) {
+      Toast.makeText(context, message, Toast.LENGTH_LONG).show()
     }
   }
 
@@ -174,6 +177,7 @@ fun HomeScreen(
             Column(modifier = Modifier.padding(vertical = 12.dp)) {
               HomeBottomBar(
                 state = state,
+                installProgress = installProgress,
                 activeLicense = activeLicense,
                 cachedLeaderboardVrs = cachedLeaderboardVrs,
                 playerCount = playerCount,
@@ -264,10 +268,19 @@ fun HomeScreen(
  * [DolphinLauncher.launchRetroRewind] which handles the full
  * pre-launch sequence (Dolphin.ini upsert + launch descriptor write
  * + intent + fallback) and reports via [DolphinLauncher.LaunchResult].
+ *
+ * [installProgress] is read from
+ * [PackUpdateViewModel.installProgress] so the [ProgressButton] only
+ * recomposes when the per-byte download progress changes; the
+ * [AnimatedContent] content lambda still re-dispatches on every
+ * state class transition, but the `Installing.Downloading` branch is
+ * extracted into [DownloadingProgressButton] so the rest of the UI
+ * does not pay the recomposition cost on each tick.
  */
 @Composable
 private fun HomeBottomBar(
   state: UiState,
+  installProgress: DownloadProgress?,
   activeLicense: LicenseInfo?,
   cachedLeaderboardVrs: Map<Int, Int>,
   playerCount: Int?,
@@ -310,56 +323,20 @@ private fun HomeBottomBar(
       label = "primary_action",
     ) { currentState ->
       when (currentState) {
-        is UiState.Installing -> {
-          // Determinate progress replaces the action button entirely
-          // during install/update. The fraction animates so the
-          // 1%-throttled progress events from the downloader look
-          // continuous instead of stepped.
-          val fraction =
-            when (currentState) {
-              is UiState.Installing.Downloading -> currentState.progress.progress
-              is UiState.Installing.Extracting ->
-                if (currentState.filesTotal <= 0) 0f
-                else currentState.filesDone.toFloat() / currentState.filesTotal.toFloat()
-            }
-          val animatedFraction by
-            animateFloatAsState(
-              targetValue = fraction.coerceIn(0f, 1f),
-              animationSpec = tween(durationMillis = 200),
-              label = "install_progress",
-            )
-          val bytesPerSecond =
-            (currentState as? UiState.Installing.Downloading)?.progress?.bytesPerSecond
-          val bytesDownloaded =
-            (currentState as? UiState.Installing.Downloading)?.progress?.bytesDownloaded ?: 0L
-          val totalBytes =
-            (currentState as? UiState.Installing.Downloading)?.progress?.totalBytes ?: 0L
-          val filesDone = (currentState as? UiState.Installing.Extracting)?.filesDone ?: 0
-          val filesTotal = (currentState as? UiState.Installing.Extracting)?.filesTotal ?: 0
-          val currentFile = (currentState as? UiState.Installing.Extracting)?.currentFile
-          val label =
-            when (currentState) {
-              is UiState.Installing.Downloading ->
-                stringResource(R.string.status_installing)
-              is UiState.Installing.Extracting ->
-                when (currentState.phase) {
-                  com.skiletro.wheelwitch.data.ExtractingPhase.PreparingFolders ->
-                    stringResource(R.string.status_extracting_preparing_folders)
-                  com.skiletro.wheelwitch.data.ExtractingPhase.WritingFiles ->
-                    stringResource(R.string.status_extracting)
-                }
-            }
-          ProgressButton(
-            progress = animatedFraction,
-            label = label,
-            bytesPerSecond = bytesPerSecond,
-            bytesDownloaded = bytesDownloaded,
-            totalBytes = totalBytes,
-            filesDone = filesDone,
-            filesTotal = filesTotal,
-            currentFile = currentFile,
-          )
+        is UiState.Installing.Downloading -> {
+          // Hot path: a new DownloadProgress event flows in here ~5x
+          // per second. Extracted into its own composable so the
+          // rest of the bar (stringResource lookups, sibling
+          // branches) does not recompose.
+          DownloadingProgressButton(installProgress ?: currentState.progress)
         }
+        is UiState.Installing.Extracting ->
+          ExtractingProgressButton(
+            filesDone = currentState.filesDone,
+            filesTotal = currentState.filesTotal,
+            currentFile = currentState.currentFile,
+            phase = currentState.phase,
+          )
         is UiState.Installed -> {
           // Brief flash before the VM auto-transitions to Checking.
           // Show the same UI as UpToDate.
@@ -498,4 +475,69 @@ private fun HomeBottomBar(
     }
   }
   LaunchedEffect(Unit) { skipInitialTransition = false }
+}
+
+/**
+ * Determinate progress bar shown while a pack zip is being downloaded.
+ * Owns its own [animateFloatAsState] so the 1%-throttled progress
+ * events from the downloader animate smoothly. Recomposes on every
+ * progress tick; siblings of this composable in [HomeBottomBar] are
+ * not affected because they live outside this composable's scope.
+ */
+@Composable
+private fun DownloadingProgressButton(progress: DownloadProgress) {
+  val animatedFraction by
+    animateFloatAsState(
+      targetValue = progress.progress.coerceIn(0f, 1f),
+      animationSpec = tween(durationMillis = 200),
+      label = "install_progress",
+    )
+  ProgressButton(
+    progress = animatedFraction,
+    label = stringResource(R.string.status_installing),
+    bytesPerSecond = progress.bytesPerSecond,
+    bytesDownloaded = progress.bytesDownloaded,
+    totalBytes = progress.totalBytes,
+    filesDone = 0,
+    filesTotal = 0,
+    currentFile = null,
+  )
+}
+
+/**
+ * Determinate progress bar shown while a pack zip is being extracted
+ * into the SAF tree. Fraction is the file-count basis; the
+ * current-file name is shown alongside the bar.
+ */
+@Composable
+private fun ExtractingProgressButton(
+  filesDone: Int,
+  filesTotal: Int,
+  currentFile: String?,
+  phase: com.skiletro.wheelwitch.data.ExtractingPhase,
+) {
+  val fraction = if (filesTotal <= 0) 0f else filesDone.toFloat() / filesTotal.toFloat()
+  val animatedFraction by
+    animateFloatAsState(
+      targetValue = fraction.coerceIn(0f, 1f),
+      animationSpec = tween(durationMillis = 200),
+      label = "extract_progress",
+    )
+  val label =
+    when (phase) {
+      com.skiletro.wheelwitch.data.ExtractingPhase.PreparingFolders ->
+        stringResource(R.string.status_extracting_preparing_folders)
+      com.skiletro.wheelwitch.data.ExtractingPhase.WritingFiles ->
+        stringResource(R.string.status_extracting)
+    }
+  ProgressButton(
+    progress = animatedFraction,
+    label = label,
+    bytesPerSecond = 0L,
+    bytesDownloaded = 0L,
+    totalBytes = 0L,
+    filesDone = filesDone,
+    filesTotal = filesTotal,
+    currentFile = currentFile,
+  )
 }
