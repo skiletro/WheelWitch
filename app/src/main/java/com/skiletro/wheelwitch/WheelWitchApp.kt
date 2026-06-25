@@ -2,17 +2,34 @@ package com.skiletro.wheelwitch
 
 import android.app.Application
 import android.util.Log
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
+import coil3.disk.DiskCache
+import coil3.disk.directory
+import coil3.memory.MemoryCache
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import coil3.request.crossfade
 import com.skiletro.wheelwitch.util.log.AppReleaseLogTree
 import com.skiletro.wheelwitch.util.log.MemoryBufferTree
 import com.skiletro.wheelwitch.util.mii.MiiFaceCache
 import com.skiletro.wheelwitch.util.io.OptionalFileTree
+import com.skiletro.wheelwitch.util.net.HttpClientProvider
 import com.skiletro.wheelwitch.util.prefs.Prefs
 import com.skiletro.wheelwitch.util.prefs.PrefsKeys
 import java.io.File
+import okhttp3.OkHttpClient
 import timber.log.Timber
 
-/** Application entry point. Plants Timber trees for logcat, the in-memory bug-report buffer, and the optional on-disk log file. */
-class WheelWitchApp : Application() {
+/**
+ * Application entry point. Plants Timber trees for logcat, the in-memory
+ * bug-report buffer, and the optional on-disk log file. Implements
+ * [SingletonImageLoader.Factory] so Coil is bootstrapped with a single
+ * shared [ImageLoader] that uses [HttpClientProvider.client] for
+ * network I/O and a 50 MB on-disk cache at [MiiFaceCache.directory].
+ */
+class WheelWitchApp :
+  Application(), SingletonImageLoader.Factory {
   override fun onCreate() {
     super.onCreate()
     MiiFaceCache.init(this)
@@ -36,5 +53,41 @@ class WheelWitchApp : Application() {
     val dir = File(cacheDir, "logs")
     if (!dir.exists()) dir.mkdirs()
     return File(dir, "wheelwitch.log")
+  }
+
+  /**
+   * Builds the singleton Coil [ImageLoader]. Wired once per process
+   * via [SingletonImageLoader.Factory] so every `AsyncImage` /
+   * `rememberAsyncImagePainter` shares the same memory + disk caches
+   * and OkHttp dispatcher.
+   *
+   * The disk cache directory is [MiiFaceCache.directory] (set by
+   * [onCreate]) so the Settings Mii face cache row can report and
+   * clear it without reaching into Coil's internals.
+   */
+  override fun newImageLoader(context: PlatformContext): ImageLoader {
+    val diskCacheDir = MiiFaceCache.directory ?: File(context.cacheDir, MiiFaceCache.DIR_NAME)
+    val callFactory: () -> OkHttpClient = { HttpClientProvider.client }
+    return ImageLoader.Builder(context)
+      .components { add(OkHttpNetworkFetcherFactory(callFactory = callFactory)) }
+      .memoryCache {
+        MemoryCache.Builder().maxSizePercent(context, MEMORY_CACHE_PERCENT).build()
+      }
+      .diskCache {
+        DiskCache.Builder()
+          .directory(diskCacheDir)
+          .maxSizeBytes(MAX_DISK_CACHE_BYTES)
+          .build()
+      }
+      .crossfade(false)
+      .build()
+  }
+
+  private companion object {
+    /** Memory cache: up to 10% of the process's available app memory. */
+    const val MEMORY_CACHE_PERCENT: Double = 0.10
+
+    /** Disk cache: 50 MB (matches the prior [MiiFaceCache] LRU cap). */
+    const val MAX_DISK_CACHE_BYTES: Long = 50L * 1024 * 1024
   }
 }

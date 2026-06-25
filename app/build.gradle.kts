@@ -111,6 +111,8 @@ dependencies {
   implementation(libs.jsoup)
   implementation(libs.rollingnumbers)
   implementation(libs.timber)
+  implementation(libs.coil.compose)
+  implementation(libs.coil.network.okhttp)
   debugImplementation(libs.androidx.compose.ui.tooling)
 
   testImplementation(libs.junit.jupiter.api)
