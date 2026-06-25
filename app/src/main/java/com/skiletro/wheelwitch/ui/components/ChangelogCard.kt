@@ -89,7 +89,6 @@ private fun ChangelogCardPreview() {
                 date = "2026-01-15",
                 changes = listOf(
                     "Added 8 new tracks",
-                    "Fixed VR multiplier on Mii faces",
                     "Improved room join reliability",
                 ),
             ),

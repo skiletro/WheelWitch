@@ -54,9 +54,6 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
     private val _tracks = MutableStateFlow<List<TimeTrialTrack>>(emptyList())
     val tracks: StateFlow<List<TimeTrialTrack>> = _tracks.asStateFlow()
 
-    private val _vrMultiplier = MutableStateFlow<Float?>(null)
-    val vrMultiplier: StateFlow<Float?> = _vrMultiplier.asStateFlow()
-
     /**
      * Conflated channel so rapid "load more" taps coalesce into one
      * in-flight request. The consumer in [launchLeaderboardConsumer]
@@ -139,7 +136,6 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
                         serverConnectivity = ServerConnectivity.Offline
                     )
                 }
-                _vrMultiplier.value = VersionFileParser.fetchVrMultiplier().getOrNull()
             }
         }
     }

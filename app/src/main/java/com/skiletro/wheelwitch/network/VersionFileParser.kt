@@ -58,7 +58,7 @@ internal fun parseDeletionsText(text: String): List<DeletionEntry> {
         }
 }
 
-/** Fetches update manifests, room status, leaderboard data, and VR multipliers from the RWFC network. */
+/** Fetches update manifests, room status, leaderboard data from the RWFC network. */
 object VersionFileParser {
     private const val RR_BASE = "https://update.rwfc.net/"
     private const val VERSION_URL = "${RR_BASE}RetroRewind/RetroRewindVersion.txt"
@@ -66,7 +66,6 @@ object VersionFileParser {
     private const val FULL_ZIP_URL = "${RR_BASE}RetroRewind/zip/RetroRewind.zip"
     private const val RWFC_API = "https://rwfc.net"
     private const val ROOM_STATUS_URL = "$RWFC_API/api/roomstatus"
-    private const val MULTIPLIER_URL = "$RWFC_API/updates/RetroRewind/multiplier.txt"
     private const val LEADERBOARD_URL = "$RWFC_API/api/leaderboard"
     private const val HEALTH_URL = "$RWFC_API/api/health"
     private const val HEALTH_LIVE_URL = "$RWFC_API/api/health/live"
@@ -95,11 +94,6 @@ object VersionFileParser {
     fun fetchRooms(): Result<List<Room>> = runCatching {
         val json = fetchUrl(ROOM_STATUS_URL)
         parseRooms(json)
-    }
-
-    /** Fetches the current VR multiplier from the update server (e.g. "2.0" for 2x weekends). */
-    fun fetchVrMultiplier(): Result<Float> = runCatching {
-        fetchUrl(MULTIPLIER_URL).trim().toFloat()
     }
 
     /** Fetches a single page from the paginated VR leaderboard. */

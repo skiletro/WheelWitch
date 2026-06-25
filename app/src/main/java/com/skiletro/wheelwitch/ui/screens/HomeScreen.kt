@@ -93,7 +93,6 @@ fun HomeScreen(
   val state by packUpdate.state.collectAsState()
   val hasWad by miiMaker.hasWad.collectAsState()
   val roomsState by onlineViewModel.roomsState.collectAsState()
-  val vrMultiplier by onlineViewModel.vrMultiplier.collectAsState()
   val activeLicense by saveData.activeLicense.collectAsState()
   val cachedLeaderboardVrs by saveData.cachedLeaderboardVrs.collectAsState()
 
@@ -175,7 +174,6 @@ fun HomeScreen(
             Column(modifier = Modifier.padding(vertical = 12.dp)) {
               HomeBottomBar(
                 state = state,
-                vrMultiplier = vrMultiplier,
                 activeLicense = activeLicense,
                 cachedLeaderboardVrs = cachedLeaderboardVrs,
                 playerCount = playerCount,
@@ -270,7 +268,6 @@ fun HomeScreen(
 @Composable
 private fun HomeBottomBar(
   state: UiState,
-  vrMultiplier: Float?,
   activeLicense: LicenseInfo?,
   cachedLeaderboardVrs: Map<Int, Int>,
   playerCount: Int?,
@@ -293,7 +290,6 @@ private fun HomeBottomBar(
       ActivePlayerCard(
         license = activeLicense,
         cachedLeaderboardVr = cachedLeaderboardVrs[activeLicense.slotIndex],
-        vrMultiplier = vrMultiplier,
       )
     }
 

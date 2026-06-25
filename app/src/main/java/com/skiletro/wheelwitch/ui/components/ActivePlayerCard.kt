@@ -20,12 +20,10 @@ import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
 
 /**
  * Compact Mii avatar + license name + VR display. Sourced from the
- * currently selected save slot ([LicenseInfo]). When [vrMultiplier]
- * is above 1.0, the VR label is suffixed with the multiplier to
- * reflect the active bonus (e.g. "2x" or "1.5x").
+ * currently selected save slot ([LicenseInfo]).
  */
 @Composable
-fun ActivePlayerCard(license: LicenseInfo, cachedLeaderboardVr: Int?, vrMultiplier: Float?) {
+fun ActivePlayerCard(license: LicenseInfo, cachedLeaderboardVr: Int?) {
   Row(verticalAlignment = Alignment.CenterVertically) {
     MiiFace(
       imageBase64 = null,
@@ -42,15 +40,7 @@ fun ActivePlayerCard(license: LicenseInfo, cachedLeaderboardVr: Int?, vrMultipli
         fontFamily = CtmkfFontFamily,
       )
       val vr = license.leaderboardVr ?: cachedLeaderboardVr ?: 0
-      val showActive = vrMultiplier != null && vrMultiplier > 1.0f
-      val multText =
-        if (showActive) {
-          if (vrMultiplier == vrMultiplier.toInt().toFloat()) vrMultiplier.toInt().toString()
-          else vrMultiplier.toString()
-        } else null
-      val suffix =
-        if (multText != null) stringResource(R.string.home_vr_active_suffix, multText)
-        else stringResource(R.string.home_vr_suffix)
+      val suffix = stringResource(R.string.home_vr_suffix)
       val numberStyle =
         MaterialTheme.typography.labelSmall.copy(
           color = MaterialTheme.colorScheme.onSurfaceVariant

@@ -57,7 +57,6 @@
     <string name="home_exit_message">Wheel Witch will close. Continue?</string>
     <string name="player_default">Player</string>
     <string name="home_vr_suffix">VR</string>
-    <string name="home_vr_active_suffix">VR \u00b7 %1$sx active</string>
 
     <!-- onboarding -->
     <string name="onboarding_beta_title">Heads up: this is beta software</string>
