@@ -56,6 +56,9 @@ import com.skiletro.wheelwitch.util.io.cacheSize
 import com.skiletro.wheelwitch.util.formatBytes
 import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
 import com.skiletro.wheelwitch.viewmodel.SaveDataViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Settings overlay. Sections, in order: Appearance, Mii Maker, Save
@@ -504,6 +507,16 @@ private fun AdvancedSection(
 @Composable
 private fun MiiCacheRow() {
   var miiCacheSizeBytes by remember { mutableStateOf(MiiFaceCache.cacheSize()) }
+  val scope = androidx.compose.runtime.rememberCoroutineScope()
+  // The initial read above is on the main thread; the on-disk
+  // walk can be a few hundred `stat()` calls for a 50 MB cache
+  // with many small files. Re-read on `Dispatchers.IO` once on
+  // first composition and re-read again after every clear so
+  // the summary line shows the post-clear value.
+  LaunchedEffect(Unit) {
+    val updated = withContext(Dispatchers.IO) { MiiFaceCache.cacheSize() }
+    miiCacheSizeBytes = updated
+  }
   SettingsItem(
     icon = ImageVector.vectorResource(R.drawable.ic_cached),
     title = stringResource(R.string.settings_mii_face_cache),
@@ -511,8 +524,10 @@ private fun MiiCacheRow() {
     trailing = {
       TextButton(
         onClick = {
-          MiiFaceCache.clear()
-          miiCacheSizeBytes = 0
+          scope.launch {
+            withContext(Dispatchers.IO) { MiiFaceCache.clear() }
+            miiCacheSizeBytes = 0
+          }
         },
         enabled = miiCacheSizeBytes > 0,
         shape = buttonShape,

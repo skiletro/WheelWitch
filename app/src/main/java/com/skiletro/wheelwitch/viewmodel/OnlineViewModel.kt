@@ -232,12 +232,16 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
      * Cache-then-network pattern.
      */
     private fun loadRaceStats() {
-        val cached = loadRaceStatsCache()
-        if (cached != null) {
-            _raceStatsState.value = RaceStatsState.Success(cached.stats, cached.cachedAt)
-            if (System.currentTimeMillis() - cached.cachedAt < MAX_CACHE_AGE_MS) return
+        viewModelScope.launch {
+            // Move the SharedPreferences read + JSON parse off the
+            // main thread; the cache can be a few hundred KB.
+            val cached = withContext(Dispatchers.IO) { loadRaceStatsCache() }
+            if (cached != null) {
+                _raceStatsState.value = RaceStatsState.Success(cached.stats, cached.cachedAt)
+                if (System.currentTimeMillis() - cached.cachedAt < MAX_CACHE_AGE_MS) return@launch
+            }
+            fetchRaceStats()
         }
-        fetchRaceStats()
     }
 
     /** Fetches global race stats and caches the raw JSON. Falls back to cache on failure. */

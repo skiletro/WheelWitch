@@ -43,10 +43,12 @@ class MiiMakerViewModel(application: Application) : AndroidViewModel(application
         refreshHasWad()
     }
 
-    /** Re-checks whether a cached WAD exists and updates [hasWad]. */
-    fun refreshHasWad() {
-        _hasWad.value = MiiWadInstaller.getCachedWadFile(app) != null
+  /** Re-checks whether a cached WAD exists and updates [hasWad]. */
+  fun refreshHasWad() {
+    viewModelScope.launch(Dispatchers.IO) {
+      _hasWad.value = MiiWadInstaller.getCachedWadFile(app) != null
     }
+  }
 
     /** Launches Dolphin with the cached Mii Channel WAD, if one is present. */
     fun launchMiiMaker() {
