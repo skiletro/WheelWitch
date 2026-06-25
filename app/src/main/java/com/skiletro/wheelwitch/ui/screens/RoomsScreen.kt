@@ -6,14 +6,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -210,24 +211,19 @@ fun RoomListItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = Modifier
-            .height(IntrinsicSize.Min)
-            .then(modifier)
+    FocusableSurface(
+        modifier = modifier.defaultMinSize(minHeight = 56.dp),
+        onClick = onClick,
+        selected = isSelected,
+        shape = chipShape
     ) {
-        FocusableSurface(
-            modifier = Modifier.weight(1f),
-            onClick = onClick,
-            selected = isSelected,
-            shape = chipShape
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = room.players.firstOrNull()?.name
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = room.players.firstOrNull()?.name
                             ?: stringResource(R.string.status_empty),
                         fontWeight = FontWeight.SemiBold,
                         style = MaterialTheme.typography.bodyMedium,
@@ -260,7 +256,6 @@ fun RoomListItem(
                 }
             }
         }
-    }
 }
 
 @Composable
