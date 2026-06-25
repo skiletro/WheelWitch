@@ -113,15 +113,13 @@ class SaveDataViewModel(
   private val _hasAnySave = MutableStateFlow(false)
   val hasAnySave: StateFlow<Boolean> = _hasAnySave.asStateFlow()
 
-  private val _lastBackupTimestamp = MutableStateFlow(prefs.getLong(PrefsKeys.LAST_BACKUP_TIMESTAMP_KEY, 0L))
+  private val _lastBackupTimestamp = MutableStateFlow(0L)
   val lastBackupTimestamp: StateFlow<Long> = _lastBackupTimestamp.asStateFlow()
 
-  private val _selectedRegion =
-    MutableStateFlow(loadPersistedRegion(prefs.getString(PrefsKeys.SELECTED_REGION_KEY, null)))
+  private val _selectedRegion = MutableStateFlow<Region?>(null)
   val selectedRegion: StateFlow<Region?> = _selectedRegion.asStateFlow()
 
-  private val _selectedSlotIndex =
-    MutableStateFlow(prefs.getInt(PrefsKeys.SELECTED_SLOT_KEY, 0))
+  private val _selectedSlotIndex = MutableStateFlow(0)
   val selectedSlotIndex: StateFlow<Int> = _selectedSlotIndex.asStateFlow()
 
   private val _mergedLicenses = MutableStateFlow<Map<Region, List<LicenseInfo>>>(emptyMap())
@@ -133,7 +131,7 @@ class SaveDataViewModel(
       }
       .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-  private val _cachedLeaderboardVrs = MutableStateFlow(readVrCache())
+  private val _cachedLeaderboardVrs = MutableStateFlow<Map<Int, Int>>(emptyMap())
   val cachedLeaderboardVrs: StateFlow<Map<Int, Int>> = _cachedLeaderboardVrs.asStateFlow()
 
   private val _isLoading = MutableStateFlow(false)
@@ -142,7 +140,24 @@ class SaveDataViewModel(
   private val _error = MutableStateFlow<String?>(null)
   val error: StateFlow<String?> = _error.asStateFlow()
 
+  /**
+   * Wall-clock time of the most recent [refresh] call, used by
+   * [refreshIfStale] to dedup the `init` collect and the
+   * `SaveInfoScreen` lifecycle ON_RESUME observer. The latter
+   * previously triggered a second full save re-parse + 4 leaderboard
+   * round trips every time the user opened the screen.
+   */
+  @Volatile private var lastRefreshAt: Long = 0L
+
   init {
+    // Load the persisted state on a background dispatcher so the
+    // VM constructor does not block the main thread on the
+    // SharedPreferences file read. The StateFlows start with their
+    // default values; the real values land a frame later. The
+    // observable types ([StateFlow]) handle the late emission
+    // without flicker for screens that already render the default
+    // state.
+    viewModelScope.launch(ioDispatcher) { loadPersistedState() }
     viewModelScope.launch {
       packStatusFlow
         .map { (it as? UiState.Ready)?.status }
@@ -154,15 +169,34 @@ class SaveDataViewModel(
   }
 
   /**
+   * Reads every persisted state (last-backup timestamp, selected
+   * region + slot, cached leaderboard VRs) from SharedPreferences
+   * off the main thread. Idempotent.
+   */
+  private fun loadPersistedState() {
+    _lastBackupTimestamp.value = prefs.getLong(PrefsKeys.LAST_BACKUP_TIMESTAMP_KEY, 0L)
+    _selectedRegion.value =
+      loadPersistedRegion(prefs.getString(PrefsKeys.SELECTED_REGION_KEY, null))
+    _selectedSlotIndex.value = prefs.getInt(PrefsKeys.SELECTED_SLOT_KEY, 0)
+    _cachedLeaderboardVrs.value = readVrCache()
+  }
+
+  /**
    * Re-reads every region's save from the SAF tree, parses them in
    * parallel, and refreshes the leaderboard for the selected
    * region's 4 slots. Also recomputes [hasAnySave] for the unified
    * backup UI. No-op if [treeFactory] returns null (no persisted
    * SAF grant).
+   *
+   * [hasSave] is derived from the [SaveManager.readSave] result
+   * (a `null` payload means the region has no save) rather than
+   * calling [SaveManager.hasSave] per region, which would pay a
+   * second SAF `findFile` round trip for every region.
    */
   fun refresh() {
     viewModelScope.launch {
       _isLoading.value = true
+      lastRefreshAt = now()
       try {
         val tree =
           treeFactory(app)
@@ -188,16 +222,24 @@ class SaveDataViewModel(
               .map { region ->
                 async(ioDispatcher) {
                   val bytes = SaveManager.readSave(tree, region)
+                  // `bytes != null` is the same condition
+                  // SaveManager.hasSave checks. Reuse the read
+                  // result so we don't double the SAF IPC.
                   if (bytes != null) {
-                    region to runCatching { parser(bytes) }.getOrNull()
-                  } else null
+                    val info = runCatching { parser(bytes) }.getOrNull()
+                    if (info != null) {
+                      RegionRead(region, info, hasSave = true)
+                    } else null
+                  } else {
+                    RegionRead(region, info = null, hasSave = false)
+                  }
                 }
               }
               .awaitAll()
           }
-        val infos =
-          parsed.filterNotNull().filter { it.second != null }.associate { it.first to it.second!! }
-        val hasSaves = regions.associateWith { SaveManager.hasSave(tree, it) }
+        val validReads = parsed.filterNotNull()
+        val infos = validReads.mapNotNull { it.info?.let { info -> it.region to info } }.toMap()
+        val hasSaves = validReads.associate { it.region to it.hasSave }
         _saveInfos.value = infos
         _hasSave.value = hasSaves
         _hasAnySave.value = computeHasAnySave(tree)
@@ -216,6 +258,20 @@ class SaveDataViewModel(
         _isLoading.value = false
       }
     }
+  }
+
+  /**
+   * [refresh] wrapper used by the `SaveInfoScreen` lifecycle
+   * ON_RESUME observer. Skips the work if a refresh already ran
+   * within [maxAgeMs], so navigating into and out of the screen in
+   * quick succession (or re-entering right after the
+   * `packStatusFlow` collect already triggered a refresh) does
+   * not pay a second full save re-parse + 4 leaderboard round
+   * trips. Forced refreshes (the manual pull-to-refresh button)
+   * should call [refresh] directly.
+   */
+  fun refreshIfStale(maxAgeMs: Long = DEFAULT_REFRESH_STALE_MS) {
+    if (now() - lastRefreshAt >= maxAgeMs) refresh()
   }
 
   /**
@@ -381,6 +437,13 @@ class SaveDataViewModel(
 
   private fun computeHasAnySave(tree: DolphinTree): Boolean = SaveManager.hasAnySave(tree)
 
+  /** Per-region read result so [refresh] can reuse the `readSave` output. */
+  private data class RegionRead(
+    val region: Region,
+    val info: SaveFileInfo?,
+    val hasSave: Boolean,
+  )
+
   private fun pickSelectedRegion(regions: List<Region>): Region? {
     if (regions.isEmpty()) return null
     val current = _selectedRegion.value
@@ -433,6 +496,14 @@ class SaveDataViewModel(
 
     /** Number of license slots in an `rksys.dat` save file. */
     private const val LICENSE_SLOTS = 4
+
+    /**
+     * Default staleness window for [refreshIfStale]. The
+     * `SaveInfoScreen` lifecycle observer uses this to dedup the
+     * `init`-triggered `packStatusFlow` collect from the
+     * `ON_RESUME` re-entry.
+     */
+    private const val DEFAULT_REFRESH_STALE_MS: Long = 5_000L
 
     fun defaultTreeFactory(context: Context): DolphinTree? = DolphinTree.fromPersisted(context)
 

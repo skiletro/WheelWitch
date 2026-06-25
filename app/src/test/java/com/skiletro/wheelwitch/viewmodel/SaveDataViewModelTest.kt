@@ -106,6 +106,44 @@ class SaveDataViewModelTest {
     assertThat(vm.hasAnySave.value).isFalse()
   }
 
+  // --- refreshIfStale -------------------------------------------------
+
+  @Test
+  fun `refreshIfStale skips when a refresh ran within the staleness window`() = runTest {
+    val bytes = rksysWithLicense(pid = 0x00000010L, name = "Alice", slot = 0)
+    every { SaveManager.listRegions(mockTree) } returns listOf(Region.PAL)
+    coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns bytes
+    every { SaveManager.hasAnySave(mockTree) } returns true
+    vm = buildVm()
+
+    vm.refresh()
+    val callsAfterFirst = leaderboardCalls
+
+    // Move the clock forward by less than the staleness window.
+    fixedNow += 1_000L
+    vm.refreshIfStale(maxAgeMs = 5_000L)
+
+    assertThat(leaderboardCalls).isEqualTo(callsAfterFirst)
+  }
+
+  @Test
+  fun `refreshIfStale runs when the last refresh is older than the window`() = runTest {
+    val bytes = rksysWithLicense(pid = 0x00000010L, name = "Alice", slot = 0)
+    every { SaveManager.listRegions(mockTree) } returns listOf(Region.PAL)
+    coEvery { SaveManager.readSave(mockTree, Region.PAL) } returns bytes
+    every { SaveManager.hasAnySave(mockTree) } returns true
+    vm = buildVm()
+
+    vm.refresh()
+    val callsAfterFirst = leaderboardCalls
+
+    // Move the clock forward past the staleness window.
+    fixedNow += 6_000L
+    vm.refreshIfStale(maxAgeMs = 5_000L)
+
+    assertThat(leaderboardCalls).isGreaterThan(callsAfterFirst)
+  }
+
   @Test
   fun `init with tree refreshes when packStatusFlow emits Ready`() = runTest {
     every { SaveManager.listRegions(mockTree) } returns emptyList()
