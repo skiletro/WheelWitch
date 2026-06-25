@@ -278,6 +278,14 @@ object FileDownloader {
      * A `null` Content-Length or missing `Accept-Ranges: bytes` is
      * treated as "ranges not supported"; the caller falls back to
      * single-stream.
+     *
+     * The HEAD is a single round trip paid up front; the alternative
+     * (speculatively dispatch the first chunk and trust the response
+     * `Content-Range` for total bytes) was rejected because the
+     * pre-allocation invariant at line 268 (`file.length() ==
+     * totalBytes`) requires the final size up front. The 100 ms
+     * RTT cost of the HEAD is dwarfed by the multi-RTT parallel
+     * download, so the serial ordering stays.
      */
     private fun probeRanges(url: String, client: OkHttpClient): Pair<Long, Boolean> {
         val request = Request.Builder().url(url).head().build()
