@@ -23,13 +23,12 @@ import com.skiletro.wheelwitch.ui.theme.WheelWitchPreviewTheme
 import com.skiletro.wheelwitch.ui.theme.buttonShape
 
 private val PrimaryActionButtonHeight = 56.dp
-private const val SubTextAlpha = 0.7f
 
 /**
  * Primary call-to-action button: 56dp tall, filled with the primary
- * color, [titleMedium] semi-bold label. An optional [subText] line
- * renders below the main label at reduced alpha. Integrates with
- * [focusBorder] for gamepad focus indication.
+ * color, [titleMedium] semi-bold label. An optional [subText] slot
+ * renders below the main label. Integrates with [focusBorder] for
+ * gamepad focus indication.
  */
 @Composable
 fun PrimaryActionButton(
@@ -37,7 +36,7 @@ fun PrimaryActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    subText: String? = null,
+    subText: @Composable (() -> Unit)? = null,
 ) {
     var isFocused by remember { mutableStateOf(false) }
 
@@ -64,15 +63,7 @@ fun PrimaryActionButton(
                 fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.Center
             )
-            if (subText != null) {
-                Text(
-                    text = subText,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Normal,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = SubTextAlpha),
-                    textAlign = TextAlign.Center
-                )
-            }
+            subText?.invoke()
         }
     }
 }
