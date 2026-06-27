@@ -25,6 +25,7 @@ See [CONTRIBUTING.md#build](CONTRIBUTING.md#build) for build commands and signin
 
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/): `<type>(<scope>): <description>`, lowercase imperative, no trailing period. See [CONTRIBUTING.md#commit-messages](CONTRIBUTING.md#commit-messages) for types and scopes.
 - Stage only intended files with `git add <file>`; read `git status` before every commit; never use `git add -A` or `git commit -a` without verifying the diff.
+- Do not add wordy commit messages, a short description is more than enough.
 
 ## Architecture
 
