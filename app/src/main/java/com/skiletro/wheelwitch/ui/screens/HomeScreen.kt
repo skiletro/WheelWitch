@@ -226,7 +226,12 @@ fun HomeScreen(
               .focusBorder(changelogFocused, sectionShape),
           contentAlignment = Alignment.Center,
         ) {
-          VersionHistoryContent(modifier = Modifier.fillMaxSize())
+          VersionHistoryContent(
+            modifier = Modifier.fillMaxSize(),
+            highlightVersion =
+              (state as? UiState.Ready)?.status
+                ?.let { (it as? PackStatus.UpdateAvailable)?.latestVersion?.toString() }
+          )
         }
       }
     }

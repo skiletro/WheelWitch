@@ -238,6 +238,7 @@
     <string name="version_history_title">Version History</string>
     <string name="version_history_loading">Loading version history...</string>
     <string name="version_history_failed">Failed to load version history</string>
+    <string name="version_history_new">NEW</string>
 
     <!-- logging / bug report -->
     <string name="settings_logging">Logging</string>

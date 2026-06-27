@@ -42,23 +42,26 @@ import kotlinx.coroutines.launch
  * adds a [ScreenHeader] and gamepad focus/scroll wiring on top).
  *
  * The optional [listState] lets callers hoist the scroll position so
- * they can attach their own focus/scroll modifiers to a parent.
+ * they can attach their own focus/scroll modifiers to a parent. The
+ * optional [highlightVersion] marks a single entry with a "NEW" pill;
+ * pass `null` (the default) for the ChangelogDetailScreen overlay.
  */
 @Composable
 fun VersionHistoryContent(
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
+    highlightVersion: String? = null,
     viewModel: VersionHistoryViewModel = viewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+  val state by viewModel.state.collectAsState()
 
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        when (val s = state) {
-            is VersionHistoryState.Idle, is VersionHistoryState.Loading -> LoadingContent()
-            is VersionHistoryState.Error -> ErrorContent(s.message)
-            is VersionHistoryState.Success -> ChangelogList(s.entries, listState)
-        }
+  Box(modifier = modifier, contentAlignment = Alignment.Center) {
+    when (val s = state) {
+      is VersionHistoryState.Idle, is VersionHistoryState.Loading -> LoadingContent()
+      is VersionHistoryState.Error -> ErrorContent(s.message)
+      is VersionHistoryState.Success -> ChangelogList(s.entries, listState, highlightVersion)
     }
+  }
 }
 
 @Composable
@@ -97,19 +100,27 @@ private fun ErrorContent(message: String) {
 }
 
 @Composable
-private fun ChangelogList(entries: List<ChangelogEntry>, listState: LazyListState) {
-    LazyColumn(
-        state = listState,
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        items(entries, key = { it.version }) { entry ->
-            ChangelogCard(entry, modifier = Modifier.animateItem())
-        }
-        item { Spacer(modifier = Modifier.height(8.dp)) }
+private fun ChangelogList(
+    entries: List<ChangelogEntry>,
+    listState: LazyListState,
+    highlightVersion: String?
+) {
+  LazyColumn(
+    state = listState,
+    modifier = Modifier
+      .fillMaxSize()
+      .padding(horizontal = 16.dp, vertical = 8.dp),
+    verticalArrangement = Arrangement.spacedBy(12.dp)
+  ) {
+    items(entries, key = { it.version }) { entry ->
+      ChangelogCard(
+        entry = entry,
+        isNew = highlightVersion != null && entry.version == highlightVersion,
+        modifier = Modifier.animateItem()
+      )
     }
+    item { Spacer(modifier = Modifier.height(8.dp)) }
+  }
 }
 
 /**
