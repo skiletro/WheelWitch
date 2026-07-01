@@ -46,7 +46,6 @@
     <string name="home_update_to">Update to v%s</string>
     <string name="home_launch_retro_rewind">Launch Retro Rewind</string>
     <string name="home_racers_online">%d racers online</string>
-    <string name="home_racers_online_suffix">racers online</string>
     <string name="home_offline">Offline</string>
     <string name="home_up_to_date">Up to date (v%s)</string>
     <string name="home_version_installed">v%s installed</string>

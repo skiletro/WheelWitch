@@ -51,11 +51,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import com.dontsaybojio.rollingnumbers.RollingNumbers
 import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.LicenseInfo
 import com.skiletro.wheelwitch.model.PackStatus
@@ -63,7 +61,6 @@ import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.ui.components.ActivePlayerCard
 import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
 import com.skiletro.wheelwitch.ui.components.ProgressButton
-import com.skiletro.wheelwitch.ui.components.PulsingDot
 import com.skiletro.wheelwitch.ui.components.TopBar
 import com.skiletro.wheelwitch.ui.components.VersionHistoryContent
 import com.skiletro.wheelwitch.ui.components.focusBorder
@@ -184,7 +181,6 @@ fun HomeScreen(
                 activeLicense = activeLicense,
                 cachedLeaderboardVrs = cachedLeaderboardVrs,
                 playerCount = playerCount,
-                isFetchingRooms = roomsState is RoomsState.Loading,
                 serverConnectivity = serverConnectivity,
                 isBusy = state is UiState.Installing,
                 onCheck = { packUpdate.checkStatus() },
@@ -293,7 +289,6 @@ private fun HomeBottomBar(
   activeLicense: LicenseInfo?,
   cachedLeaderboardVrs: Map<Int, Int>,
   playerCount: Int?,
-  isFetchingRooms: Boolean,
   serverConnectivity: ServerConnectivity,
   isBusy: Boolean,
   onCheck: () -> Unit,
@@ -444,59 +439,17 @@ private fun HomeBottomBar(
                   enabled = !isBusy,
                 )
               else -> {
-                val launchSubText: @Composable (() -> Unit)? =
+                val bullet = "\u2022 "
+                val launchSubText =
                   when (serverConnectivity) {
                     ServerConnectivity.Online -> {
                       val count = playerCount
-                      if (count != null || isFetchingRooms) {
-                        {
-                          val subStyle =
-                            MaterialTheme.typography.labelSmall.copy(
-                              color =
-                                MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
-                            )
-                          Row(verticalAlignment = Alignment.CenterVertically) {
-                            PulsingDot(
-                              target = MaterialTheme.colorScheme.onPrimary,
-                              pulse = isFetchingRooms,
-                              sizeDp = 8.dp
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            RollingNumbers(
-                              text = (count ?: 0).toString(),
-                              textStyle = subStyle
-                            )
-                            Text(
-                              text =
-                                " ${stringResource(R.string.home_racers_online_suffix)}",
-                              style = subStyle
-                            )
-                          }
-                        }
-                      } else null
+                      if (count != null) "$bullet${stringResource(R.string.home_racers_online, count)}"
+                      else null
                     }
-                    ServerConnectivity.Offline -> {
-                      {
-                        Text(
-                          text = "\u2022 ${stringResource(R.string.home_offline)}",
-                          style = MaterialTheme.typography.labelSmall,
-                          color =
-                            MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
-                          textAlign = TextAlign.Center
-                        )
-                      }
-                    }
-                    ServerConnectivity.NoInternet -> {
-                      {
-                        Text(
-                          text = "\u2022 ${stringResource(R.string.status_no_internet)}",
-                          style = MaterialTheme.typography.labelSmall,
-                          color =
-                            MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
-                          textAlign = TextAlign.Center
-                        )
-                      }
-                    }
+                    ServerConnectivity.Offline -> "$bullet${stringResource(R.string.home_offline)}"
+                    ServerConnectivity.NoInternet ->
+                      "$bullet${stringResource(R.string.status_no_internet)}"
                     ServerConnectivity.Unknown -> null
                   }
                 PrimaryActionButton(
