@@ -235,9 +235,8 @@
     <string name="settings_save_data_delete_confirm_message">This permanently deletes your save data, Miis, and game settings. This cannot be undone.</string>
 
     <!-- version history -->
-    <string name="version_history_title">Version History</string>
-    <string name="version_history_loading">Loading version history...</string>
-    <string name="version_history_failed">Failed to load version history</string>
+    <string name="home_version_history_coming_soon">Coming soon…</string>
+    <string name="home_version_history_coming_soon_body">Version history temporarily unavailable.</string>
 
     <!-- logging / bug report -->
     <string name="settings_logging">Logging</string>

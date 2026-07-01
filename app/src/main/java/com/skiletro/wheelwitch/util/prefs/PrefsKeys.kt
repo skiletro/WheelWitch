@@ -14,7 +14,6 @@ object PrefsKeys {
     const val WHEELWITCH_TREE_URI_KEY = "wheelwitch_tree_uri"
     const val SELECTED_SLOT_KEY = "selected_slot"
     const val SELECTED_REGION_KEY = "selected_region"
-    const val LAST_SERVER_VERSION_KEY = "last_server_version"
     const val LAST_LEADERBOARD_VR_KEY = "last_leaderboard_vr"
     const val THEME_MODE_KEY = "theme_mode"
     const val APP_THEME_KEY = "app_theme"

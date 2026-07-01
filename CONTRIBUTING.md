@@ -37,7 +37,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
 
 Types: `feat:` (new user-facing), `fix:` (bug fix), `refactor:` (neither), `perf:`, `test:`, `docs:`, `chore:`, `build:`.
 
-Scopes match the package layout. For example: `dolphin`, `pack`, `save`, `mii-maker`, `online`, `leaderboard`, `rooms`, `race-stats`, `changelog`, `onboarding`, `home`, `settings`, `quick-launch`, `theme`, `gamepad`, `ui`, `storage`, `i18n`, `viewmodel`.
+Scopes match the package layout. For example: `dolphin`, `pack`, `save`, `mii-maker`, `online`, `leaderboard`, `rooms`, `race-stats`, `onboarding`, `home`, `settings`, `quick-launch`, `theme`, `gamepad`, `ui`, `storage`, `i18n`, `viewmodel`.
 
 Description is lowercase imperative, no trailing period.
 
@@ -77,7 +77,7 @@ com.skiletro.wheelwitch
 ├── model/         (data types: SemVersion, PackStatus, SaveFileInfo, etc.)
 ├── data/          (storage: DolphinPaths, DolphinTree, DolphinConfig, SaveManager, RksysParser, GameTypeParser)
 ├── network/       (HTTP + JSON parsers: VersionFileParser, RoomStatusParser, etc.)
-├── domain/        (business logic: RewindPackManager, ChangelogParser)
+├── domain/        (business logic: RewindPackManager)
 ├── util/{io,net,mii,launcher,log,json,prefs}/  (utilities grouped by concern)
 ├── ui/{components,screens,theme}/
 └── viewmodel/     (Android ViewModels per screen)

@@ -108,7 +108,6 @@ dependencies {
   implementation(libs.androidx.lifecycle.viewmodel.compose)
   implementation(libs.material)
   implementation(libs.okhttp)
-  implementation(libs.jsoup)
   implementation(libs.rollingnumbers)
   implementation(libs.timber)
   implementation(libs.coil.compose)

@@ -9,9 +9,6 @@
             path="wheelwitch.xml" />
         <include
             domain="sharedpref"
-            path="changelog_cache.xml" />
-        <include
-            domain="sharedpref"
             path="race_stats_cache.xml" />
     </cloud-backup>
     <device-transfer>
@@ -21,9 +18,6 @@
         <include
             domain="sharedpref"
             path="wheelwitch.xml" />
-        <include
-            domain="sharedpref"
-            path="changelog_cache.xml" />
         <include
             domain="sharedpref"
             path="race_stats_cache.xml" />

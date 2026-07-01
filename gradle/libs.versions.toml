@@ -6,7 +6,6 @@ activityCompose = "1.13.0"
 kotlin = "2.2.10"
 composeBom = "2026.02.01"
 okhttp = "4.12.0"
-jsoup = "1.18.1"
 junitJupiter = "5.11.4"
 junitPlatform = "1.11.4"
 mockk = "1.13.14"
@@ -36,7 +35,6 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver", version.ref = "okhttp" }
-jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
 rollingnumbers = { group = "com.dontsaybojio", name = "rollingnumbers", version.ref = "rollingnumbers" }
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }

@@ -45,10 +45,10 @@ See [CONTRIBUTING.md#build](CONTRIBUTING.md#build) for build commands and signin
 ```
 com.skiletro.wheelwitch
 ├── MainActivity.kt
-├── model/         (data types: SemVersion, PackStatus, UpdateEntry, ChangelogEntry, DeletionEntry, SaveFileInfo, LicenseInfo, ServerInfo, etc.)
+├── model/         (data types: SemVersion, PackStatus, UpdateEntry, DeletionEntry, SaveFileInfo, LicenseInfo, ServerInfo, etc.)
 ├── data/          (storage: DolphinPaths, DolphinTree, DolphinConfig, SaveManager, RksysParser, GameTypeParser)
 ├── network/       (HTTP + JSON parsers: VersionFileParser, RoomStatusParser, RaceStatsParser, ServerHealthParser, LeaderboardParser, TimeTrialParser)
-├── domain/        (business logic: RewindPackManager, ChangelogParser)
+├── domain/        (business logic: RewindPackManager)
 ├── util/{io,net,mii,launcher,log,json,prefs}/   (utilities grouped by concern)
 ├── ui/{components,screens,theme}/
 └── viewmodel/
@@ -56,7 +56,6 @@ com.skiletro.wheelwitch
     ├── SaveDataViewModel     : per-region parse, leaderboard merge, backup/restore/delete, multi-region
     ├── MiiMakerViewModel     : WAD install (Mutex-guarded), launch, delete
     ├── OnlineViewModel       : rooms, leaderboard (Channel-based race-free), health, race stats
-    ├── VersionHistoryViewModel: version history + changelog
     └── UiState               : sealed class for pack update flow
 ```
 
@@ -105,7 +104,7 @@ The sub-packages under `util/` are intentional. Keep new files in the right sub-
 | Riivolution XML default | `riivolution/RetroRewind6.xml` |
 | Display name | `Retro Rewind` |
 
-## Tests (~280 tests)
+## Tests (~273 tests)
 
 ### Stack
 JUnit 5, MockK 1.13.x, Truth 1.4.x, `org.json:json` test dep (Android stubs throw "not mocked")
@@ -139,7 +138,6 @@ JUnit 5, MockK 1.13.x, Truth 1.4.x, `org.json:json` test dep (Android stubs thro
 | `data/DolphinConfigTest.kt` | 25 | `IsoPaths.toIniLines`, `read`/`upsert`/`remove`, idempotency, comment preservation, `dolphinUserTreeUri` |
 | `data/SaveManagerTest.kt` | 9 | region mapping, `listRegions`, `hasSave`/`backup`/`restore`/`delete` |
 | `network/VersionFileParserTest.kt` | 17 | update/deletion parsing, leaderboard, health, tracks, race stats |
-| `domain/ChangelogParserTest.kt` | 7 | Jsoup table extraction, spoiler handling |
 | `domain/RewindPackManagerTest.kt` | 12 | `checkStatus`, `installLatest` (zip + extract + version-after-extract, server failures, extract-failure no-version-write), `update` (incremental vs full reinstall fallback) |
 | `viewmodel/PackUpdateViewModelTest.kt` | 10 | init/checkStatus/install/update/clearError state machine |
 | `viewmodel/SaveDataViewModelTest.kt` | 12 | refresh, region selection, slot selection, leaderboard merge, backup/restore/delete delegation |

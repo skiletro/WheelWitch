@@ -16,8 +16,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -51,6 +49,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -62,10 +61,8 @@ import com.skiletro.wheelwitch.ui.components.ActivePlayerCard
 import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
 import com.skiletro.wheelwitch.ui.components.ProgressButton
 import com.skiletro.wheelwitch.ui.components.TopBar
-import com.skiletro.wheelwitch.ui.components.VersionHistoryContent
 import com.skiletro.wheelwitch.ui.components.focusBorder
 import com.skiletro.wheelwitch.ui.theme.buttonShape
-import com.skiletro.wheelwitch.ui.theme.sectionShape
 import com.skiletro.wheelwitch.util.io.DownloadProgress
 import com.skiletro.wheelwitch.util.launcher.DolphinLauncher
 import com.skiletro.wheelwitch.viewmodel.MiiMakerViewModel
@@ -79,8 +76,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Top-level home screen: top bar, version-history card, and the
- * check-for-updates / install / launch bottom bar. The save-data
+ * Top-level home screen: top bar, version-history placeholder, and
+ * the check-for-updates / install / launch bottom bar. The save-data
  * "Licenses" top-bar entry opens [SaveInfoScreen].
  */
 @Composable
@@ -115,10 +112,9 @@ fun HomeScreen(
 
   var showOnlineMenu by remember { mutableStateOf(false) }
   var showSaveInfo by remember { mutableStateOf(false) }
-  var showChangelog by remember { mutableStateOf(false) }
   var showExitDialog by remember { mutableStateOf(false) }
 
-  BackHandler(enabled = !(showOnlineMenu || showSaveInfo || showChangelog)) {
+  BackHandler(enabled = !(showOnlineMenu || showSaveInfo)) {
     showExitDialog = true
   }
 
@@ -158,7 +154,7 @@ fun HomeScreen(
     val launchFallback = stringResource(R.string.home_launch_fallback)
     val launchStorageNotConfigured = stringResource(R.string.error_storage_not_configured)
 
-    if (!(showOnlineMenu || showSaveInfo || showChangelog)) {
+    if (!(showOnlineMenu || showSaveInfo)) {
       Scaffold(
         topBar = {
           Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
@@ -214,33 +210,30 @@ fun HomeScreen(
           }
         },
       ) { padding ->
-        var changelogFocused by remember { mutableStateOf(false) }
         Box(
           modifier =
             Modifier.fillMaxSize()
               .background(MaterialTheme.colorScheme.background)
-              .padding(padding)
-              .clickable { showChangelog = true }
-              .focusable()
-              .onFocusChanged { changelogFocused = it.isFocused }
-              .focusBorder(changelogFocused, sectionShape),
+              .padding(padding),
           contentAlignment = Alignment.Center,
         ) {
-          VersionHistoryContent(modifier = Modifier.fillMaxSize())
+          Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+              text = stringResource(R.string.home_version_history_coming_soon),
+              style = MaterialTheme.typography.headlineSmall,
+              fontWeight = FontWeight.Bold,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+              text = stringResource(R.string.home_version_history_coming_soon_body),
+              style = MaterialTheme.typography.bodyMedium,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+              textAlign = TextAlign.Center,
+            )
+          }
         }
       }
-    }
-
-    BackHandler(enabled = showChangelog) {
-      showChangelog = false
-    }
-
-    AnimatedVisibility(
-      visible = showChangelog,
-      enter = slideInVertically() + fadeIn(),
-      exit = slideOutVertically() + fadeOut(),
-    ) {
-      ChangelogDetailScreen(onClose = { showChangelog = false })
     }
 
     AnimatedVisibility(
