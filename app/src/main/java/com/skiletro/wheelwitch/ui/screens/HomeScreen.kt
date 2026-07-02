@@ -292,7 +292,7 @@ private fun HomeBottomBar(
     modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    if (activeLicense != null) {
+    if (activeLicense != null && state !is UiState.Installing) {
       ActivePlayerCard(
         license = activeLicense,
         cachedLeaderboardVr = cachedLeaderboardVrs[activeLicense.slotIndex],
