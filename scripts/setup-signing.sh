@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 echo "=== WheelWitch Release Signing Setup ==="
@@ -60,9 +60,15 @@ echo "---"
 echo "Secret name: KEY_PASSWORD"
 echo "Value: $KEY_PASS"
 echo "---"
+ENV_FILE=".env"
+cat > "$ENV_FILE" <<EOF
+KEYSTORE_PATH=$OUTPUT
+KEYSTORE_PASSWORD=$STORE_PASS
+KEY_ALIAS=$KEY_ALIAS
+KEY_PASSWORD=$KEY_PASS
+EOF
+
 echo ""
-echo "For local release builds, set these environment variables:"
-echo "  export KEYSTORE_PATH=$OUTPUT"
-echo "  export KEYSTORE_PASSWORD=$STORE_PASS"
-echo "  export KEY_ALIAS=$KEY_ALIAS"
-echo "  export KEY_PASSWORD=$KEY_PASS"
+echo ".env file created at $ENV_FILE — devenv loads it automatically."
+echo ""
+echo "For local release builds, run:  devenv tasks run gradle:assemble-release"

@@ -16,3 +16,12 @@
 local.properties
 /app/release/
 /release.keystore
+/.env
+/.devenv/
+/devenv.local.nix
+.devenv*
+devenv.local.nix
+devenv.local.yaml
+.direnv
+.pre-commit-config.yaml
+/.android

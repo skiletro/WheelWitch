@@ -6,19 +6,34 @@
 - Android SDK (managed automatically via Gradle)
 - (Optional) Android Studio for the emulator and layout previews
 
-### Nix Devshell
+### devenv
 
-If you have [Nix](https://nixos.org) and [direnv](https://direnv.net) installed, the `.envrc` will automatically load a development shell containing JDK 21 and the Android SDK. Otherwise, enter it manually with `nix develop`
+If you have [Nix](https://nixos.org) and [direnv](https://direnv.net) installed, the `.envrc` will auto-load a [devenv](https://devenv.sh) shell containing JDK 17, the Android SDK, the emulator, and `adb`. The first entry into the directory builds the shell (a few minutes for the Android SDK). On hosts without Nix, install [devenv](https://devenv.sh/getting-started/) and run `devenv shell` manually.
 
-### Justfile
-
-A [`just`](https://github.com/casey/just) command runner is provided for common tasks:
+Common tasks (after entering the shell):
 
 ```bash
-just build        # assemble debug APK
-just test         # run unit tests
-just clean        # clean build outputs
-just check        # build + test
+devenv tasks run gradle:assemble-debug    # assemble debug APK
+devenv tasks run gradle:test              # run unit tests
+devenv tasks run gradle:format            # spotless + ktfmt
+devenv tasks run gradle:lint              # android lint
+devenv tasks run gradle:clean             # gradle clean
+devenv tasks run gradle:check             # build + test
+devenv tasks list                         # show all available tasks
+```
+
+Build, install and launch on a connected adb device:
+
+```bash
+devenv tasks run android:install
+```
+
+Boot an Android emulator (one-time AVD creation required):
+
+```bash
+echo "no" | avdmanager create avd --force --name wheelwitch \
+  --package 'system-images;android-36;google_apis;x86_64' --device pixel
+emulator @wheelwitch
 ```
 
 ## Contributing
@@ -57,18 +72,17 @@ No formal CLA; if you contribute code, please add yourself to a credits section 
 
 The debug APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
 
-For a **signed release APK**, set these environment variables and run `./gradlew assembleRelease`:
+For a **signed release APK**, run `scripts/setup-signing.sh` to generate a keystore
+and `.env` file, then:
 
 ```bash
-export KEYSTORE_PATH=./release.keystore
-export KEYSTORE_PASSWORD=your-store-pass
-export KEY_ALIAS=wheelwitch
-# KEY_PASSWORD is unified with KEYSTORE_PASSWORD (set it to the same value, or omit it)
+devenv tasks run gradle:assemble-release   # Nix shell — loads .env automatically
+# or
+source .env && ./gradlew assembleRelease  # without Nix
 ```
 
 The keystore is resolved relative to the project root. Defaults: PKCS12, RSA-4096,
-SHA512withRSA, 10000-day validity. Run `scripts/setup-signing.sh` to generate one
-interactively.
+SHA512withRSA, 10000-day validity.
 
 ## Project structure
 
