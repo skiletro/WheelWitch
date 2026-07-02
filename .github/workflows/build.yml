@@ -9,9 +9,6 @@ on:
       - '.github/assets/**'
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -20,19 +17,22 @@ jobs:
   test:
     runs-on: ubuntu-24.04
 
+    permissions:
+      contents: read
+
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: 17
           distribution: temurin
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
 
@@ -43,13 +43,16 @@ jobs:
     runs-on: ubuntu-24.04
     needs: test
 
+    permissions:
+      contents: write
+
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: 17
           distribution: temurin
@@ -61,7 +64,7 @@ jobs:
           build-tools-version: '36.0.0'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
 
@@ -116,7 +119,7 @@ jobs:
           SHORT_HASH: ${{ steps.appversion.outputs.short_hash }}
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheelwitch-${{ steps.appversion.outputs.version }}-${{ steps.appversion.outputs.short_hash }}
           path: |
