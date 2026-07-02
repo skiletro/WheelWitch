@@ -369,29 +369,20 @@ private fun HomeBottomBar(
           }
         is UiState.Ready -> {
           val status = currentState.status
-          val checkSubtitle =
-            when (status) {
-              is PackStatus.UpToDate ->
-                stringResource(R.string.home_up_to_date, status.currentVersion)
-              is PackStatus.UpdateAvailable ->
-                stringResource(
-                  R.string.home_update_format,
-                  status.currentVersion,
-                  status.latestVersion,
-                )
-              is PackStatus.Installed ->
-                stringResource(R.string.home_version_installed, status.version)
-              else -> null
-            }
-          Row(verticalAlignment = Alignment.CenterVertically) {
+          if (status is PackStatus.CheckFailed) {
+            val installed = status.installedVersion
+            val title = stringResource(R.string.home_check_failed)
+            val subtitle =
+              installed?.let { stringResource(R.string.home_check_failed_installed_format, it) }
             FilledTonalButton(
               onClick = onCheck,
               enabled = !isBusy,
               shape = buttonShape,
-              colors = ButtonDefaults.filledTonalButtonColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-              ),
+              colors =
+                ButtonDefaults.filledTonalButtonColors(
+                  containerColor = MaterialTheme.colorScheme.errorContainer,
+                  contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                ),
               modifier =
                 Modifier.height(56.dp)
                   .onFocusChanged { checkButtonFocused = it.isFocused }
@@ -399,53 +390,98 @@ private fun HomeBottomBar(
             ) {
               Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                  text = stringResource(R.string.home_check_for_updates),
+                  text = title,
                   style = MaterialTheme.typography.titleMedium,
                   fontWeight = FontWeight.Medium,
                 )
-                if (checkSubtitle != null) {
+                if (subtitle != null) {
                   Text(
-                    text = checkSubtitle,
+                    text = subtitle,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Normal,
                   )
                 }
               }
             }
-            Spacer(modifier = Modifier.width(12.dp))
-            when (status) {
-              is PackStatus.NotInstalled ->
-                PrimaryActionButton(
-                  text = stringResource(R.string.action_install),
-                  onClick = onInstall,
-                  enabled = !isBusy,
-                )
-              is PackStatus.UpdateAvailable ->
-                PrimaryActionButton(
-                  text = stringResource(R.string.home_update_to, status.latestVersion),
-                  onClick = onUpdate,
-                  enabled = !isBusy,
-                )
-              else -> {
-                val bullet = "\u2022 "
-                val launchSubText =
-                  when (serverConnectivity) {
-                    ServerConnectivity.Online -> {
-                      val count = playerCount
-                      if (count != null) "$bullet${stringResource(R.string.home_racers_online, count)}"
-                      else null
-                    }
-                    ServerConnectivity.Offline -> "$bullet${stringResource(R.string.home_offline)}"
-                    ServerConnectivity.NoInternet ->
-                      "$bullet${stringResource(R.string.status_no_internet)}"
-                    ServerConnectivity.Unknown -> null
+          } else {
+            val checkSubtitle =
+              when (status) {
+                is PackStatus.UpToDate ->
+                  stringResource(R.string.home_up_to_date, status.currentVersion)
+                is PackStatus.UpdateAvailable ->
+                  stringResource(
+                    R.string.home_update_format,
+                    status.currentVersion,
+                    status.latestVersion,
+                  )
+                is PackStatus.Installed ->
+                  stringResource(R.string.home_version_installed, status.version)
+                else -> null
+              }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+              FilledTonalButton(
+                onClick = onCheck,
+                enabled = !isBusy,
+                shape = buttonShape,
+                colors = ButtonDefaults.filledTonalButtonColors(
+                  containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                  contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                ),
+                modifier =
+                  Modifier.height(56.dp)
+                    .onFocusChanged { checkButtonFocused = it.isFocused }
+                    .focusBorder(checkButtonFocused),
+              ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                  Text(
+                    text = stringResource(R.string.home_check_for_updates),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                  )
+                  if (checkSubtitle != null) {
+                    Text(
+                      text = checkSubtitle,
+                      style = MaterialTheme.typography.labelSmall,
+                      fontWeight = FontWeight.Normal,
+                    )
                   }
-                PrimaryActionButton(
-                  text = stringResource(R.string.home_launch_retro_rewind),
-                  onClick = onLaunch,
-                  enabled = !isBusy,
-                  subText = launchSubText,
-                )
+                }
+              }
+              Spacer(modifier = Modifier.width(12.dp))
+              when (status) {
+                is PackStatus.NotInstalled ->
+                  PrimaryActionButton(
+                    text = stringResource(R.string.action_install),
+                    onClick = onInstall,
+                    enabled = !isBusy,
+                  )
+                is PackStatus.UpdateAvailable ->
+                  PrimaryActionButton(
+                    text = stringResource(R.string.home_update_to, status.latestVersion),
+                    onClick = onUpdate,
+                    enabled = !isBusy,
+                  )
+                else -> {
+                  val bullet = "\u2022 "
+                  val launchSubText =
+                    when (serverConnectivity) {
+                      ServerConnectivity.Online -> {
+                        val count = playerCount
+                        if (count != null) "$bullet${stringResource(R.string.home_racers_online, count)}"
+                        else null
+                      }
+                      ServerConnectivity.Offline -> "$bullet${stringResource(R.string.home_offline)}"
+                      ServerConnectivity.NoInternet ->
+                        "$bullet${stringResource(R.string.status_no_internet)}"
+                      ServerConnectivity.Unknown -> null
+                    }
+                  PrimaryActionButton(
+                    text = stringResource(R.string.home_launch_retro_rewind),
+                    onClick = onLaunch,
+                    enabled = !isBusy,
+                    subText = launchSubText,
+                  )
+                }
               }
             }
           }

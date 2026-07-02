@@ -85,7 +85,7 @@ class RewindPackManagerTest {
   }
 
   @Test
-  fun `checkStatus returns Installed when server unreachable and local version exists`() =
+  fun `checkStatus returns CheckFailed when server unreachable and local version exists`() =
     runBlocking {
       coEvery { tree.readVersion() } returns SemVersion(3, 2, 5)
       every { VersionFileParser.fetchServerInfo() } returns
@@ -93,7 +93,7 @@ class RewindPackManagerTest {
 
       val status = manager().checkStatus()
 
-      assertThat(status).isEqualTo(PackStatus.Installed(SemVersion(3, 2, 5)))
+      assertThat(status).isEqualTo(PackStatus.CheckFailed(SemVersion(3, 2, 5)))
     }
 
   @Test

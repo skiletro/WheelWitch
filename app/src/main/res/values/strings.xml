@@ -50,6 +50,8 @@
     <string name="home_up_to_date">Up to date (v%s)</string>
     <string name="home_version_installed">v%s installed</string>
     <string name="home_update_format">v%1$s to v%2$s</string>
+    <string name="home_check_failed">Couldn\'t check for updates</string>
+    <string name="home_check_failed_installed_format">Installed v%1$s — tap to retry</string>
     <string name="home_launch_dolphin_not_installed">Dolphin Emulator isn\'t installed. Install it from dolphin-emu.org, then try again.</string>
     <string name="home_launch_no_rom">No Mario Kart Wii ROM found. Open Settings, then Onboarding, then Relaunch to pick one.</string>
     <string name="home_launch_fallback">Couldn\'t launch Retro Rewind automatically. Pick it from Dolphin\'s game library.</string>

@@ -78,7 +78,7 @@ The sub-packages under `util/` are intentional. Keep new files in the right sub-
 - **Leaderboard**: clickable rows with 5dp primary border on focus; one-shot `hasRequestedFocus` guard for pagination
 - **File downloads**: `FileDownloader.downloadToFile()` with progress callback, HTTP validation, configurable client
 - **Mii Maker WAD**: downloads zip from GameBanana, extracts `.wad`, launches via `ACTION_VIEW` + FileProvider
-- **Update server**: `https://update.rwfc.net/`; version/deletion manifest files; fallback to full reinstall if < 3.2.6
+- **Update server**: `https://rwfc.net/updates/`; version/deletion manifest files; fallback to full reinstall if < 3.2.6
 - **Copy buffer**: 262144 bytes; **Parallel incremental downloads** via `async/await`
 - **Multi-region saves**: `SaveManager.Region` enum (PAL/USA/JPN) mapped from the ROM filename prefix; one save file per region
 
@@ -90,7 +90,7 @@ The sub-packages under `util/` are intentional. Keep new files in the right sub-
 | Dolphin activity | `org.dolphinemu.dolphinemu.ui.main.MainActivity` |
 | Launch intent extra | `"AutoStartFile"` (path to `rr_autostartfile.json`) |
 | Launch descriptor filename | `rr_autostartfile.json` |
-| Update server | `https://update.rwfc.net/` |
+| Update server | `https://rwfc.net/updates/` |
 | Version file | `RetroRewind/RetroRewindVersion.txt` |
 | Delete file | `RetroRewind/RetroRewindDelete.txt` |
 | Full zip | `RetroRewind/zip/RetroRewind.zip` |

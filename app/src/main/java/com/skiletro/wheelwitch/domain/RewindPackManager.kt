@@ -40,9 +40,13 @@ class RewindPackManager(
 ) {
   /**
    * Reads the local pack version and the server manifest and returns
-   * the appropriate [PackStatus]. If the server is unreachable,
-   * returns [PackStatus.Installed] when a local version exists or
-   * [PackStatus.NotInstalled] otherwise.
+   * the appropriate [PackStatus]. If the server is unreachable and a
+   * local version exists, returns [PackStatus.CheckFailed] so the UI
+   * can surface a retry affordance (distinct from
+   * [PackStatus.Installed], which implies the version is up to date).
+   * If the server is unreachable and there is no local version,
+   * returns [PackStatus.NotInstalled] so the user is routed to
+   * onboarding.
    */
   suspend fun checkStatus(): PackStatus = withContext(Dispatchers.IO) {
     val local = tree.readVersion()
@@ -50,7 +54,7 @@ class RewindPackManager(
     if (server == null) {
       Timber.tag(TAG).w("Server info unavailable; localVersion=%s", local)
       return@withContext if (local != null) {
-        PackStatus.Installed(local)
+        PackStatus.CheckFailed(local)
       } else {
         PackStatus.NotInstalled
       }

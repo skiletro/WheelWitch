@@ -64,13 +64,23 @@ class VersionFileParserTest {
     }
 
     @Test
-    fun `parseUpdatesText rewrites http to https and drops colon 8000`() {
+    fun `parseUpdatesText rewrites legacy update host to new base`() {
         val text =
             "3.2.6 http://update.rwfc.net:8000/RetroRewind/zip/0017.zip /0017.zip Assets"
         val updates = parseUpdatesText(text)
         assertThat(updates).hasSize(1)
         assertThat(updates[0].url)
-            .isEqualTo("https://update.rwfc.net/RetroRewind/zip/0017.zip")
+            .isEqualTo("https://rwfc.net/updates/RetroRewind/zip/0017.zip")
+    }
+
+    @Test
+    fun `parseUpdatesText rewrites https update host to new base`() {
+        val text =
+            "6.11.6 https://update.rwfc.net/RetroRewind/zip/6.11.6.zip /6.11.6.zip Assets"
+        val updates = parseUpdatesText(text)
+        assertThat(updates).hasSize(1)
+        assertThat(updates[0].url)
+            .isEqualTo("https://rwfc.net/updates/RetroRewind/zip/6.11.6.zip")
     }
 
     @Test
