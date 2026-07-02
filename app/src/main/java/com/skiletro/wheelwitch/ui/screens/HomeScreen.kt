@@ -24,9 +24,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -56,6 +58,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.LicenseInfo
 import com.skiletro.wheelwitch.model.PackStatus
+import com.skiletro.wheelwitch.model.SemVersion
 import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.ui.components.ActivePlayerCard
 import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
@@ -346,19 +349,47 @@ private fun HomeBottomBar(
             )
           }
         }
-        is UiState.Checking ->
-          FilledTonalButton(
-            onClick = {},
-            enabled = false,
-            shape = buttonShape,
-            modifier = Modifier.height(56.dp),
-          ) {
-            Text(
-              text = stringResource(R.string.status_checking),
-              style = MaterialTheme.typography.titleMedium,
-              fontWeight = FontWeight.Medium,
-            )
+        is UiState.Checking -> {
+          val previous = currentState.previousStatus
+          when {
+            previous == null ->
+              FilledTonalButton(
+                onClick = {},
+                enabled = false,
+                shape = buttonShape,
+                modifier = Modifier.height(56.dp),
+              ) {
+                Text(
+                  text = stringResource(R.string.status_checking),
+                  style = MaterialTheme.typography.titleMedium,
+                  fontWeight = FontWeight.Medium,
+                )
+              }
+            previous is PackStatus.CheckFailed ->
+              CheckFailedButton(
+                installed = previous.installedVersion,
+                onCheck = onCheck,
+                enabled = false,
+                showSpinner = true,
+                checkButtonFocused = checkButtonFocused,
+                onFocusChanged = { checkButtonFocused = it },
+              )
+            else ->
+              StatusRow(
+                status = previous,
+                isChecking = true,
+                isBusy = isBusy,
+                serverConnectivity = serverConnectivity,
+                playerCount = playerCount,
+                checkButtonFocused = checkButtonFocused,
+                onFocusChanged = { checkButtonFocused = it },
+                onCheck = onCheck,
+                onInstall = onInstall,
+                onUpdate = onUpdate,
+                onLaunch = onLaunch,
+              )
           }
+        }
         is UiState.Error ->
           FilledTonalButton(onClick = onRetry, shape = buttonShape, modifier = Modifier.height(56.dp)) {
             Text(
@@ -370,120 +401,28 @@ private fun HomeBottomBar(
         is UiState.Ready -> {
           val status = currentState.status
           if (status is PackStatus.CheckFailed) {
-            val installed = status.installedVersion
-            val title = stringResource(R.string.home_check_failed)
-            val subtitle =
-              installed?.let { stringResource(R.string.home_check_failed_installed_format, it) }
-            FilledTonalButton(
-              onClick = onCheck,
+            CheckFailedButton(
+              installed = status.installedVersion,
+              onCheck = onCheck,
               enabled = !isBusy,
-              shape = buttonShape,
-              colors =
-                ButtonDefaults.filledTonalButtonColors(
-                  containerColor = MaterialTheme.colorScheme.errorContainer,
-                  contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                ),
-              modifier =
-                Modifier.height(56.dp)
-                  .onFocusChanged { checkButtonFocused = it.isFocused }
-                  .focusBorder(checkButtonFocused),
-            ) {
-              Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                  text = title,
-                  style = MaterialTheme.typography.titleMedium,
-                  fontWeight = FontWeight.Medium,
-                )
-                if (subtitle != null) {
-                  Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Normal,
-                  )
-                }
-              }
-            }
+              showSpinner = false,
+              checkButtonFocused = checkButtonFocused,
+              onFocusChanged = { checkButtonFocused = it },
+            )
           } else {
-            val checkSubtitle =
-              when (status) {
-                is PackStatus.UpToDate ->
-                  stringResource(R.string.home_up_to_date, status.currentVersion)
-                is PackStatus.UpdateAvailable ->
-                  stringResource(
-                    R.string.home_update_format,
-                    status.currentVersion,
-                    status.latestVersion,
-                  )
-                is PackStatus.Installed ->
-                  stringResource(R.string.home_version_installed, status.version)
-                else -> null
-              }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-              FilledTonalButton(
-                onClick = onCheck,
-                enabled = !isBusy,
-                shape = buttonShape,
-                colors = ButtonDefaults.filledTonalButtonColors(
-                  containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                  contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                ),
-                modifier =
-                  Modifier.height(56.dp)
-                    .onFocusChanged { checkButtonFocused = it.isFocused }
-                    .focusBorder(checkButtonFocused),
-              ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                  Text(
-                    text = stringResource(R.string.home_check_for_updates),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium,
-                  )
-                  if (checkSubtitle != null) {
-                    Text(
-                      text = checkSubtitle,
-                      style = MaterialTheme.typography.labelSmall,
-                      fontWeight = FontWeight.Normal,
-                    )
-                  }
-                }
-              }
-              Spacer(modifier = Modifier.width(12.dp))
-              when (status) {
-                is PackStatus.NotInstalled ->
-                  PrimaryActionButton(
-                    text = stringResource(R.string.action_install),
-                    onClick = onInstall,
-                    enabled = !isBusy,
-                  )
-                is PackStatus.UpdateAvailable ->
-                  PrimaryActionButton(
-                    text = stringResource(R.string.home_update_to, status.latestVersion),
-                    onClick = onUpdate,
-                    enabled = !isBusy,
-                  )
-                else -> {
-                  val bullet = "\u2022 "
-                  val launchSubText =
-                    when (serverConnectivity) {
-                      ServerConnectivity.Online -> {
-                        val count = playerCount
-                        if (count != null) "$bullet${stringResource(R.string.home_racers_online, count)}"
-                        else null
-                      }
-                      ServerConnectivity.Offline -> "$bullet${stringResource(R.string.home_offline)}"
-                      ServerConnectivity.NoInternet ->
-                        "$bullet${stringResource(R.string.status_no_internet)}"
-                      ServerConnectivity.Unknown -> null
-                    }
-                  PrimaryActionButton(
-                    text = stringResource(R.string.home_launch_retro_rewind),
-                    onClick = onLaunch,
-                    enabled = !isBusy,
-                    subText = launchSubText,
-                  )
-                }
-              }
-            }
+            StatusRow(
+              status = status,
+              isChecking = false,
+              isBusy = isBusy,
+              serverConnectivity = serverConnectivity,
+              playerCount = playerCount,
+              checkButtonFocused = checkButtonFocused,
+              onFocusChanged = { checkButtonFocused = it },
+              onCheck = onCheck,
+              onInstall = onInstall,
+              onUpdate = onUpdate,
+              onLaunch = onLaunch,
+            )
           }
         }
         is UiState.Idle -> {
@@ -504,6 +443,199 @@ private fun HomeBottomBar(
     }
   }
   LaunchedEffect(Unit) { skipInitialTransition = false }
+}
+
+/**
+ * Full-width error-styled "couldn't check for updates" button. Used
+ * both by [UiState.Ready] when the last check failed (clickable) and
+ * by [UiState.Checking] when a re-check is in flight after a failure
+ * (disabled, with a small spinner).
+ */
+@Composable
+private fun CheckFailedButton(
+  installed: SemVersion?,
+  onCheck: () -> Unit,
+  enabled: Boolean,
+  showSpinner: Boolean,
+  checkButtonFocused: Boolean,
+  onFocusChanged: (Boolean) -> Unit,
+) {
+  val title = stringResource(R.string.home_check_failed)
+  val subtitle =
+    installed?.let { stringResource(R.string.home_check_failed_installed_format, it) }
+  FilledTonalButton(
+    onClick = onCheck,
+    enabled = enabled,
+    shape = buttonShape,
+    colors =
+      ButtonDefaults.filledTonalButtonColors(
+        containerColor = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+      ),
+    modifier =
+      Modifier.height(56.dp)
+        .onFocusChanged { onFocusChanged(it.isFocused) }
+        .focusBorder(checkButtonFocused),
+  ) {
+    if (showSpinner) {
+      androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
+        CircularProgressIndicator(
+          modifier = Modifier.size(20.dp),
+          color = MaterialTheme.colorScheme.onErrorContainer,
+          strokeWidth = 2.dp,
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(
+          text = title,
+          style = MaterialTheme.typography.titleMedium,
+          fontWeight = FontWeight.Medium,
+        )
+      }
+    } else {
+      Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+          text = title,
+          style = MaterialTheme.typography.titleMedium,
+          fontWeight = FontWeight.Medium,
+        )
+        if (subtitle != null) {
+          Text(
+            text = subtitle,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Normal,
+          )
+        }
+      }
+    }
+  }
+}
+
+/**
+ * The "check + primary action" row used by both [UiState.Ready] and
+ * [UiState.Checking] (when a previous [PackStatus] is known). When
+ * [isChecking] is true, the left button swaps to a 20dp spinner +
+ * "Checking..." and the right primary action is disabled. The
+ * [checkButtonFocused] state is hoisted to [HomeBottomBar] so the
+ * focus border persists across [UiState] transitions.
+ */
+@Composable
+private fun StatusRow(
+  status: PackStatus,
+  isChecking: Boolean,
+  isBusy: Boolean,
+  serverConnectivity: ServerConnectivity,
+  playerCount: Int?,
+  checkButtonFocused: Boolean,
+  onFocusChanged: (Boolean) -> Unit,
+  onCheck: () -> Unit,
+  onInstall: () -> Unit,
+  onUpdate: () -> Unit,
+  onLaunch: () -> Unit,
+) {
+  val checkSubtitle =
+    if (isChecking) {
+      null
+    } else {
+      when (status) {
+        is PackStatus.UpToDate ->
+          stringResource(R.string.home_up_to_date, status.currentVersion)
+        is PackStatus.UpdateAvailable ->
+          stringResource(
+            R.string.home_update_format,
+            status.currentVersion,
+            status.latestVersion,
+          )
+        is PackStatus.Installed ->
+          stringResource(R.string.home_version_installed, status.version)
+        else -> null
+      }
+    }
+  val rightEnabled = !isBusy && !isChecking
+  val leftEnabled = !isBusy && !isChecking
+
+  Row(verticalAlignment = Alignment.CenterVertically) {
+    FilledTonalButton(
+      onClick = onCheck,
+      enabled = leftEnabled,
+      shape = buttonShape,
+      colors =
+        ButtonDefaults.filledTonalButtonColors(
+          containerColor = MaterialTheme.colorScheme.secondaryContainer,
+          contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        ),
+      modifier =
+        Modifier.height(56.dp)
+          .onFocusChanged { onFocusChanged(it.isFocused) }
+          .focusBorder(checkButtonFocused),
+    ) {
+      if (isChecking) {
+        androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
+          CircularProgressIndicator(
+            modifier = Modifier.size(20.dp),
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            strokeWidth = 2.dp,
+          )
+          Spacer(modifier = Modifier.width(10.dp))
+          Text(
+            text = stringResource(R.string.status_checking),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
+          )
+        }
+      } else {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+          Text(
+            text = stringResource(R.string.home_check_for_updates),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
+          )
+          if (checkSubtitle != null) {
+            Text(
+              text = checkSubtitle,
+              style = MaterialTheme.typography.labelSmall,
+              fontWeight = FontWeight.Normal,
+            )
+          }
+        }
+      }
+    }
+    Spacer(modifier = Modifier.width(12.dp))
+    when (status) {
+      is PackStatus.NotInstalled ->
+        PrimaryActionButton(
+          text = stringResource(R.string.action_install),
+          onClick = onInstall,
+          enabled = rightEnabled,
+        )
+      is PackStatus.UpdateAvailable ->
+        PrimaryActionButton(
+          text = stringResource(R.string.home_update_to, status.latestVersion),
+          onClick = onUpdate,
+          enabled = rightEnabled,
+        )
+      else -> {
+        val bullet = "\u2022 "
+        val launchSubText =
+          when (serverConnectivity) {
+            ServerConnectivity.Online -> {
+              val count = playerCount
+              if (count != null) "$bullet${stringResource(R.string.home_racers_online, count)}"
+              else null
+            }
+            ServerConnectivity.Offline -> "$bullet${stringResource(R.string.home_offline)}"
+            ServerConnectivity.NoInternet ->
+              "$bullet${stringResource(R.string.status_no_internet)}"
+            ServerConnectivity.Unknown -> null
+          }
+        PrimaryActionButton(
+          text = stringResource(R.string.home_launch_retro_rewind),
+          onClick = onLaunch,
+          enabled = rightEnabled,
+          subText = launchSubText,
+        )
+      }
+    }
+  }
 }
 
 /**

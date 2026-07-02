@@ -103,7 +103,8 @@ class PackUpdateViewModel(
    */
   fun checkStatus() {
     viewModelScope.launch {
-      _state.value = UiState.Checking
+      val previous = (_state.value as? UiState.Ready)?.status
+      _state.value = UiState.Checking(previous)
       if (currentManager() == null) {
         Timber.tag(TAG)
           .w("checkStatus: manager is null; no persisted Dolphin tree; " +

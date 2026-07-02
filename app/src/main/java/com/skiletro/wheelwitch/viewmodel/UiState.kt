@@ -19,8 +19,13 @@ sealed class UiState {
   /** Initial state before the first check completes. */
   data object Idle : UiState()
 
-  /** A status check is in progress. */
-  data object Checking : UiState()
+  /**
+   * A status check is in progress. [previousStatus] is the
+   * [PackStatus] resolved by the last check, so the UI can keep the
+   * primary action visible (but disabled) while the new check runs.
+   * Null on the first check after app start.
+   */
+  data class Checking(val previousStatus: PackStatus?) : UiState()
 
   /** A status check finished; [status] is the current pack state. */
   data class Ready(val status: PackStatus) : UiState()
