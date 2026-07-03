@@ -313,15 +313,6 @@ class SaveManagerTest {
 
   // --- helpers ---------------------------------------------------------
 
-  @Test
-  fun `format last backup returns null when timestamp is zero`() {
-    // Indirect coverage: SaveDataViewModel exposes this, but the
-    // DateFormat formatting is straightforward. Just confirm the
-    // constant we persist on is a non-negative Long.
-    val ts = System.currentTimeMillis()
-    assertThat(ts).isGreaterThan(0L)
-  }
-
   /** Holds the mocks wired up by [setupSaveChain] so individual tests can inspect them. */
   private class MockSaveChain(
     val tree: DolphinTree,
