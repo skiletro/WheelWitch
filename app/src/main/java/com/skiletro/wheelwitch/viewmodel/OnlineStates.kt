@@ -6,6 +6,8 @@ import com.skiletro.wheelwitch.model.RaceStats
 import com.skiletro.wheelwitch.model.Room
 import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.model.ServerHealth
+import com.skiletro.wheelwitch.model.TimeTrialSubmission
+import com.skiletro.wheelwitch.model.TimeTrialTrack
 
 /**
  * Top-level page in the Online Menu. [Hub] is the landing screen that
@@ -62,4 +64,27 @@ sealed class RaceStatsState {
   data object Loading : RaceStatsState()
   data class Success(val stats: RaceStats, val lastRefreshedAt: Long) : RaceStatsState()
   data class Error(val message: String) : RaceStatsState()
+}
+
+@Immutable
+sealed class TimeTrialState {
+  data object Idle : TimeTrialState()
+  data object Loading : TimeTrialState()
+  data class Success(val tracks: List<TimeTrialTrack>) : TimeTrialState()
+  data class Error(val message: String) : TimeTrialState()
+}
+
+@Immutable
+sealed class TrackLeaderboardState {
+  data object Idle : TrackLeaderboardState()
+  data object Loading : TrackLeaderboardState()
+  data class Success(
+    val submissions: List<TimeTrialSubmission>,
+    val currentPage: Int,
+    val totalPages: Int,
+    val fastestLapMs: Long?,
+    val fastestLapDisplay: String?,
+  ) : TrackLeaderboardState()
+
+  data class Error(val message: String) : TrackLeaderboardState()
 }

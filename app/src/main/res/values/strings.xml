@@ -140,7 +140,7 @@
     <string name="online_race_stats">Race Statistics</string>
     <string name="online_race_stats_desc">Global race data</string>
     <string name="online_time_trials">Time Trials</string>
-    <string name="online_time_trials_desc">Track leaderboards (Coming Soon)</string>
+    <string name="online_time_trials_desc">Per-track time trial leaderboards</string>
     <string name="online_soon">Soon</string>
 
     <!-- leaderboard -->
@@ -206,9 +206,16 @@
 
     <!-- time trial -->
     <string name="time_trial_title">Time Trials</string>
-    <string name="time_trial_coming_soon">Coming Soon</string>
-    <string name="time_trial_coming_soon_body">Track-based time trial leaderboards\nare being developed.</string>
-    <string name="time_trial_available_tracks">Available Tracks</string>
+    <string name="time_trial_select_track">Select a track</string>
+    <string name="time_trial_no_tracks">No tracks available</string>
+    <string name="time_trial_no_submissions">No submissions yet</string>
+    <string name="time_trial_cc_format">%dcc</string>
+    <string name="time_trial_glitch_allowed">Glitch</string>
+    <string name="time_trial_no_glitch">No Glitch</string>
+    <string name="time_trial_search_hint">Search tracks</string>
+    <string name="time_trial_no_results">No matching tracks</string>
+    <string name="time_trial_category_retro">Retro</string>
+    <string name="time_trial_category_custom">Custom</string>
 
     <!-- save info -->
     <string name="save_info_title">Licenses</string>

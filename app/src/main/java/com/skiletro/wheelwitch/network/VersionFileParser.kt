@@ -7,6 +7,7 @@ import com.skiletro.wheelwitch.model.Room
 import com.skiletro.wheelwitch.model.SemVersion
 import com.skiletro.wheelwitch.model.ServerHealth
 import com.skiletro.wheelwitch.model.ServerInfo
+import com.skiletro.wheelwitch.model.TimeTrialLeaderboardResponse
 import com.skiletro.wheelwitch.model.TimeTrialTrack
 import com.skiletro.wheelwitch.model.UpdateEntry
 import com.skiletro.wheelwitch.util.net.HttpClientProvider
@@ -86,6 +87,7 @@ object VersionFileParser {
     private const val HEALTH_LIVE_URL = "$RWFC_API/api/health/live"
     private const val RACE_STATS_URL = "$RWFC_API/api/racestats/global"
     private const val TIME_TRIAL_TRACKS_URL = "$RWFC_API/api/timetrial/tracks"
+    private const val TIME_TRIAL_LEADERBOARD_URL = "$RWFC_API/api/timetrial/leaderboard"
 
     private val httpClient get() = HttpClientProvider.client
 
@@ -143,6 +145,22 @@ object VersionFileParser {
     fun fetchTracks(): Result<List<TimeTrialTrack>> = runCatching {
         val json = fetchUrl(TIME_TRIAL_TRACKS_URL)
         parseTracks(json)
+    }
+
+    /**
+     * Fetches the time trial leaderboard for a given track, filtering by
+     * engine class and glitch preference. Paginated via [page] and [pageSize].
+     */
+    fun fetchTrackLeaderboard(
+        trackId: Int,
+        cc: Int = 150,
+        glitchAllowed: Boolean = true,
+        page: Int = 1,
+        pageSize: Int = 10,
+    ): Result<TimeTrialLeaderboardResponse> = runCatching {
+        val url = "$TIME_TRIAL_LEADERBOARD_URL?glitchAllowed=$glitchAllowed&trackId=$trackId&cc=$cc&page=$page&pageSize=$pageSize"
+        val json = fetchUrl(url)
+        parseTimeTrialLeaderboard(json)
     }
 
     /** Fetches the leaderboard VR for a given friend code. */

@@ -189,7 +189,10 @@ private fun HubPage(
                 icon = ImageVector.vectorResource(R.drawable.ic_motorcycle),
                 title = stringResource(R.string.online_time_trials),
                 description = stringResource(R.string.online_time_trials_desc),
-                enabled = false
+                onClick = { viewModel.navigateTo(OnlineMenuPage.TimeTrial) },
+                titleSharedKey = "online_title_TimeTrial",
+                sharedTransitionScope = sharedTransitionScope,
+                animatedContentScope = animatedContentScope,
             )
         }
     }

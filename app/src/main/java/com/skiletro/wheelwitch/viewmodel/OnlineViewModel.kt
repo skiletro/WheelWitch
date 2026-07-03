@@ -51,8 +51,20 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
     private val _raceStatsState = MutableStateFlow<RaceStatsState>(RaceStatsState.Idle)
     val raceStatsState: StateFlow<RaceStatsState> = _raceStatsState.asStateFlow()
 
-    private val _tracks = MutableStateFlow<List<TimeTrialTrack>>(emptyList())
-    val tracks: StateFlow<List<TimeTrialTrack>> = _tracks.asStateFlow()
+    private val _ttState = MutableStateFlow<TimeTrialState>(TimeTrialState.Idle)
+    val ttState: StateFlow<TimeTrialState> = _ttState.asStateFlow()
+
+    private val _selectedTrackId = MutableStateFlow<Int?>(null)
+    val selectedTrackId: StateFlow<Int?> = _selectedTrackId.asStateFlow()
+
+    private val _trackLeaderboardState = MutableStateFlow<TrackLeaderboardState>(TrackLeaderboardState.Idle)
+    val trackLeaderboardState: StateFlow<TrackLeaderboardState> = _trackLeaderboardState.asStateFlow()
+
+    private val _cc = MutableStateFlow(150)
+    val cc: StateFlow<Int> = _cc.asStateFlow()
+
+    private val _glitchAllowed = MutableStateFlow(true)
+    val glitchAllowed: StateFlow<Boolean> = _glitchAllowed.asStateFlow()
 
     /**
      * Conflated channel so rapid "load more" taps coalesce into one
@@ -295,16 +307,114 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /** Fetches the time-trial track list; silently overwrites on success and no-ops on failure. */
+    /** Fetches the time-trial track list and resets selection. */
     fun fetchTracks() {
         viewModelScope.launch {
+            _ttState.value = TimeTrialState.Loading
+            _selectedTrackId.value = null
+            _trackLeaderboardState.value = TrackLeaderboardState.Idle
             val result = withContext(Dispatchers.IO) {
                 VersionFileParser.fetchTracks()
             }
             result.onSuccess { tracks ->
-                _tracks.value = tracks
+                val visible = tracks.filter { !it.isHidden }
+                _ttState.value = TimeTrialState.Success(visible)
+            }.onFailure { e ->
+                Timber.tag("Online").w(e, "Time trial tracks fetch failed")
+                _ttState.value = TimeTrialState.Error(
+                    e.message ?: getApplication<Application>().getString(
+                        R.string.vm_failed_format,
+                        "load time trial tracks"
+                    )
+                )
             }
         }
+    }
+
+    /** Selects a track and fetches its leaderboard (page 1). */
+    fun selectTrack(trackId: Int) {
+        _selectedTrackId.value = trackId
+        fetchTrackLeaderboard()
+    }
+
+    /** Fetches page 1 of the leaderboard for the currently selected track + filters. */
+    fun fetchTrackLeaderboard() {
+        val trackId = _selectedTrackId.value ?: return
+        viewModelScope.launch {
+            _trackLeaderboardState.value = TrackLeaderboardState.Loading
+            val result = withContext(Dispatchers.IO) {
+                VersionFileParser.fetchTrackLeaderboard(
+                    trackId = trackId,
+                    cc = _cc.value,
+                    glitchAllowed = _glitchAllowed.value,
+                    page = 1,
+                    pageSize = 50,
+                )
+            }
+            result.onSuccess { response ->
+                _trackLeaderboardState.value = TrackLeaderboardState.Success(
+                    submissions = response.submissions,
+                    currentPage = response.currentPage,
+                    totalPages = response.totalPages,
+                    fastestLapMs = response.fastestLapMs,
+                    fastestLapDisplay = response.fastestLapDisplay,
+                )
+            }.onFailure { e ->
+                Timber.tag("Online").w(e, "Track leaderboard fetch failed")
+                _trackLeaderboardState.value = TrackLeaderboardState.Error(
+                    e.message ?: getApplication<Application>().getString(
+                        R.string.vm_failed_format,
+                        "load track leaderboard"
+                    )
+                )
+            }
+        }
+    }
+
+    /** Fetches the next page of submissions for the currently selected track. */
+    fun fetchMoreSubmissions() {
+        val trackId = _selectedTrackId.value ?: return
+        val current = _trackLeaderboardState.value
+        if (current !is TrackLeaderboardState.Success) return
+        if (current.currentPage >= current.totalPages) return
+        val nextPage = current.currentPage + 1
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                VersionFileParser.fetchTrackLeaderboard(
+                    trackId = trackId,
+                    cc = _cc.value,
+                    glitchAllowed = _glitchAllowed.value,
+                    page = nextPage,
+                    pageSize = 50,
+                )
+            }
+            result.onSuccess { response ->
+                val existing = current.submissions
+                _trackLeaderboardState.value = TrackLeaderboardState.Success(
+                    submissions = existing + response.submissions,
+                    currentPage = response.currentPage,
+                    totalPages = response.totalPages,
+                    fastestLapMs = response.fastestLapMs,
+                    fastestLapDisplay = response.fastestLapDisplay,
+                )
+            }.onFailure { e ->
+                Timber.tag("Online").w(e, "More submissions fetch failed")
+            }
+        }
+    }
+
+    /** Changes the engine class and re-fetches the leaderboard if a track is selected. */
+    fun setCc(newCc: Int) {
+        if (_cc.value == newCc) return
+        _cc.value = newCc
+        if (_selectedTrackId.value != null) fetchTrackLeaderboard()
+    }
+
+    /** Toggles glitch filter and re-fetches the leaderboard if a track is selected. */
+    fun setGlitchAllowed(allowed: Boolean) {
+        if (_glitchAllowed.value == allowed) return
+        _glitchAllowed.value = allowed
+        if (_selectedTrackId.value != null) fetchTrackLeaderboard()
     }
 
     companion object {

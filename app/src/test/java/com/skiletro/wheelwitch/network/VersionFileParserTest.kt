@@ -201,16 +201,16 @@ class VersionFileParserTest {
 
     @Test
     fun `parseTracks handles both array and object response`() {
-        val arrJson = """[{"id":"track1","name":"Track One"},{"id":"track2","name":"Track Two"}]"""
+        val arrJson = """[{"id":1,"name":"Track One"},{"id":2,"name":"Track Two"}]"""
         val tracks1 = parseTracks(arrJson)
         assertThat(tracks1).hasSize(2)
         assertThat(tracks1[0].name).isEqualTo("Track One")
-        assertThat(tracks1[0].id).isEqualTo("track1")
+        assertThat(tracks1[0].id).isEqualTo(1)
 
-        val objJson = """{"tracks":[{"id":"t3","name":"Track Three"}]}"""
+        val objJson = """{"tracks":[{"id":3,"name":"Track Three"}]}"""
         val tracks2 = parseTracks(objJson)
         assertThat(tracks2).hasSize(1)
-        assertThat(tracks2[0].id).isEqualTo("t3")
+        assertThat(tracks2[0].id).isEqualTo(3)
     }
 
     @Test
