@@ -43,7 +43,7 @@ class RewindPackManager(
    * the appropriate [PackStatus]. If the server is unreachable and a
    * local version exists, returns [PackStatus.CheckFailed] so the UI
    * can surface a retry affordance (distinct from
-   * [PackStatus.Installed], which implies the version is up to date).
+   * [PackStatus.UpToDate], which implies the version is up to date).
    * If the server is unreachable and there is no local version,
    * returns [PackStatus.NotInstalled] so the user is routed to
    * onboarding.

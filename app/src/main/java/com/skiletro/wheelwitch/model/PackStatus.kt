@@ -8,15 +8,11 @@ sealed class PackStatus {
     /** No pack files found in storage. */
     data object NotInstalled : PackStatus()
 
-    /** Pack is installed but the server could not be reached; version may be stale. */
-    data class Installed(val version: SemVersion) : PackStatus()
-
     /**
      * Pack status could not be determined because the server was
-     * unreachable. Distinct from [Installed] (verified-up-to-date) and
-     * from a top-level UI error: the local install is still valid and
-     * usable, but the user is shown a retry affordance because the
-     * displayed version may be stale.
+     * unreachable. The local install is still valid and usable, but
+     * the user is shown a retry affordance because the displayed
+     * version may be stale.
      */
     data class CheckFailed(val installedVersion: SemVersion?) : PackStatus()
 

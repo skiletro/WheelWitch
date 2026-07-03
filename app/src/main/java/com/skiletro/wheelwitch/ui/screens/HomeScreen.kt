@@ -546,8 +546,6 @@ private fun StatusRow(
             status.currentVersion,
             status.latestVersion,
           )
-        is PackStatus.Installed ->
-          stringResource(R.string.home_version_installed, status.version)
         else -> null
       }
     }
