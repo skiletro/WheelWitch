@@ -150,14 +150,13 @@ class SaveDataViewModel(
   @Volatile private var lastRefreshAt: Long = 0L
 
   init {
-    // Load the persisted state on a background dispatcher so the
-    // VM constructor does not block the main thread on the
-    // SharedPreferences file read. The StateFlows start with their
-    // default values; the real values land a frame later. The
-    // observable types ([StateFlow]) handle the late emission
-    // without flicker for screens that already render the default
-    // state.
-    viewModelScope.launch(ioDispatcher) { loadPersistedState() }
+    // Read persisted state synchronously — SharedPreferences get*()
+    // calls are fast and running them inline guarantees the persisted
+    // region/slot are set before the packStatusFlow collect (which
+    // triggers refresh()) observes them. The StateFlows start with
+    // their default values and immediately receive the real values
+    // without flicker.
+    loadPersistedState()
     viewModelScope.launch {
       packStatusFlow
         .map { (it as? UiState.Ready)?.status }
