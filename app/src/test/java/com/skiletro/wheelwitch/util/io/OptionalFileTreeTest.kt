@@ -44,6 +44,7 @@ class OptionalFileTreeTest {
     )
     Timber.plant(tree)
     Timber.tag("Tag").i("hello")
+    assertThat(file.exists()).isFalse()
   }
 
   @Test
