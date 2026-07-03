@@ -1,6 +1,5 @@
 package com.skiletro.wheelwitch.util.mii
 
-import android.content.Context
 import com.google.common.truth.Truth.assertThat
 import io.mockk.mockk
 import org.junit.jupiter.api.Test
@@ -40,10 +39,9 @@ class MiiFaceCacheTest {
     }
 
     @Test
-    fun `init creates cache dir under provided context`(@TempDir tempDir: Path) {
-        val ctx = mockk<Context>(relaxed = true)
+    fun `init creates cache dir under provided target`(@TempDir tempDir: Path) {
         val expected = File(tempDir.toFile(), "mii_faces")
-        MiiFaceCache.initWith(ctx, expected)
+        MiiFaceCache.initWith(expected)
         assertThat(expected.exists()).isTrue()
     }
 }

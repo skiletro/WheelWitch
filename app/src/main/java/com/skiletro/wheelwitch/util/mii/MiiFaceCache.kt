@@ -31,14 +31,9 @@ object MiiFaceCache {
     cacheDir = dir
   }
 
-  /**
-   * Test/init hook: point the cache at an arbitrary directory.
-   *
-   * [context] is accepted to mirror [init]'s signature but is not used;
-   * the caller-supplied [target] directory is the only thing needed.
-   */
+  /** Test/init hook: point the cache at an arbitrary directory. */
   @Synchronized
-  fun initWith(@Suppress("UNUSED_PARAMETER") context: Context, target: File) {
+  fun initWith(target: File) {
     target.mkdirs()
     cacheDir = target
   }
