@@ -407,7 +407,7 @@ object FileDownloader {
                             activeChunks = activeChunks.get().toInt(),
                         )
                     )
-                    if (nowBytes >= totalBytes) break
+                    if (totalBytes > 0L && nowBytes >= totalBytes) break
                 }
                 delay(PROGRESS_TICK_MILLIS)
             }
