@@ -239,14 +239,15 @@ object SaveManager {
               }
             }
             if (faceLibAvailable && faceLibFile != null) {
-              val bytes = readDolphinBytes(tree.resolver, faceLibFile) ?: ByteArray(0)
-              zip.putNextEntry(
-                ZipEntry("Wii/shared2/menu/FaceLib/${UserDataPaths.RFL_DB}").apply {
-                  size = bytes.size.toLong()
-                }
-              )
-              zip.write(bytes)
-              zip.closeEntry()
+              readDolphinBytes(tree.resolver, faceLibFile)?.let { bytes ->
+                zip.putNextEntry(
+                  ZipEntry("Wii/shared2/menu/FaceLib/${UserDataPaths.RFL_DB}").apply {
+                    size = bytes.size.toLong()
+                  }
+                )
+                zip.write(bytes)
+                zip.closeEntry()
+              }
             }
             if (pulsar != null) {
               for (name in availablePul) {
