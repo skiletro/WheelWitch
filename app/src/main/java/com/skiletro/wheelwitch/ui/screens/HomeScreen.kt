@@ -366,15 +366,36 @@ private fun HomeBottomBar(
                   fontWeight = FontWeight.Medium,
                 )
               }
-            previous is PackStatus.CheckFailed ->
-              CheckFailedButton(
-                installed = previous.installedVersion,
-                onCheck = onCheck,
-                enabled = false,
-                showSpinner = true,
-                checkButtonFocused = checkButtonFocused,
-                onFocusChanged = { checkButtonFocused = it },
-              )
+            previous is PackStatus.CheckFailed -> {
+              if (previous.installedVersion != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                  CheckFailedButton(
+                    installed = previous.installedVersion,
+                    onCheck = onCheck,
+                    enabled = false,
+                    showSpinner = true,
+                    checkButtonFocused = checkButtonFocused,
+                    onFocusChanged = { checkButtonFocused = it },
+                  )
+                  Spacer(modifier = Modifier.width(12.dp))
+                  PrimaryActionButton(
+                    text = stringResource(R.string.home_launch_retro_rewind),
+                    onClick = onLaunch,
+                    enabled = false,
+                    subText = "\u2022 ${stringResource(R.string.home_offline)}",
+                  )
+                }
+              } else {
+                CheckFailedButton(
+                  installed = previous.installedVersion,
+                  onCheck = onCheck,
+                  enabled = false,
+                  showSpinner = true,
+                  checkButtonFocused = checkButtonFocused,
+                  onFocusChanged = { checkButtonFocused = it },
+                )
+              }
+            }
             else ->
               StatusRow(
                 status = previous,
@@ -402,14 +423,34 @@ private fun HomeBottomBar(
         is UiState.Ready -> {
           val status = currentState.status
           if (status is PackStatus.CheckFailed) {
-            CheckFailedButton(
-              installed = status.installedVersion,
-              onCheck = onCheck,
-              enabled = !isBusy,
-              showSpinner = false,
-              checkButtonFocused = checkButtonFocused,
-              onFocusChanged = { checkButtonFocused = it },
-            )
+            if (status.installedVersion != null) {
+              Row(verticalAlignment = Alignment.CenterVertically) {
+                CheckFailedButton(
+                  installed = status.installedVersion,
+                  onCheck = onCheck,
+                  enabled = !isBusy,
+                  showSpinner = false,
+                  checkButtonFocused = checkButtonFocused,
+                  onFocusChanged = { checkButtonFocused = it },
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                PrimaryActionButton(
+                  text = stringResource(R.string.home_launch_retro_rewind),
+                  onClick = onLaunch,
+                  enabled = !isBusy,
+                  subText = "\u2022 ${stringResource(R.string.home_offline)}",
+                )
+              }
+            } else {
+              CheckFailedButton(
+                installed = status.installedVersion,
+                onCheck = onCheck,
+                enabled = !isBusy,
+                showSpinner = false,
+                checkButtonFocused = checkButtonFocused,
+                onFocusChanged = { checkButtonFocused = it },
+              )
+            }
           } else {
             StatusRow(
               status = status,
