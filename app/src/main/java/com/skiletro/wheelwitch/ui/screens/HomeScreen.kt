@@ -107,6 +107,7 @@ fun HomeScreen(
     val observer = LifecycleEventObserver { _, event ->
       if (event == Lifecycle.Event.ON_RESUME) {
         onlineViewModel.fetchRooms()
+        saveData.refreshIfStale()
       }
     }
     lifecycleOwner.lifecycle.addObserver(observer)
