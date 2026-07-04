@@ -131,7 +131,9 @@ fun TopBar(
             Icon(
                 imageVector = ImageVector.vectorResource(R.drawable.ic_dns),
                 contentDescription = stringResource(R.string.cd_online_menu),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                    alpha = if (onlineMenuEnabled) 1f else 0.38f
+                ),
             )
         }
         IconButton(
