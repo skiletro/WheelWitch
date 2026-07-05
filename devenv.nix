@@ -6,22 +6,19 @@
     jdk.package = pkgs.jdk21;
   };
 
+  dotenv.enable = true;
+
   android = {
     enable = true;
     platforms.version = [ "36.1" ];
     buildTools.version = [ "36.0.0" ];
     cmdLineTools.version = "11.0";
-    android-studio = {
-      enable = true;
-      package = pkgs.android-studio;
-    };
   };
 
   packages = with pkgs; [
     android-tools
   ];
 
-  dotenv.enable = true;
 
   env.ORG_GRADLE_PROJECT_android_sdk_skipSdkInstall = "true";
 
@@ -90,7 +87,8 @@
   };
 
   enterShell = ''
-    echo -e "\033[1;4mWheel Witch\033[0m"
+    echo -e ""
+    echo -e "\033[1mWheel Witch\033[0m"
     echo -e "  \033[2mjava:\033[0m         $(java -version 2>&1 | head -1)"
     echo -e "  \033[2mANDROID_HOME:\033[0m $ANDROID_HOME"
     echo
