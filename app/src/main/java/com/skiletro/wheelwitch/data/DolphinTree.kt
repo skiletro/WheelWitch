@@ -740,6 +740,30 @@ internal fun findDir(parent: DocumentFile?, name: String): DocumentFile? {
 }
 
 /**
+ * Walks an existing path under [root] split by [parts] without
+ * creating any directories, and returns the file named [fileName]
+ * if it exists. Returns null when any intermediate directory or
+ * the file itself is missing. Used by
+ * [com.skiletro.wheelwitch.data.SaveManager] to discover vanilla and
+ * patched-ISO NAND saves without creating empty directories in
+ * Dolphin's virtual NAND.
+ */
+internal fun findNandSaveFile(root: DocumentFile, titleId: String, subdir: String): DocumentFile? {
+  val wiiDir = root.findFile("Wii") ?: return null
+  if (!wiiDir.isDirectory) return null
+  val titleDir = wiiDir.findFile("title") ?: return null
+  if (!titleDir.isDirectory) return null
+  val titleIdDir = titleDir.findFile(titleId) ?: return null
+  if (!titleIdDir.isDirectory) return null
+  val regionDir = titleIdDir.findFile(subdir) ?: return null
+  if (!regionDir.isDirectory) return null
+  val dataDir = regionDir.findFile("data") ?: return null
+  if (!dataDir.isDirectory) return null
+  val file = dataDir.findFile(com.skiletro.wheelwitch.data.SaveManager.SAVE_FILE_NAME) ?: return null
+  return if (file.exists() && file.isFile) file else null
+}
+
+/**
  * Walks [parts] under [root], creating intermediate directories as
  * needed. Used by the unified save backup to reach nested user-data
  * paths like `Wii/shared2/menu/FaceLib/`.

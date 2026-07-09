@@ -86,6 +86,7 @@ fun SettingsScreen(
   val isInstallingWad by miiMaker.isInstallingWad.collectAsState()
   val miiMakerError by miiMaker.miiMakerError.collectAsState()
   val hasAnySave by saveData.hasAnySave.collectAsState()
+  val hasRRSave by saveData.hasRRSave.collectAsState()
 
   var showWadDeleteConfirm by remember { mutableStateOf(false) }
 
@@ -155,6 +156,7 @@ fun SettingsScreen(
         SaveDataSection(
           saveData = saveData,
           hasAnySave = hasAnySave,
+          hasRRSave = hasRRSave,
         )
       }
       item { LoggingSection() }
@@ -171,7 +173,7 @@ fun SettingsScreen(
 
 /** Save Data section: unified backup / restore / delete over every user-data file. */
 @Composable
-private fun SaveDataSection(saveData: SaveDataViewModel, hasAnySave: Boolean) {
+private fun SaveDataSection(saveData: SaveDataViewModel, hasAnySave: Boolean, hasRRSave: Boolean) {
   val lastBackup by saveData.lastBackupTimestamp.collectAsState()
   val lastBackupLabel = remember(lastBackup) { saveData.formatLastBackup() }
   var pendingBackup by remember { mutableStateOf(false) }
@@ -179,6 +181,14 @@ private fun SaveDataSection(saveData: SaveDataViewModel, hasAnySave: Boolean) {
   var pendingRestoreUri by remember { mutableStateOf<Uri?>(null) }
   var showDeleteConfirm by remember { mutableStateOf(false) }
   var showRestoreConfirm by remember { mutableStateOf(false) }
+
+  val lastBackupRR by saveData.lastBackupRRTimestamp.collectAsState()
+  val lastBackupRRLabel = remember(lastBackupRR) { saveData.formatLastBackupRR() }
+  var pendingBackupRR by remember { mutableStateOf(false) }
+  var pendingRestoreRR by remember { mutableStateOf(false) }
+  var pendingRestoreRRUri by remember { mutableStateOf<Uri?>(null) }
+  var showDeleteRRConfirm by remember { mutableStateOf(false) }
+  var showRestoreRRConfirm by remember { mutableStateOf(false) }
 
   val backupLauncher =
     rememberLauncherForActivityResult(
@@ -196,6 +206,23 @@ private fun SaveDataSection(saveData: SaveDataViewModel, hasAnySave: Boolean) {
         showRestoreConfirm = true
       }
       pendingRestore = false
+    }
+  val backupRRLauncher =
+    rememberLauncherForActivityResult(
+      contract = ActivityResultContracts.CreateDocument("application/zip")
+    ) { uri ->
+      if (uri != null) saveData.backupRR(uri)
+      pendingBackupRR = false
+    }
+  val restoreRRLauncher =
+    rememberLauncherForActivityResult(
+      contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+      if (uri != null) {
+        pendingRestoreRRUri = uri
+        showRestoreRRConfirm = true
+      }
+      pendingRestoreRR = false
     }
 
   if (showDeleteConfirm) {
@@ -253,6 +280,61 @@ private fun SaveDataSection(saveData: SaveDataViewModel, hasAnySave: Boolean) {
     )
   }
 
+  if (showDeleteRRConfirm) {
+    AlertDialog(
+      onDismissRequest = { showDeleteRRConfirm = false },
+      title = { Text(stringResource(R.string.settings_save_data_rr_delete_confirm_title)) },
+      text = { Text(stringResource(R.string.settings_save_data_rr_delete_confirm_message)) },
+      confirmButton = {
+        Button(
+          onClick = {
+            saveData.deleteRR()
+            showDeleteRRConfirm = false
+          },
+        ) {
+          Text(stringResource(R.string.settings_save_data_delete))
+        }
+      },
+      dismissButton = {
+        TextButton(onClick = { showDeleteRRConfirm = false }) {
+          Text(stringResource(R.string.action_cancel))
+        }
+      },
+    )
+  }
+
+  if (showRestoreRRConfirm) {
+    val uri = pendingRestoreRRUri
+    AlertDialog(
+      onDismissRequest = {
+        showRestoreRRConfirm = false
+        pendingRestoreRRUri = null
+      },
+      title = { Text(stringResource(R.string.settings_save_data_rr_restore_confirm_title)) },
+      text = { Text(stringResource(R.string.settings_save_data_rr_restore_confirm_message)) },
+      confirmButton = {
+        Button(
+          enabled = uri != null,
+          onClick = {
+            uri?.let { saveData.restoreRR(it) }
+            pendingRestoreRRUri = null
+            showRestoreRRConfirm = false
+          },
+        ) {
+          Text(stringResource(R.string.settings_save_data_restore))
+        }
+      },
+      dismissButton = {
+        TextButton(onClick = {
+          pendingRestoreRRUri = null
+          showRestoreRRConfirm = false
+        }) {
+          Text(stringResource(R.string.action_cancel))
+        }
+      },
+    )
+  }
+
   LaunchedEffect(pendingBackup) {
     if (pendingBackup) {
       val fileName = "wheelwitch-save-${System.currentTimeMillis()}.zip"
@@ -262,6 +344,17 @@ private fun SaveDataSection(saveData: SaveDataViewModel, hasAnySave: Boolean) {
   LaunchedEffect(pendingRestore) {
     if (pendingRestore) {
       restoreLauncher.launch(arrayOf("application/zip", "*/*"))
+    }
+  }
+  LaunchedEffect(pendingBackupRR) {
+    if (pendingBackupRR) {
+      val fileName = "wheelwitch-rr-save-${System.currentTimeMillis()}.zip"
+      backupRRLauncher.launch(fileName)
+    }
+  }
+  LaunchedEffect(pendingRestoreRR) {
+    if (pendingRestoreRR) {
+      restoreRRLauncher.launch(arrayOf("application/zip", "*/*"))
     }
   }
 
@@ -296,6 +389,46 @@ private fun SaveDataSection(saveData: SaveDataViewModel, hasAnySave: Boolean) {
         TextButton(
           onClick = { showDeleteConfirm = true },
           enabled = hasAnySave,
+          shape = buttonShape,
+        ) {
+          Text(
+            text = stringResource(R.string.settings_save_data_delete),
+            color = MaterialTheme.colorScheme.error,
+          )
+        }
+      }
+    },
+  )
+
+  SettingsItem(
+    icon = ImageVector.vectorResource(R.drawable.ic_save),
+    title = stringResource(R.string.settings_save_data_rr_section),
+    summary =
+      when {
+        !hasRRSave -> stringResource(R.string.settings_save_data_rr_no_save)
+        lastBackupRRLabel != null ->
+          stringResource(R.string.settings_save_data_rr_last_backup_format, lastBackupRRLabel)
+        else -> null
+      },
+    trailing = {
+      Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        TextButton(
+          onClick = { pendingBackupRR = true },
+          enabled = hasRRSave,
+          shape = buttonShape,
+        ) {
+          Text(stringResource(R.string.settings_save_data_backup))
+        }
+        TextButton(
+          onClick = { pendingRestoreRR = true },
+          enabled = hasRRSave,
+          shape = buttonShape,
+        ) {
+          Text(stringResource(R.string.settings_save_data_restore))
+        }
+        TextButton(
+          onClick = { showDeleteRRConfirm = true },
+          enabled = hasRRSave,
           shape = buttonShape,
         ) {
           Text(

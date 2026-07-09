@@ -95,9 +95,14 @@ class SaveDataViewModel(
   },
   private val backupAllSaver: suspend (DolphinTree, Uri) -> Result<SaveManager.BackupSummary> =
     SaveManager::backupAll,
+  private val backupRRSaver: suspend (DolphinTree, Uri) -> Result<SaveManager.BackupSummary> =
+    SaveManager::backupRR,
   private val restoreAllSaver:
     suspend (DolphinTree, Uri) -> Result<SaveManager.RestoreSummary> = SaveManager::restoreAll,
+  private val restoreRRSaver:
+    suspend (DolphinTree, Uri) -> Result<SaveManager.RestoreSummary> = SaveManager::restoreRR,
   private val deleteAllSaver: suspend (DolphinTree) -> Result<Unit> = SaveManager::deleteAll,
+  private val deleteRRSaver: suspend (DolphinTree) -> Result<Unit> = SaveManager::deleteRR,
   private val now: () -> Long = System::currentTimeMillis,
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : AndroidViewModel(application) {
@@ -113,8 +118,14 @@ class SaveDataViewModel(
   private val _hasAnySave = MutableStateFlow(false)
   val hasAnySave: StateFlow<Boolean> = _hasAnySave.asStateFlow()
 
+  private val _hasRRSave = MutableStateFlow(false)
+  val hasRRSave: StateFlow<Boolean> = _hasRRSave.asStateFlow()
+
   private val _lastBackupTimestamp = MutableStateFlow(0L)
   val lastBackupTimestamp: StateFlow<Long> = _lastBackupTimestamp.asStateFlow()
+
+  private val _lastBackupRRTimestamp = MutableStateFlow(0L)
+  val lastBackupRRTimestamp: StateFlow<Long> = _lastBackupRRTimestamp.asStateFlow()
 
   private val _selectedRegion = MutableStateFlow<Region?>(null)
   val selectedRegion: StateFlow<Region?> = _selectedRegion.asStateFlow()
@@ -174,6 +185,7 @@ class SaveDataViewModel(
    */
   private fun loadPersistedState() {
     _lastBackupTimestamp.value = prefs.getLong(PrefsKeys.LAST_BACKUP_TIMESTAMP_KEY, 0L)
+    _lastBackupRRTimestamp.value = prefs.getLong(PrefsKeys.LAST_BACKUP_RR_TIMESTAMP_KEY, 0L)
     _selectedRegion.value =
       loadPersistedRegion(prefs.getString(PrefsKeys.SELECTED_REGION_KEY, null))
     _selectedSlotIndex.value = prefs.getInt(PrefsKeys.SELECTED_SLOT_KEY, 0)
@@ -203,6 +215,7 @@ class SaveDataViewModel(
               _saveInfos.value = emptyMap()
               _hasSave.value = emptyMap()
               _hasAnySave.value = false
+              _hasRRSave.value = false
               _mergedLicenses.value = emptyMap()
               return@launch
             }
@@ -213,6 +226,7 @@ class SaveDataViewModel(
           _selectedRegion.value = null
           _mergedLicenses.value = emptyMap()
           _hasAnySave.value = computeHasAnySave(tree)
+          _hasRRSave.value = computeHasRRSave(tree)
           return@launch
         }
         val parsed =
@@ -242,6 +256,7 @@ class SaveDataViewModel(
         _saveInfos.value = infos
         _hasSave.value = hasSaves
         _hasAnySave.value = computeHasAnySave(tree)
+        _hasRRSave.value = computeHasRRSave(tree)
         val target = pickSelectedRegion(regions)
         if (target != _selectedRegion.value) {
           _selectedRegion.value = target
@@ -368,6 +383,72 @@ class SaveDataViewModel(
   }
 
   /**
+   * Bundles only the RR per-region `rksys.dat` files into a zip at
+   * [dest]. On success, writes the timestamp to
+   * [PrefsKeys.LAST_BACKUP_RR_TIMESTAMP_KEY].
+   */
+  fun backupRR(dest: Uri) {
+    viewModelScope.launch {
+      val tree = treeFactory(app)
+      if (tree == null) {
+        _error.value = app.getString(R.string.vm_save_not_configured)
+        return@launch
+      }
+      backupRRSaver(tree, dest)
+        .onSuccess {
+          val timestamp = now()
+          prefs.edit().putLong(PrefsKeys.LAST_BACKUP_RR_TIMESTAMP_KEY, timestamp).apply()
+          _lastBackupRRTimestamp.value = timestamp
+          refresh()
+        }
+        .onFailure { e ->
+          Timber.tag(TAG).e(e, "backupRR failed")
+          _error.value = e.message ?: app.getString(R.string.vm_save_write_failed)
+        }
+    }
+  }
+
+  /**
+   * Restores only the `RetroWFC/` entries from the zip at [source].
+   * Refreshes the parsed state on success.
+   */
+  fun restoreRR(source: Uri) {
+    viewModelScope.launch {
+      val tree = treeFactory(app)
+      if (tree == null) {
+        _error.value = app.getString(R.string.vm_save_not_configured)
+        return@launch
+      }
+      restoreRRSaver(tree, source)
+        .onSuccess { refresh() }
+        .onFailure { e ->
+          Timber.tag(TAG).e(e, "restoreRR failed")
+          _error.value = e.message ?: app.getString(R.string.vm_save_read_failed)
+        }
+    }
+  }
+
+  /**
+   * Wipes only the RR per-region `rksys.dat` files. Refreshes the
+   * parsed state on success.
+   */
+  fun deleteRR() {
+    viewModelScope.launch {
+      val tree = treeFactory(app)
+      if (tree == null) {
+        _error.value = app.getString(R.string.vm_save_not_configured)
+        return@launch
+      }
+      deleteRRSaver(tree)
+        .onSuccess { refresh() }
+        .onFailure { e ->
+          Timber.tag(TAG).e(e, "deleteRR failed")
+          _error.value = e.message ?: app.getString(R.string.vm_failed_format, "delete RR save")
+        }
+    }
+  }
+
+  /**
    * Formats [lastBackupTimestamp] as a localized date + time for the
    * Save Data section. Returns null when the user has never backed
    * up so the UI can show the "no save data" / "never backed up"
@@ -375,6 +456,16 @@ class SaveDataViewModel(
    */
   fun formatLastBackup(): String? {
     val ts = _lastBackupTimestamp.value
+    if (ts <= 0L) return null
+    return DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(ts))
+  }
+
+  /**
+   * Formats [lastBackupRRTimestamp] as a localized date + time.
+   * Returns null when the user has never performed an RR-only backup.
+   */
+  fun formatLastBackupRR(): String? {
+    val ts = _lastBackupRRTimestamp.value
     if (ts <= 0L) return null
     return DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(ts))
   }
@@ -435,6 +526,8 @@ class SaveDataViewModel(
   }
 
   private fun computeHasAnySave(tree: DolphinTree): Boolean = SaveManager.hasAnySave(tree)
+
+  private fun computeHasRRSave(tree: DolphinTree): Boolean = SaveManager.hasRRSave(tree)
 
   /** Per-region read result so [refresh] can reuse the `readSave` output. */
   private data class RegionRead(

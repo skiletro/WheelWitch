@@ -242,6 +242,13 @@
     <string name="settings_save_data_restore_confirm_message">This will overwrite your current save data, Miis, and game settings. This cannot be undone.</string>
     <string name="settings_save_data_delete_confirm_title">Delete all save data?</string>
     <string name="settings_save_data_delete_confirm_message">This permanently deletes your save data, Miis, and game settings. This cannot be undone.</string>
+    <string name="settings_save_data_rr_section">RR Save Data</string>
+    <string name="settings_save_data_rr_no_save">No RR save data</string>
+    <string name="settings_save_data_rr_last_backup_format">Last backed up: %1$s</string>
+    <string name="settings_save_data_rr_restore_confirm_title">Restore RR save data?</string>
+    <string name="settings_save_data_rr_restore_confirm_message">This will overwrite your current Retro Rewind saves and rating data. Other data is not affected.</string>
+    <string name="settings_save_data_rr_delete_confirm_title">Delete RR save data?</string>
+    <string name="settings_save_data_rr_delete_confirm_message">This permanently deletes your Retro Rewind saves and rating data. Other data is not affected.</string>
 
     <!-- version history -->
     <string name="home_version_history_coming_soon">Coming soon…</string>

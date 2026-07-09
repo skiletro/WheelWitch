@@ -89,6 +89,24 @@ object DolphinPaths {
   fun rrSaveDir(context: Context): File =
     File(packDir(context), "riivolution/save/RetroWFC")
 
+  /** `Wii/title/<titleId>/` under [physicalRoot]. */
+  fun nandTitleDir(context: Context, titleId: String): File =
+    File(physicalRoot(context), "Wii/title/$titleId")
+
+  /**
+   * Directory for a vanilla MKW save at
+   * `Wii/title/00010001/<region>/data/`.
+   */
+  fun vanillaSaveDir(context: Context, region: String): File =
+    File(nandTitleDir(context, "00010001"), "$region/data")
+
+  /**
+   * Directory for a patched-ISO save at
+   * `Wii/title/00010004/524d4352/data/`.
+   */
+  fun patchedIsoSaveDir(context: Context): File =
+    File(nandTitleDir(context, "00010004"), "524d4352/data")
+
   /**
    * The expected SAF tree document id for the Dolphin user folder.
    *

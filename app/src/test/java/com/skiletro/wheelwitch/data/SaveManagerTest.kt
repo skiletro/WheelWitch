@@ -180,6 +180,85 @@ class SaveManagerTest {
     assertThat(ghostEntries).isNotEmpty()
   }
 
+  // --- backupAll: vanilla saves and patched ISO --------------------------
+
+  @Test
+  fun `backupAll includes vanilla save files when present in NAND`() = runTest {
+    val env = setupBackupEnv(palExists = true, includeVanillaSaves = true)
+    val dest = mockk<Uri>(relaxed = true)
+    val destOutput = ByteArrayOutputStream()
+    every { env.resolver.openOutputStream(dest) } returns destOutput
+
+    val result = SaveManager.backupAll(env.tree, dest)
+
+    assertThat(result.isSuccess).isTrue()
+    val entries = readZipEntries(destOutput.toByteArray())
+    val names = entries.map { it.name }
+    assertThat(names).contains("Wii/title/00010001/RMCP/data/rksys.dat")
+    assertThat(names).contains("RetroWFC/RMCP/rksys.dat")
+    // Manifest should list vanilla regions.
+    val manifest = JSONObject(String(entries.first { it.name == "manifest.json" }.bytes))
+    val contents = manifest.getJSONObject("contents")
+    val vanillaSaves =
+      contents.getJSONArray("vanillaSaves").let { arr -> List(arr.length()) { arr.getString(it) } }
+    assertThat(vanillaSaves).containsExactly("RMCP")
+    assertThat(contents.getBoolean("patchedIso")).isFalse()
+  }
+
+  @Test
+  fun `backupAll includes patched ISO save when present in NAND`() = runTest {
+    val env = setupBackupEnv(palExists = true, includePatchedIso = true)
+    val dest = mockk<Uri>(relaxed = true)
+    val destOutput = ByteArrayOutputStream()
+    every { env.resolver.openOutputStream(dest) } returns destOutput
+
+    val result = SaveManager.backupAll(env.tree, dest)
+
+    assertThat(result.isSuccess).isTrue()
+    val entries = readZipEntries(destOutput.toByteArray())
+    val names = entries.map { it.name }
+    assertThat(names).contains("Wii/title/00010004/524d4352/data/rksys.dat")
+    val manifest = JSONObject(String(entries.first { it.name == "manifest.json" }.bytes))
+    assertThat(manifest.getJSONObject("contents").getBoolean("patchedIso")).isTrue()
+  }
+
+  @Test
+  fun `backupAll skips vanilla saves that do not exist`() = runTest {
+    val env = setupBackupEnv(palExists = true, includeVanillaSaves = false)
+    val dest = mockk<Uri>(relaxed = true)
+    val destOutput = ByteArrayOutputStream()
+    every { env.resolver.openOutputStream(dest) } returns destOutput
+
+    val result = SaveManager.backupAll(env.tree, dest)
+
+    assertThat(result.isSuccess).isTrue()
+    val entries = readZipEntries(destOutput.toByteArray())
+    val names = entries.map { it.name }
+    assertThat(names).doesNotContain("Wii/title/00010001/RMCP/data/rksys.dat")
+  }
+
+  // --- hasAnySave: vanilla and patched ISO -------------------------------
+
+  @Test
+  fun `hasAnySave is true when a vanilla save exists in the NAND`() {
+    val env = setupBackupEnv(includeVanillaSaves = true)
+    // All region files have exists=false by default, so hasSave returns
+    // false for every region. Only the NAND vanilla save is present.
+    every { env.tree.faceLibDir } returns null
+    every { env.tree.pulsarRrDir } returns null
+
+    assertThat(SaveManager.hasAnySave(env.tree)).isTrue()
+  }
+
+  @Test
+  fun `hasAnySave is true when a patched ISO save exists in the NAND`() {
+    val env = setupBackupEnv(includePatchedIso = true)
+    every { env.tree.faceLibDir } returns null
+    every { env.tree.pulsarRrDir } returns null
+
+    assertThat(SaveManager.hasAnySave(env.tree)).isTrue()
+  }
+
   // --- restoreAll -------------------------------------------------------
 
   @Test
@@ -277,6 +356,242 @@ class SaveManagerTest {
     assertThat(summary.rksys).isEqualTo(1)
     assertThat(summary.faceLib).isTrue()
     assertThat(summary.pulsar).isEqualTo(3)
+  }
+
+  @Test
+  fun `restoreAll restores vanilla saves from a backup zip`() = runTest {
+    val env = setupBackupEnv(includeVanillaSaves = true)
+    val source = mockk<Uri>(relaxed = true)
+    val captureOutputs = mutableMapOf<String, ByteArrayOutputStream>()
+    setupRestoreEnv(env, captureOutputs)
+
+    // Build a zip with a vanilla save entry manually.
+    val backupBytes = ByteArrayOutputStream().use { baos ->
+      java.util.zip.ZipOutputStream(baos).use { zos ->
+        val manifest = JSONObject().apply {
+          put("version", SaveManager.BACKUP_FORMAT_VERSION)
+          put("type", SaveManager.BACKUP_TYPE)
+          put("createdAt", System.currentTimeMillis())
+          put("contents", JSONObject().apply {
+            put("retroWfc", org.json.JSONArray())
+            put("vanillaSaves", org.json.JSONArray(listOf("RMCP")))
+            put("patchedIso", false)
+            put("faceLib", false)
+            put("pulsar", org.json.JSONArray())
+            put("ghosts", 0)
+          })
+        }
+        zos.putNextEntry(ZipEntry("manifest.json"))
+        zos.write(manifest.toString().encodeToByteArray())
+        zos.closeEntry()
+        zos.putNextEntry(ZipEntry("Wii/title/00010001/RMCP/data/rksys.dat"))
+        zos.write("vanilla-save".encodeToByteArray())
+        zos.closeEntry()
+      }
+      baos.toByteArray()
+    }
+    every { env.resolver.openInputStream(source) } returns ByteArrayInputStream(backupBytes)
+
+    val result = SaveManager.restoreAll(env.tree, source)
+
+    assertThat(result.isSuccess).isTrue()
+    val summary = result.getOrThrow()
+    assertThat(summary.vanillaSaves).isEqualTo(1)
+    assertThat(summary.patchedIso).isFalse()
+  }
+
+  @Test
+  fun `restoreAll restores patched ISO save from a backup zip`() = runTest {
+    val env = setupBackupEnv(includePatchedIso = true)
+    val source = mockk<Uri>(relaxed = true)
+    val captureOutputs = mutableMapOf<String, ByteArrayOutputStream>()
+    setupRestoreEnv(env, captureOutputs)
+
+    val backupBytes = ByteArrayOutputStream().use { baos ->
+      java.util.zip.ZipOutputStream(baos).use { zos ->
+        val manifest = JSONObject().apply {
+          put("version", SaveManager.BACKUP_FORMAT_VERSION)
+          put("type", SaveManager.BACKUP_TYPE)
+          put("createdAt", System.currentTimeMillis())
+          put("contents", JSONObject().apply {
+            put("retroWfc", org.json.JSONArray())
+            put("vanillaSaves", org.json.JSONArray())
+            put("patchedIso", true)
+            put("faceLib", false)
+            put("pulsar", org.json.JSONArray())
+            put("ghosts", 0)
+          })
+        }
+        zos.putNextEntry(ZipEntry("manifest.json"))
+        zos.write(manifest.toString().encodeToByteArray())
+        zos.closeEntry()
+        zos.putNextEntry(ZipEntry("Wii/title/00010004/524d4352/data/rksys.dat"))
+        zos.write("patched-save".encodeToByteArray())
+        zos.closeEntry()
+      }
+      baos.toByteArray()
+    }
+    every { env.resolver.openInputStream(source) } returns ByteArrayInputStream(backupBytes)
+
+    val result = SaveManager.restoreAll(env.tree, source)
+
+    assertThat(result.isSuccess).isTrue()
+    val summary = result.getOrThrow()
+    assertThat(summary.vanillaSaves).isEqualTo(0)
+    assertThat(summary.patchedIso).isTrue()
+  }
+
+  // --- hasRRSave -------------------------------------------------------
+
+  @Test
+  fun `hasRRSave returns false when no region has an RR save`() {
+    val tree = mockk<DolphinTree>(relaxed = true)
+    every { tree.packDir.findFile(any<String>()) } returns null
+
+    assertThat(SaveManager.hasRRSave(tree)).isFalse()
+  }
+
+  @Test
+  fun `hasRRSave returns true when at least one region has a save`() {
+    val chain = setupSaveChain(region = Region.PAL, fileExists = true)
+
+    assertThat(SaveManager.hasRRSave(chain.tree)).isTrue()
+  }
+
+  @Test
+  fun `hasRRSave returns true when RRRating pul exists even without region saves`() {
+    val env = setupBackupEnv(palExists = false, includePul = true)
+    // All per-region findFile chains return null -> no region save,
+    // but RRRating.pul exists because includePul is true.
+
+    assertThat(SaveManager.hasRRSave(env.tree)).isTrue()
+  }
+
+  // --- backupRR --------------------------------------------------------
+
+  @Test
+  fun `backupRR writes RetroWFC entries plus RRating pul when present`() = runTest {
+    val env = setupBackupEnv(palExists = true, usaExists = false, jpnExists = true, includePul = true)
+    val dest = mockk<Uri>(relaxed = true)
+    val destOutput = ByteArrayOutputStream()
+    every { env.resolver.openOutputStream(dest) } returns destOutput
+
+    val result = SaveManager.backupRR(env.tree, dest)
+
+    assertThat(result.isSuccess).isTrue()
+    val summary = result.getOrThrow()
+    assertThat(summary.rksys).isEqualTo(2)
+    assertThat(summary.faceLib).isFalse()
+    assertThat(summary.pulsar).isEqualTo(1)
+    assertThat(summary.ghosts).isEqualTo(0)
+    val entries = readZipEntries(destOutput.toByteArray())
+    val names = entries.map { it.name }
+    assertThat(names).contains("manifest.json")
+    assertThat(names).contains("RetroWFC/RMCP/rksys.dat")
+    assertThat(names).contains("RetroWFC/RMCJ/rksys.dat")
+    assertThat(names).doesNotContain("RetroWFC/RMCE/rksys.dat")
+    assertThat(names).contains("Wii/shared2/Pulsar/RetroRewind6/RRRating.pul")
+    assertThat(names).doesNotContain("Wii/shared2/menu/FaceLib/RFL_DB.dat")
+    assertThat(names).doesNotContain("Wii/shared2/Pulsar/RetroRewind6/RRGameSettings.pul")
+    assertThat(names).doesNotContain("Wii/shared2/Pulsar/RetroRewind6/RRSettings.pul")
+    val manifest = JSONObject(String(entries.first { it.name == "manifest.json" }.bytes))
+    assertThat(manifest.getString("type")).isEqualTo(SaveManager.BACKUP_TYPE)
+    assertThat(manifest.getInt("version")).isEqualTo(SaveManager.BACKUP_FORMAT_VERSION)
+    val contents = manifest.getJSONObject("contents")
+    val retroWfc =
+      contents.getJSONArray("retroWfc").let { arr -> List(arr.length()) { arr.getString(it) } }
+    assertThat(retroWfc).containsExactly("RMCP", "RMCJ")
+    assertThat(contents.getJSONArray("vanillaSaves").length()).isEqualTo(0)
+    assertThat(contents.getBoolean("patchedIso")).isFalse()
+    val pulsar = contents.getJSONArray("pulsar").let { arr -> List(arr.length()) { arr.getString(it) } }
+    assertThat(pulsar).containsExactly("RRRating.pul")
+  }
+
+  // --- restoreRR -------------------------------------------------------
+
+  @Test
+  fun `restoreRR restores RetroWFC entries and RRating pul but skips other shared2`() = runTest {
+    val env = setupBackupEnv(palExists = false)
+    val source = mockk<Uri>(relaxed = true)
+    val captureOutputs = mutableMapOf<String, ByteArrayOutputStream>()
+    setupRestoreEnv(env, captureOutputs)
+
+    // Build a zip with RetroWFC + RRating.pul + NAND + FaceLib entries.
+    val backupBytes = ByteArrayOutputStream().use { baos ->
+      java.util.zip.ZipOutputStream(baos).use { zos ->
+        val manifest = JSONObject().apply {
+          put("version", SaveManager.BACKUP_FORMAT_VERSION)
+          put("type", SaveManager.BACKUP_TYPE)
+          put("createdAt", System.currentTimeMillis())
+          put("contents", JSONObject().apply {
+            put("retroWfc", org.json.JSONArray(listOf("RMCP")))
+            put("vanillaSaves", org.json.JSONArray())
+            put("patchedIso", false)
+            put("faceLib", false)
+            put("pulsar", org.json.JSONArray(listOf("RRRating.pul")))
+            put("ghosts", 0)
+          })
+        }
+        zos.putNextEntry(ZipEntry("manifest.json"))
+        zos.write(manifest.toString().encodeToByteArray())
+        zos.closeEntry()
+        zos.putNextEntry(ZipEntry("RetroWFC/RMCP/rksys.dat"))
+        zos.write("rr-data".encodeToByteArray())
+        zos.closeEntry()
+        zos.putNextEntry(ZipEntry("Wii/shared2/Pulsar/RetroRewind6/RRRating.pul"))
+        zos.write("rating-data".encodeToByteArray())
+        zos.closeEntry()
+        zos.putNextEntry(ZipEntry("Wii/title/00010001/RMCP/data/rksys.dat"))
+        zos.write("vanilla-data".encodeToByteArray())
+        zos.closeEntry()
+        zos.putNextEntry(ZipEntry("Wii/shared2/menu/FaceLib/RFL_DB.dat"))
+        zos.write("mii-data".encodeToByteArray())
+        zos.closeEntry()
+      }
+      baos.toByteArray()
+    }
+    every { env.resolver.openInputStream(source) } returns ByteArrayInputStream(backupBytes)
+
+    val result = SaveManager.restoreRR(env.tree, source)
+
+    assertThat(result.isSuccess).isTrue()
+    val summary = result.getOrThrow()
+    assertThat(summary.rksys).isEqualTo(1)
+    assertThat(summary.vanillaSaves).isEqualTo(0)
+    assertThat(summary.faceLib).isFalse()
+    assertThat(summary.pulsar).isEqualTo(1)
+    assertThat(summary.ghosts).isEqualTo(0)
+  }
+
+  // --- deleteRR --------------------------------------------------------
+
+  @Test
+  fun `deleteRR wipes per-region rksys and RRating pul but leaves other Pulsar and FaceLib`() =
+    runTest {
+      val env = setupBackupEnv(palExists = true, usaExists = true, includeFaceLib = true, includePul = true)
+
+      val result = SaveManager.deleteRR(env.tree)
+
+      assertThat(result.isSuccess).isTrue()
+      // Region files are deleted.
+      verify { env.regionFile("RMCP").delete() }
+      verify { env.regionFile("RMCE").delete() }
+      // RRRating.pul IS deleted.
+      verify { env.pulFile("RRRating.pul").delete() }
+      // Other Pulsar files and FaceLib are NOT deleted.
+      verify(exactly = 0) { env.faceLibFile.delete() }
+      verify(exactly = 0) { env.pulFile("RRGameSettings.pul").delete() }
+      verify(exactly = 0) { env.pulFile("RRSettings.pul").delete() }
+    }
+
+  @Test
+  fun `deleteRR is idempotent when no RR saves exist`() = runTest {
+    val tree = mockk<DolphinTree>(relaxed = true)
+    every { tree.packDir.findFile(any<String>()) } returns null
+
+    val result = SaveManager.deleteRR(tree)
+
+    assertThat(result.isSuccess).isTrue()
   }
 
   // --- deleteAll -------------------------------------------------------
@@ -393,6 +708,8 @@ class SaveManagerTest {
     val faceLibFile: DocumentFile,
     val pulFiles: Map<String, DocumentFile>,
     val ghostsDir: DocumentFile?,
+    val wiiDir: DocumentFile,
+    val titleDir: DocumentFile,
   ) {
     fun regionFile(code: String): DocumentFile =
       regionFiles[Region.entries.first { it.code == code }]
@@ -409,13 +726,16 @@ class SaveManagerTest {
     includeFaceLib: Boolean = false,
     includePul: Boolean = false,
     includeGhosts: Boolean = false,
+    includeVanillaSaves: Boolean = false,
+    includePatchedIso: Boolean = false,
   ): BackupEnv {
     val tree = mockk<DolphinTree>(relaxed = true)
     val resolver = mockk<ContentResolver>(relaxed = true)
     val packDir = mockk<DocumentFile>(relaxed = true)
+    val rootDir = mockk<DocumentFile>(relaxed = true)
     every { tree.resolver } returns resolver
     every { tree.packDir } returns packDir
-    every { tree.root } returns mockk(relaxed = true)
+    every { tree.root } returns rootDir
 
     // Per-region rksys.dat
     val regionFiles = mutableMapOf<Region, DocumentFile>()
@@ -430,6 +750,7 @@ class SaveManagerTest {
           Region.PAL -> palExists
           Region.USA -> usaExists
           Region.JPN -> jpnExists
+          Region.KOR -> false
         }
       every { file.exists() } returns exists
       every { file.isFile } returns exists
@@ -528,7 +849,60 @@ class SaveManagerTest {
       every { pulsarRrDir.findFile(SaveManager.UserDataPaths.GHOSTS_DIR) } returns null
     }
 
-    return BackupEnv(tree, resolver, packDir, regionFiles, faceLibFile, pulFiles, ghostsDir)
+    // NAND (Wii/title/) — needed by findNandSaveFile and navigateOrCreate.
+    // Stub createDirectory so restore tests can create NAND path dirs.
+    val titleDir = mockDir("title")
+    every { wiiDir.findFile("title") } returns titleDir
+    every { wiiDir.createDirectory("title") } returns titleDir
+    every { titleDir.createDirectory(any()) } answers { mockDir(firstArg()) }
+
+    // Vanilla save NAND chain (includeVanillaSaves stubs RMCP for brevity).
+    if (includeVanillaSaves) {
+      val titleIdDir = mockDir(SaveManager.TITLE_ID_RETAIL)
+      val regionDir = mockDir(Region.PAL.code)
+      val dataDir = mockDir("data")
+      val saveFile = mockk<DocumentFile>(relaxed = true)
+      val saveFileUri = mockk<Uri>(relaxed = true)
+      every { saveFile.name } returns SaveManager.SAVE_FILE_NAME
+      every { saveFile.uri } returns saveFileUri
+      every { saveFile.exists() } returns true
+      every { saveFile.isFile } returns true
+      every { saveFile.delete() } returns true
+      every { titleDir.findFile(SaveManager.TITLE_ID_RETAIL) } returns titleIdDir
+      every { titleDir.createDirectory(SaveManager.TITLE_ID_RETAIL) } returns titleIdDir
+      every { titleIdDir.findFile(Region.PAL.code) } returns regionDir
+      every { titleIdDir.createDirectory(Region.PAL.code) } returns regionDir
+      every { regionDir.findFile("data") } returns dataDir
+      every { regionDir.createDirectory("data") } returns dataDir
+      every { dataDir.findFile(SaveManager.SAVE_FILE_NAME) } returns saveFile
+      every { dataDir.createFile(any(), any()) } returns saveFile
+      every { resolver.openInputStream(saveFileUri) } returns
+        ByteArrayInputStream("vanilla-RMCP".encodeToByteArray())
+    }
+    if (includePatchedIso) {
+      val patchedIdDir = mockDir(SaveManager.TITLE_ID_PATCHED)
+      val patchedRegionDir = mockDir(SaveManager.PATCHED_ISO_HEX_ID)
+      val patchedDataDir = mockDir("data")
+      val patchedSaveFile = mockk<DocumentFile>(relaxed = true)
+      val patchedSaveFileUri = mockk<Uri>(relaxed = true)
+      every { patchedSaveFile.name } returns SaveManager.SAVE_FILE_NAME
+      every { patchedSaveFile.uri } returns patchedSaveFileUri
+      every { patchedSaveFile.exists() } returns true
+      every { patchedSaveFile.isFile } returns true
+      every { patchedSaveFile.delete() } returns true
+      every { titleDir.findFile(SaveManager.TITLE_ID_PATCHED) } returns patchedIdDir
+      every { titleDir.createDirectory(SaveManager.TITLE_ID_PATCHED) } returns patchedIdDir
+      every { patchedIdDir.findFile(SaveManager.PATCHED_ISO_HEX_ID) } returns patchedRegionDir
+      every { patchedIdDir.createDirectory(SaveManager.PATCHED_ISO_HEX_ID) } returns patchedRegionDir
+      every { patchedRegionDir.findFile("data") } returns patchedDataDir
+      every { patchedRegionDir.createDirectory("data") } returns patchedDataDir
+      every { patchedDataDir.findFile(SaveManager.SAVE_FILE_NAME) } returns patchedSaveFile
+      every { patchedDataDir.createFile(any(), any()) } returns patchedSaveFile
+      every { resolver.openInputStream(patchedSaveFileUri) } returns
+        ByteArrayInputStream("patched-iso".encodeToByteArray())
+    }
+
+    return BackupEnv(tree, resolver, packDir, regionFiles, faceLibFile, pulFiles, ghostsDir, wiiDir, titleDir)
   }
 
   private fun setupRestoreEnv(env: BackupEnv, captureOutputs: MutableMap<String, ByteArrayOutputStream>) {

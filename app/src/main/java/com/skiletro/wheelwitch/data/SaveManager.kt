@@ -58,10 +58,25 @@ object SaveManager {
     PAL("RMCP"),
     USA("RMCE"),
     JPN("RMCJ"),
+    KOR("RMCK"),
   }
 
   /** Filename of the save file inside the region directory. */
   const val SAVE_FILE_NAME = "rksys.dat"
+
+  /** Wii title ID for standard retail games (Mario Kart Wii and others). */
+  const val TITLE_ID_RETAIL = "00010001"
+
+  /** Wii title ID for WiiWare / channels (used by patched ISOs). */
+  const val TITLE_ID_PATCHED = "00010004"
+
+  /**
+   * Hex-encoded game ID for patched Retro Rewind ISOs (`RMCR`).
+   * Dolphin stores its NAND save at
+   * `Wii/title/00010004/524d4352/data/rksys.dat` when the ISO has
+   * been patched (the game ID changes from `RMCx` to `RMCR`).
+   */
+  const val PATCHED_ISO_HEX_ID = "524d4352"
 
   /**
    * Path prefix for the per-region `rksys.dat` tree under
@@ -106,7 +121,7 @@ object SaveManager {
   }
 
   /** Version of the `wheelwitch-save` zip format emitted by [backupAll]. */
-  const val BACKUP_FORMAT_VERSION: Int = 1
+  const val BACKUP_FORMAT_VERSION: Int = 2
 
   /** Type tag stored in `manifest.json`; restore rejects anything else. */
   const val BACKUP_TYPE: String = "wheelwitch-save"
@@ -153,13 +168,30 @@ object SaveManager {
   // --- unified save data ------------------------------------------------
 
   /**
+   * True when any region has a Retro Rewind save at
+   * `pack/riivolution/save/RetroWFC/<region>/rksys.dat`.
+   * Does NOT check vanilla NAND saves, patched-ISO saves, or
+   * shared2 data (FaceLib, Pulsar, ghosts).
+   */
+  fun hasRRSave(tree: DolphinTree): Boolean {
+    if (Region.entries.any { hasSave(tree, it) }) return true
+    val rrRating = tree.pulsarRrDir?.findFile("RRRating.pul")
+    return rrRating?.exists() == true
+  }
+
+  // --- RR-only save data ------------------------------------------------
+
+  /**
    * True when any of the user-data files the unified backup covers
-   * is present: per-region `rksys.dat`, the Mii DB, any Pulsar pul
-   * file, or the Ghosts directory. Cheap, single-shot, no side
-   * effects. Drives the Save Data section's enabled/disabled state.
+   * is present: per-region `rksys.dat` (RR and vanilla), the patched
+   * ISO save, the Mii DB, any Pulsar pul file, or the Ghosts
+   * directory. Cheap, single-shot, no side effects. Drives the Save
+   * Data section's enabled/disabled state.
    */
   fun hasAnySave(tree: DolphinTree): Boolean {
     if (Region.entries.any { hasSave(tree, it) }) return true
+    if (vanillaSaveFiles(tree).isNotEmpty()) return true
+    if (findPatchedIsoSaveFile(tree) != null) return true
     if (tree.faceLibDir?.findFile(UserDataPaths.RFL_DB)?.exists() == true) return true
     val pulsar = tree.pulsarRrDir
     if (pulsar != null) {
@@ -173,17 +205,117 @@ object SaveManager {
   }
 
   /**
-   * Snapshots the user's save data (all regions' `rksys.dat`, the
-   * Mii DB, all Pulsar pul files, and the Ghosts directory) into a
-   * single zip at [dest] (typically from `ACTION_CREATE_DOCUMENT`).
-   * The zip is prefixed with a `manifest.json` describing what was
-   * included.
+   * Searches for existing vanilla save (`rksys.dat`) for every
+   * [Region] under the Wii NAND path
+   * `Wii/title/00010001/<region>/data/`. Returns the list of regions
+   * whose save was found. Does NOT create any directories — only
+   * checks existing paths.
+   */
+  private fun vanillaSaveFiles(tree: DolphinTree): List<Pair<Region, DocumentFile>> {
+    val results = mutableListOf<Pair<Region, DocumentFile>>()
+    for (region in Region.entries) {
+      val file = findNandSaveFile(tree.root, TITLE_ID_RETAIL, region.code)
+      if (file != null) results.add(region to file)
+    }
+    return results
+  }
+
+  /**
+   * Searches for the patched ISO save (`rksys.dat`) at
+   * `Wii/title/00010004/524d4352/data/`. Returns the file or null.
+   * Does NOT create any directories.
+   */
+  private fun findPatchedIsoSaveFile(tree: DolphinTree): DocumentFile? =
+    findNandSaveFile(tree.root, TITLE_ID_PATCHED, PATCHED_ISO_HEX_ID)
+
+  /**
+   * Snapshots the per-region Retro Rewind `rksys.dat` files and
+   * the `RRating.pul` file (no vanilla NAND saves, no patched-ISO
+   * save, no other shared2 data) into a zip at [dest]. Writes the
+   * same v2 manifest with empty vanilla/patched fields and only
+   * `RRRating.pul` listed under pulsar.
+   */
+  suspend fun backupRR(tree: DolphinTree, dest: Uri): Result<BackupSummary> =
+    withContext(Dispatchers.IO) {
+      runCatching {
+        val output =
+          tree.resolver.openOutputStream(dest)
+            ?: throw IOException("Cannot open output stream for $dest")
+        output.use { stream ->
+          ZipOutputStream(stream).use { zip ->
+            val availableRegions = Region.entries.filter { hasSave(tree, it) }
+            val hasPul =
+              tree.pulsarRrDir?.findFile("RRRating.pul")?.let { it.exists() && it.isFile } == true
+
+            writeManifest(
+              zip,
+              BackupManifest(
+                regions = availableRegions.map { it.code },
+                vanillaRegions = emptyList(),
+                patchedIso = false,
+                faceLib = false,
+                pulsar = if (hasPul) listOf("RRRating.pul") else emptyList(),
+                ghosts = 0,
+              ),
+            )
+
+            val includedRegions = mutableListOf<String>()
+            for (region in availableRegions) {
+              val file = saveFile(tree, region)
+              if (file != null && file.exists() && file.isFile) {
+                val bytes = readDolphinBytes(tree.resolver, file) ?: continue
+                zip.putNextEntry(
+                  ZipEntry("RetroWFC/${region.code}/${SAVE_FILE_NAME}").apply {
+                    size = bytes.size.toLong()
+                  }
+                )
+                zip.write(bytes)
+                zip.closeEntry()
+                includedRegions.add(region.code)
+              }
+            }
+
+            if (hasPul) {
+              val pulFile = tree.pulsarRrDir!!.findFile("RRRating.pul")!!
+              val bytes = readDolphinBytes(tree.resolver, pulFile) ?: error("RRRating.pul vanished")
+              zip.putNextEntry(
+                ZipEntry("Wii/shared2/Pulsar/RetroRewind6/RRRating.pul").apply {
+                  size = bytes.size.toLong()
+                }
+              )
+              zip.write(bytes)
+              zip.closeEntry()
+            }
+
+            val summary =
+              BackupSummary(
+                rksys = includedRegions.size,
+                vanillaSaves = 0,
+                patchedIso = false,
+                faceLib = false,
+                pulsar = if (hasPul) 1 else 0,
+                ghosts = 0,
+                bytes = -1L,
+              )
+            Timber.tag(TAG).i("Backed up RR saves to %s: %s", dest, summary)
+            summary
+          }
+        }
+      }
+    }
+
+  /**
+   * Snapshots the user's save data (all regions' RR `rksys.dat`,
+   * vanilla NAND `rksys.dat` per region, patched-ISO `rksys.dat`
+   * (if present), the Mii DB, all Pulsar pul files, and the Ghosts
+   * directory) into a single zip at [dest] (typically from
+   * `ACTION_CREATE_DOCUMENT`). The zip is prefixed with a
+   * `manifest.json` describing what was included.
    *
-   * Missing files (e.g. a region the user has never played) are
-   * silently skipped — the backup is partial-tolerant so a fresh
-   * install with no Retro Rewind data still produces a valid zip
-   * that round-trips. Returns a [BackupSummary] with the per-section
-   * counts.
+   * Missing files are silently skipped — the backup is
+   * partial-tolerant so a fresh install with no Retro Rewind data
+   * still produces a valid zip that round-trips. Returns a
+   * [BackupSummary] with the per-section counts.
    */
   suspend fun backupAll(tree: DolphinTree, dest: Uri): Result<BackupSummary> =
     withContext(Dispatchers.IO) {
@@ -212,11 +344,16 @@ object SaveManager {
                 }
               } else emptyList()
             val ghostCount = countGhostFiles(tree)
+            val availableVanilla = vanillaSaveFiles(tree)
+            val patchedIsoFile = findPatchedIsoSaveFile(tree)
+            val patchedIsoAvailable = patchedIsoFile != null
 
             writeManifest(
               zip,
               BackupManifest(
                 regions = availableRegions.map { it.code },
+                vanillaRegions = availableVanilla.map { it.first.code },
+                patchedIso = patchedIsoAvailable,
                 faceLib = faceLibAvailable,
                 pulsar = availablePul,
                 ghosts = ghostCount,
@@ -236,6 +373,30 @@ object SaveManager {
                 zip.write(bytes)
                 zip.closeEntry()
                 includedRegions.add(region.code)
+              }
+            }
+            val includedVanilla = mutableListOf<String>()
+            for ((region, file) in availableVanilla) {
+              val bytes = readDolphinBytes(tree.resolver, file) ?: continue
+              zip.putNextEntry(
+                ZipEntry("Wii/title/$TITLE_ID_RETAIL/${region.code}/data/$SAVE_FILE_NAME").apply {
+                  size = bytes.size.toLong()
+                }
+              )
+              zip.write(bytes)
+              zip.closeEntry()
+              includedVanilla.add(region.code)
+            }
+            if (patchedIsoAvailable && patchedIsoFile != null) {
+              val bytes = readDolphinBytes(tree.resolver, patchedIsoFile)
+              if (bytes != null) {
+                zip.putNextEntry(
+                  ZipEntry(
+                    "Wii/title/$TITLE_ID_PATCHED/$PATCHED_ISO_HEX_ID/data/$SAVE_FILE_NAME"
+                  ).apply { size = bytes.size.toLong() }
+                )
+                zip.write(bytes)
+                zip.closeEntry()
               }
             }
             if (faceLibAvailable && faceLibFile != null) {
@@ -274,12 +435,64 @@ object SaveManager {
             val summary =
               BackupSummary(
                 rksys = includedRegions.size,
+                vanillaSaves = includedVanilla.size,
+                patchedIso = patchedIsoAvailable,
                 faceLib = faceLibAvailable,
                 pulsar = availablePul.size,
                 ghosts = ghostCount,
                 bytes = -1L,
               )
             Timber.tag(TAG).i("Backed up user save data to %s: %s", dest, summary)
+            summary
+          }
+        }
+      }
+    }
+
+  /**
+   * Restores only the `RetroWFC/` entries from [source] (skips
+   * any NAND or shared2 entries). Validates the manifest the same
+   * way [restoreAll] does.
+   */
+  suspend fun restoreRR(tree: DolphinTree, source: Uri): Result<RestoreSummary> =
+    withContext(Dispatchers.IO) {
+      runCatching {
+        val input =
+          tree.resolver.openInputStream(source)
+            ?: throw IOException("Cannot open input stream for $source")
+        input.use { stream ->
+          ZipInputStream(stream).use { zip ->
+            readAndValidateManifest(zip)
+            var rksys = 0
+            var pulsar = 0
+            while (true) {
+              val entry = zip.nextEntry ?: break
+              if (entry.isDirectory) continue
+              val entryName = entry.name
+              // Only process RetroWFC/ entries and RRRating.pul; skip everything else.
+              if (entryName == "Wii/shared2/Pulsar/RetroRewind6/RRRating.pul") {
+                val pulsarDir = tree.pulsarRrDir
+                if (pulsarDir != null) {
+                  val bytes = zip.readBytes()
+                  writeDolphinBytes(tree.resolver, pulsarDir, "RRRating.pul", bytes)
+                  pulsar = 1
+                }
+                continue
+              }
+              if (!entryName.startsWith("RetroWFC/")) continue
+              val target = resolveRestoreTarget(tree, entryName)
+              if (target == null) {
+                Timber.tag(TAG).w("Skipping unknown RetroWFC entry: %s", entryName)
+                continue
+              }
+              val parent = target.first
+              val name = target.second
+              val bytes = zip.readBytes()
+              writeDolphinBytes(tree.resolver, parent, name, bytes)
+              if (name == SAVE_FILE_NAME) rksys++
+            }
+            val summary = RestoreSummary(rksys, 0, false, false, pulsar, 0)
+            Timber.tag(TAG).i("Restored RR saves from %s: %s", source, summary)
             summary
           }
         }
@@ -309,6 +522,8 @@ object SaveManager {
           ZipInputStream(stream).use { zip ->
             readAndValidateManifest(zip)
             var rksys = 0
+            var vanillaSaves = 0
+            var patchedIso = false
             var faceLib = false
             var pulsar = 0
             var ghosts = 0
@@ -327,6 +542,10 @@ object SaveManager {
               writeDolphinBytes(tree.resolver, parent, name, bytes)
               when {
                 entryName.startsWith("RetroWFC/") && name == SAVE_FILE_NAME -> rksys++
+                entryName.startsWith("Wii/title/$TITLE_ID_RETAIL/") &&
+                  name == SAVE_FILE_NAME -> vanillaSaves++
+                entryName.startsWith("Wii/title/$TITLE_ID_PATCHED/") &&
+                  name == SAVE_FILE_NAME -> patchedIso = true
                 entryName.startsWith("Wii/shared2/menu/FaceLib/") &&
                   name == UserDataPaths.RFL_DB -> faceLib = true
                 entryName.startsWith("Wii/shared2/Pulsar/RetroRewind6/") &&
@@ -336,11 +555,27 @@ object SaveManager {
                 ) -> ghosts++
               }
             }
-            val summary = RestoreSummary(rksys, faceLib, pulsar, ghosts)
+            val summary = RestoreSummary(rksys, vanillaSaves, patchedIso, faceLib, pulsar, ghosts)
             Timber.tag(TAG).i("Restored user save data from %s: %s", source, summary)
             summary
           }
         }
+      }
+    }
+
+  /**
+   * Wipes the per-region Retro Rewind `rksys.dat` files and the
+   * `RRRating.pul` file. Does NOT touch other Pulsar files, FaceLib,
+   * ghosts, or vanilla/patched NAND saves. Idempotent.
+   */
+  suspend fun deleteRR(tree: DolphinTree): Result<Unit> =
+    withContext(Dispatchers.IO) {
+      runCatching {
+        for (region in Region.entries) {
+          saveFile(tree, region)?.let { if (it.exists()) it.delete() }
+        }
+        tree.pulsarRrDir?.findFile("RRRating.pul")?.let { if (it.exists()) it.delete() }
+        Timber.tag(TAG).i("Deleted RR save data")
       }
     }
 
@@ -393,8 +628,8 @@ object SaveManager {
   /**
    * Resolves a [DocumentFile] parent + filename for a backup zip
    * entry. Returns null when the entry path isn't under one of the
-   * [userDataPathPrefixes] (zip-slip defence). Creates intermediate
-   * directories as needed.
+   * [userDataPathPrefixes] or the known NAND paths (zip-slip
+   * defence). Creates intermediate directories as needed.
    */
   private fun resolveRestoreTarget(
     tree: DolphinTree,
@@ -408,6 +643,29 @@ object SaveManager {
       val region = Region.entries.first { it.code == parts[0] }
       val dir = saveDir(tree, region)
       return dir to parts[1]
+    }
+    if (normalized.startsWith("Wii/title/$TITLE_ID_RETAIL/")) {
+      // Vanilla save: Wii/title/00010001/<region>/data/<filename>
+      val rest = normalized.removePrefix("Wii/title/$TITLE_ID_RETAIL/")
+      val parts = rest.split('/').filter { it.isNotEmpty() }
+      if (parts.size != 3 || parts[0].length != 4 || parts[1] != "data") return null
+      val region = parts[0]
+      if (region !in Region.entries.map { it.code }) return null
+      val dir =
+        navigateOrCreate(tree.root, listOf("Wii", "title", TITLE_ID_RETAIL, region, "data"))
+      return dir to parts[2]
+    }
+    if (normalized.startsWith("Wii/title/$TITLE_ID_PATCHED/")) {
+      // Patched ISO: Wii/title/00010004/524d4352/data/<filename>
+      val rest = normalized.removePrefix("Wii/title/$TITLE_ID_PATCHED/")
+      val parts = rest.split('/').filter { it.isNotEmpty() }
+      if (parts.size != 3 || parts[0] != PATCHED_ISO_HEX_ID || parts[1] != "data") return null
+      val dir =
+        navigateOrCreate(
+          tree.root,
+          listOf("Wii", "title", TITLE_ID_PATCHED, PATCHED_ISO_HEX_ID, "data"),
+        )
+      return dir to parts[2]
     }
     if (normalized.startsWith("Wii/shared2/menu/FaceLib/")) {
       val name = normalized.removePrefix("Wii/shared2/menu/FaceLib/")
@@ -484,6 +742,8 @@ object SaveManager {
     obj.put("createdAt", System.currentTimeMillis())
     val contents = JSONObject()
     contents.put("retroWfc", org.json.JSONArray(manifest.regions))
+    contents.put("vanillaSaves", org.json.JSONArray(manifest.vanillaRegions))
+    contents.put("patchedIso", manifest.patchedIso)
     contents.put("faceLib", manifest.faceLib)
     contents.put("pulsar", org.json.JSONArray(manifest.pulsar))
     contents.put("ghosts", manifest.ghosts)
@@ -502,6 +762,8 @@ object SaveManager {
    */
   internal data class BackupManifest(
     val regions: List<String>,
+    val vanillaRegions: List<String>,
+    val patchedIso: Boolean,
     val faceLib: Boolean,
     val pulsar: List<String>,
     val ghosts: Int,
@@ -510,6 +772,8 @@ object SaveManager {
   /** Counts returned by [backupAll] for UI feedback. */
   data class BackupSummary(
     val rksys: Int,
+    val vanillaSaves: Int,
+    val patchedIso: Boolean,
     val faceLib: Boolean,
     val pulsar: Int,
     val ghosts: Int,
@@ -519,6 +783,8 @@ object SaveManager {
   /** Counts returned by [restoreAll] for UI feedback. */
   data class RestoreSummary(
     val rksys: Int,
+    val vanillaSaves: Int,
+    val patchedIso: Boolean,
     val faceLib: Boolean,
     val pulsar: Int,
     val ghosts: Int,

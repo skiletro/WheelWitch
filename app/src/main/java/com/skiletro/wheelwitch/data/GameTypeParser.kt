@@ -15,7 +15,7 @@ object GameTypeParser {
         val gameId: String?,
     )
 
-    private val knownMarioKartWiiIds = setOf("RMCP01", "RMCE01", "RMCJ01")
+    private val knownMarioKartWiiIds = setOf("RMCP01", "RMCE01", "RMCJ01", "RMCK01")
 
     fun checkValidity(pathname: String, bytes: ByteArray): Boolean {
         val extension = File(pathname).extension.uppercase(Locale.getDefault())

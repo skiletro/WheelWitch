@@ -70,14 +70,25 @@ class SaveDataViewModelTest {
     backupSaver:
       suspend (DolphinTree, Uri) -> Result<SaveManager.BackupSummary> = { _, _ ->
         Result.success(
-          SaveManager.BackupSummary(rksys = 1, faceLib = false, pulsar = 0, ghosts = 0, bytes = 0L)
+          SaveManager.BackupSummary(rksys = 1, vanillaSaves = 0, patchedIso = false, faceLib = false, pulsar = 0, ghosts = 0, bytes = 0L)
+        )
+      },
+    backupRRSaver:
+      suspend (DolphinTree, Uri) -> Result<SaveManager.BackupSummary> = { _, _ ->
+        Result.success(
+          SaveManager.BackupSummary(rksys = 1, vanillaSaves = 0, patchedIso = false, faceLib = false, pulsar = 0, ghosts = 0, bytes = 0L)
         )
       },
     restoreSaver:
       suspend (DolphinTree, Uri) -> Result<SaveManager.RestoreSummary> = { _, _ ->
-        Result.success(SaveManager.RestoreSummary(rksys = 1, faceLib = false, pulsar = 0, ghosts = 0))
+        Result.success(SaveManager.RestoreSummary(rksys = 1, vanillaSaves = 0, patchedIso = false, faceLib = false, pulsar = 0, ghosts = 0))
+      },
+    restoreRRSaver:
+      suspend (DolphinTree, Uri) -> Result<SaveManager.RestoreSummary> = { _, _ ->
+        Result.success(SaveManager.RestoreSummary(rksys = 1, vanillaSaves = 0, patchedIso = false, faceLib = false, pulsar = 0, ghosts = 0))
       },
     deleteSaver: suspend (DolphinTree) -> Result<Unit> = { Result.success(Unit) },
+    deleteRRSaver: suspend (DolphinTree) -> Result<Unit> = { Result.success(Unit) },
     now: () -> Long = { fixedNow },
   ): SaveDataViewModel =
     SaveDataViewModel(
@@ -86,8 +97,11 @@ class SaveDataViewModelTest {
       treeFactory = { tree },
       leaderboardFetcher = leaderboard,
       backupAllSaver = backupSaver,
+      backupRRSaver = backupRRSaver,
       restoreAllSaver = restoreSaver,
+      restoreRRSaver = restoreRRSaver,
       deleteAllSaver = deleteSaver,
+      deleteRRSaver = deleteRRSaver,
       now = now,
       ioDispatcher = ioDispatcher,
     )
@@ -428,7 +442,7 @@ class SaveDataViewModelTest {
       savedTree = tree
       savedUri = u
       Result.success(
-        SaveManager.BackupSummary(rksys = 2, faceLib = true, pulsar = 3, ghosts = 4, bytes = 100L)
+        SaveManager.BackupSummary(rksys = 2, vanillaSaves = 0, patchedIso = false, faceLib = true, pulsar = 3, ghosts = 4, bytes = 100L)
       )
     }
     every { SaveManager.listRegions(mockTree) } returns emptyList()
@@ -479,7 +493,7 @@ class SaveDataViewModelTest {
     val saver: suspend (DolphinTree, Uri) -> Result<SaveManager.RestoreSummary> = { tree, u ->
       savedTree = tree
       savedUri = u
-      Result.success(SaveManager.RestoreSummary(rksys = 2, faceLib = true, pulsar = 3, ghosts = 4))
+      Result.success(SaveManager.RestoreSummary(rksys = 2, vanillaSaves = 0, patchedIso = false, faceLib = true, pulsar = 3, ghosts = 4))
     }
     every { SaveManager.listRegions(mockTree) } returns emptyList()
     every { SaveManager.hasAnySave(mockTree) } returns false
@@ -526,12 +540,140 @@ class SaveDataViewModelTest {
     assertThat(vm.formatLastBackup()).isNull()
   }
 
+  // --- RR-only save data tests ----------------------------------------
+
+  @Test
+  fun `backupRR delegates to the saver and persists the RR timestamp on success`() = runTest {
+    val uri = mockk<Uri>(relaxed = true)
+    var savedUri: Uri? = null
+    var savedTree: DolphinTree? = null
+    val saver: suspend (DolphinTree, Uri) -> Result<SaveManager.BackupSummary> = { tree, u ->
+      savedTree = tree
+      savedUri = u
+      Result.success(
+        SaveManager.BackupSummary(rksys = 2, vanillaSaves = 0, patchedIso = false, faceLib = false, pulsar = 0, ghosts = 0, bytes = 100L)
+      )
+    }
+    every { SaveManager.listRegions(mockTree) } returns emptyList()
+    every { SaveManager.hasAnySave(mockTree) } returns true
+    vm = buildVm(backupRRSaver = saver)
+
+    vm.backupRR(uri)
+
+    assertThat(savedTree).isEqualTo(mockTree)
+    assertThat(savedUri).isEqualTo(uri)
+    assertThat(vm.lastBackupRRTimestamp.value).isEqualTo(fixedNow)
+  }
+
+  @Test
+  fun `backupRR sets an error when the saver fails and does not persist a timestamp`() = runTest {
+    val uri = mockk<Uri>(relaxed = true)
+    val saver: suspend (DolphinTree, Uri) -> Result<SaveManager.BackupSummary> = { _, _ ->
+      Result.failure(RuntimeException("disk full"))
+    }
+    every { SaveManager.listRegions(mockTree) } returns emptyList()
+    every { SaveManager.hasAnySave(mockTree) } returns true
+    vm = buildVm(backupRRSaver = saver)
+
+    vm.backupRR(uri)
+
+    assertThat(vm.error.value).isEqualTo("disk full")
+    assertThat(vm.lastBackupRRTimestamp.value).isEqualTo(0L)
+  }
+
+  @Test
+  fun `backupRR surfaces a not-configured error when the tree factory returns null`() = runTest {
+    val uri = mockk<Uri>(relaxed = true)
+    vm = buildVm(tree = null)
+    every {
+      app.getString(com.skiletro.wheelwitch.R.string.vm_save_not_configured)
+    } returns "no storage"
+
+    vm.backupRR(uri)
+
+    assertThat(vm.error.value).isEqualTo("no storage")
+  }
+
+  @Test
+  fun `restoreRR delegates to the saver and refreshes on success`() = runTest {
+    val uri = mockk<Uri>(relaxed = true)
+    var savedUri: Uri? = null
+    var savedTree: DolphinTree? = null
+    val saver: suspend (DolphinTree, Uri) -> Result<SaveManager.RestoreSummary> = { tree, u ->
+      savedTree = tree
+      savedUri = u
+      Result.success(SaveManager.RestoreSummary(rksys = 2, vanillaSaves = 0, patchedIso = false, faceLib = false, pulsar = 0, ghosts = 0))
+    }
+    every { SaveManager.listRegions(mockTree) } returns emptyList()
+    every { SaveManager.hasAnySave(mockTree) } returns false
+    vm = buildVm(restoreRRSaver = saver)
+
+    vm.restoreRR(uri)
+
+    assertThat(savedTree).isEqualTo(mockTree)
+    assertThat(savedUri).isEqualTo(uri)
+  }
+
+  @Test
+  fun `restoreRR surfaces a not-configured error when the tree factory returns null`() = runTest {
+    val uri = mockk<Uri>(relaxed = true)
+    vm = buildVm(tree = null)
+    every {
+      app.getString(com.skiletro.wheelwitch.R.string.vm_save_not_configured)
+    } returns "no storage"
+
+    vm.restoreRR(uri)
+
+    assertThat(vm.error.value).isEqualTo("no storage")
+  }
+
+  @Test
+  fun `deleteRR delegates to the saver and refreshes on success`() = runTest {
+    var calls = 0
+    val saver: suspend (DolphinTree) -> Result<Unit> = {
+      calls++
+      Result.success(Unit)
+    }
+    every { SaveManager.listRegions(mockTree) } returns emptyList()
+    every { SaveManager.hasAnySave(mockTree) } returns false
+    vm = buildVm(deleteRRSaver = saver)
+
+    vm.deleteRR()
+
+    assertThat(calls).isEqualTo(1)
+  }
+
+  @Test
+  fun `formatLastBackupRR returns null when the RR timestamp is zero`() {
+    vm = buildVm()
+    assertThat(vm.formatLastBackupRR()).isNull()
+  }
+
+  @Test
+  fun `formatLastBackupRR returns a localized timestamp after a successful RR backup`() = runTest {
+    val uri = mockk<Uri>(relaxed = true)
+    val saver: suspend (DolphinTree, Uri) -> Result<SaveManager.BackupSummary> = { _, _ ->
+      Result.success(
+        SaveManager.BackupSummary(rksys = 1, vanillaSaves = 0, patchedIso = false, faceLib = false, pulsar = 0, ghosts = 0, bytes = 0L)
+      )
+    }
+    every { SaveManager.listRegions(mockTree) } returns emptyList()
+    every { SaveManager.hasAnySave(mockTree) } returns true
+    vm = buildVm(backupRRSaver = saver)
+
+    vm.backupRR(uri)
+
+    val label = vm.formatLastBackupRR()
+    assertThat(label).isNotNull()
+    assertThat(label).isNotEmpty()
+  }
+
   @Test
   fun `formatLastBackup returns a localized timestamp after a successful backup`() = runTest {
     val uri = mockk<Uri>(relaxed = true)
     val saver: suspend (DolphinTree, Uri) -> Result<SaveManager.BackupSummary> = { _, _ ->
       Result.success(
-        SaveManager.BackupSummary(rksys = 1, faceLib = false, pulsar = 0, ghosts = 0, bytes = 0L)
+        SaveManager.BackupSummary(rksys = 1, vanillaSaves = 0, patchedIso = false, faceLib = false, pulsar = 0, ghosts = 0, bytes = 0L)
       )
     }
     every { SaveManager.listRegions(mockTree) } returns emptyList()
