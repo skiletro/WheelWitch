@@ -511,7 +511,11 @@ class SaveDataViewModel(
                   if (result.isSuccess) {
                     val data = result.getOrThrow()
                     cacheAndPersistLeaderboardVr(license.slotIndex, data.vr)
-                    license.copy(leaderboardVr = data.vr, miiName = data.name ?: license.miiName)
+                    license.copy(
+                      leaderboardVr = data.vr,
+                      miiName = data.name ?: license.miiName,
+                      miiDataBase64 = data.miiData ?: license.miiDataBase64,
+                    )
                   } else {
                     license
                   }

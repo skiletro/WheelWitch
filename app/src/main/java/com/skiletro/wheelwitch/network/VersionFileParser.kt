@@ -170,9 +170,11 @@ object VersionFileParser {
         val json = fetchUrl(url)
         val obj = JSONObject(json)
         val rawName = obj.opt("name")
+        val rawMiiData = obj.opt("miiData")
         PlayerLeaderboardData(
             vr = obj.optInt("vr", 0),
             name = if (rawName == null || rawName === JSONObject.NULL) null else rawName.toString(),
+            miiData = if (rawMiiData == null || rawMiiData === JSONObject.NULL) null else rawMiiData.toString(),
         )
     }
 

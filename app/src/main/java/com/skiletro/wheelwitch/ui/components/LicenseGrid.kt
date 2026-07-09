@@ -23,6 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.dontsaybojio.rollingnumbers.RollingNumbers
 import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.LicenseInfo
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
@@ -118,19 +119,46 @@ fun PopulatedCell(license: LicenseInfo) {
       }
       Spacer(modifier = Modifier.height(6.dp))
       val vr = license.leaderboardVr ?: 0
-      Text(
-        text = stringResource(R.string.save_info_vr_format, vr),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurface,
-      )
+      Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+          text = "VR ",
+          style = MaterialTheme.typography.bodyMedium,
+          color = MaterialTheme.colorScheme.onSurface,
+        )
+        RollingNumbers(
+          text = vr.toString(),
+          textStyle = MaterialTheme.typography.bodyMedium.copy(
+            color = MaterialTheme.colorScheme.onSurface,
+          ),
+        )
+      }
       Spacer(modifier = Modifier.height(2.dp))
       val wins = license.raceWins ?: 0
       val losses = license.raceLosses ?: 0
-      Text(
-        text = stringResource(R.string.save_info_race_format, wins, losses),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-      )
+      Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+          text = "W ",
+          style = MaterialTheme.typography.bodyMedium,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        RollingNumbers(
+          text = wins.toString(),
+          textStyle = MaterialTheme.typography.bodyMedium.copy(
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+          ),
+        )
+        Text(
+          text = " / L ",
+          style = MaterialTheme.typography.bodyMedium,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        RollingNumbers(
+          text = losses.toString(),
+          textStyle = MaterialTheme.typography.bodyMedium.copy(
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+          ),
+        )
+      }
     }
   }
 }
