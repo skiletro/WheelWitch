@@ -81,7 +81,7 @@
           echo "Installing $APK on $(adb get-serialno)..."
           adb install -r "$APK"
           echo "Launching com.skiletro.wheelwitch/.MainActivity..."
-          adb shell am start -n com.skiletro.wheelwitch/com.skiletro.wheelwitch.MainActivity
+          adb shell am start -n com.skiletro.wheelwitch.debug/com.skiletro.wheelwitch.MainActivity
         '';
     };
   };
