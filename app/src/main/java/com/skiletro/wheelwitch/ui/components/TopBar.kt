@@ -190,6 +190,7 @@ private fun ClockText() {
 @Composable
 private fun VersionBadge() {
     val version = BuildConfig.VERSION_NAME.substringBefore("+")
+    val label = if (BuildConfig.DEBUG) "${version} CANARY" else version
     Box(
         modifier = Modifier
             .background(
@@ -199,7 +200,7 @@ private fun VersionBadge() {
             .padding(horizontal = 6.dp, vertical = 2.dp)
     ) {
         Text(
-            text = version,
+            text = label,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSecondaryContainer
         )
