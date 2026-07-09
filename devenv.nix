@@ -1,5 +1,18 @@
 { pkgs, ... }:
 
+let
+  srcFiles = [
+    "app/src/**/*.kt"
+    "app/src/**/*.java"
+    "app/src/**/*.xml"
+  ];
+  buildFiles = srcFiles ++ [
+    "*.gradle.kts"
+    "settings.gradle.kts"
+    "gradle.properties"
+    "gradle/**/*.kts"
+  ];
+in
 {
   languages.java = {
     enable = true;
@@ -25,7 +38,11 @@
   tasks = {
     "gradle:build:debug" = {
       description = "Assemble the debug APK";
-      exec = "./gradlew assembleDebug";
+      exec = ''
+        ./gradlew assembleDebug
+        echo '{"apkPath":"app/build/outputs/apk/debug/app-debug.apk"}' > "$DEVENV_TASK_OUTPUT_FILE"
+      '';
+      execIfModified = buildFiles;
     };
     "gradle:build:release" = {
       description = "Assemble the signed release APK (needs release.keystore + .env — run scripts/setup-signing.sh first)";
@@ -36,20 +53,31 @@
             echo "No signing config found. Run: scripts/setup-signing.sh" >&2
             exit 1
           fi
-          exec ./gradlew assembleRelease
+          ./gradlew assembleRelease
+          echo '{"apkPath":"app/build/outputs/apk/release/app-release.apk"}' > "$DEVENV_TASK_OUTPUT_FILE"
         '';
+      execIfModified = buildFiles ++ [ "release.keystore" ".env" ];
     };
     "gradle:test" = {
       description = "Run unit tests (filter with: ./gradlew testDebugUnitTest --tests <name>)";
-      exec = "./gradlew testDebugUnitTest";
+      exec = ''
+        ./gradlew testDebugUnitTest
+        echo '{"reportPath":"app/build/reports/tests/testDebugUnitTest/index.html"}' > "$DEVENV_TASK_OUTPUT_FILE"
+      '';
+      execIfModified = srcFiles ++ [ "*.gradle.kts" "settings.gradle.kts" ];
     };
     "gradle:format" = {
       description = "Auto-format Kotlin with Spotless + ktfmt";
       exec = "./gradlew spotlessApply";
+      execIfModified = [ "app/src/**/*.kt" ];
     };
     "gradle:lint" = {
       description = "Run Android Lint";
-      exec = "./gradlew lint";
+      exec = ''
+        ./gradlew lint
+        echo '{"reportPath":"app/build/reports/lint-results-debug.html"}' > "$DEVENV_TASK_OUTPUT_FILE"
+      '';
+      execIfModified = buildFiles ++ [ "app/lint.xml" ];
     };
     "gradle:clean" = {
       description = "Clean build outputs";
@@ -58,10 +86,15 @@
     "gradle:check" = {
       description = "Build + run unit tests";
       after = [ "gradle:build:debug" ];
-      exec = "./gradlew testDebugUnitTest";
+      exec = ''
+        ./gradlew testDebugUnitTest
+        echo '{"reportPath":"app/build/reports/tests/testDebugUnitTest/index.html"}' > "$DEVENV_TASK_OUTPUT_FILE"
+      '';
+      execIfModified = srcFiles ++ [ "*.gradle.kts" "settings.gradle.kts" ];
     };
     "android:install" = {
       description = "Build the debug APK and install + launch on the connected adb device";
+      after = [ "gradle:build:debug" ];
       exec =
         # sh
         ''
@@ -74,14 +107,14 @@
             echo "No adb device connected. Check with: adb devices" >&2
             exit 1
           fi
-          echo "Building debug APK..."
-          ./gradlew assembleDebug
           APK="app/build/outputs/apk/debug/app-debug.apk"
-          [ -f "$APK" ] || { echo "APK not found at $APK" >&2; exit 1; }
-          echo "Installing $APK on $(adb get-serialno)..."
-          adb install -r "$APK"
+          [ -f "$APK" ] || { echo "APK not found at $APK — run gradle:build:debug first" >&2; exit 1; }
+          DEVICE=$(adb get-serialno)
+          echo "Installing $APK on $DEVICE..."
+           adb install -r -d "$APK"
           echo "Launching com.skiletro.wheelwitch/.MainActivity..."
           adb shell am start -n com.skiletro.wheelwitch.debug/com.skiletro.wheelwitch.MainActivity
+          echo "{\"device\":\"$DEVICE\",\"apkInstalled\":true}" > "$DEVENV_TASK_OUTPUT_FILE"
         '';
     };
   };
