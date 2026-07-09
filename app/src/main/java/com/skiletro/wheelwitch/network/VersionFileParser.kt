@@ -2,6 +2,7 @@ package com.skiletro.wheelwitch.network
 
 import com.skiletro.wheelwitch.model.DeletionEntry
 import com.skiletro.wheelwitch.model.LeaderboardResponse
+import com.skiletro.wheelwitch.model.PlayerLeaderboardData
 import com.skiletro.wheelwitch.model.RaceStats
 import com.skiletro.wheelwitch.model.Room
 import com.skiletro.wheelwitch.model.SemVersion
@@ -163,11 +164,16 @@ object VersionFileParser {
         parseTimeTrialLeaderboard(json)
     }
 
-    /** Fetches the leaderboard VR for a given friend code. */
-    fun fetchPlayerLeaderboard(friendCode: String): Result<Int> = runCatching {
+    /** Fetches the leaderboard VR and Mii name for a given friend code. */
+    fun fetchPlayerLeaderboard(friendCode: String): Result<PlayerLeaderboardData> = runCatching {
         val url = "$RWFC_API/api/leaderboard/player/$friendCode/"
         val json = fetchUrl(url)
-        JSONObject(json).optInt("vr", 0)
+        val obj = JSONObject(json)
+        val rawName = obj.opt("name")
+        PlayerLeaderboardData(
+            vr = obj.optInt("vr", 0),
+            name = if (rawName == null || rawName === JSONObject.NULL) null else rawName.toString(),
+        )
     }
 
     /** Blocking HTTP GET. Throws on non-2xx or empty body. */
