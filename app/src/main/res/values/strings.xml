@@ -4,7 +4,6 @@
     <string name="cd_refresh">Refresh</string>
     <string name="cd_settings">Settings</string>
     <string name="cd_mii_maker">Mii Maker</string>
-    <string name="cd_save_data">Licenses</string>
     <string name="cd_online_menu">Online Menu</string>
     <string name="topbar_subtitle">Retro Rewind Pack Manager</string>
 
@@ -25,8 +24,6 @@
     <string name="download_percent_format">%1$d%%</string>
     <string name="status_empty">Empty</string>
     <string name="status_no_internet">No internet</string>
-    <string name="status_save_not_found">No save file found</string>
-
     <!-- general errors -->
     <string name="error_storage_not_configured">Storage not configured</string>
     <string name="error_no_internet">No internet connection. Please connect to the internet and try again.</string>
@@ -48,7 +45,6 @@
     <string name="home_racers_online">%d racers online</string>
     <string name="home_offline">Offline</string>
     <string name="home_up_to_date">Up to date (v%s)</string>
-    <string name="home_version_installed">v%s installed</string>
     <string name="home_update_format">v%1$s to v%2$s</string>
     <string name="home_check_failed">Couldn\'t check for updates</string>
     <string name="home_check_failed_installed_format">Installed v%1$s — tap to retry</string>
@@ -57,8 +53,6 @@
     <string name="home_launch_fallback">Couldn\'t launch Retro Rewind automatically. Pick it from Dolphin\'s game library.</string>
     <string name="home_exit_title">Exit Wheel Witch?</string>
     <string name="home_exit_message">Wheel Witch will close. Continue?</string>
-    <string name="player_default">Player</string>
-    <string name="home_vr_suffix">VR</string>
 
     <!-- onboarding -->
     <string name="onboarding_beta_title">Heads up: this is beta software</string>
@@ -219,17 +213,10 @@
 
     <!-- save info -->
     <string name="save_info_title">Licenses</string>
-    <string name="save_info_race_format">Race: W %1$d / L %2$d</string>
-    <string name="save_info_vr_format">VR %1$d</string>
     <string name="save_info_no_licenses">No license slots in this save</string>
     <string name="save_info_loading">Loading save…</string>
     <string name="save_info_empty_slot">Empty slot</string>
     <string name="save_info_no_name">(no name)</string>
-    <string name="save_info_friend_code_format">Friend code: %s</string>
-    <string name="save_info_selected">Active</string>
-    <string name="save_info_region_pal">PAL</string>
-    <string name="save_info_region_usa">USA</string>
-    <string name="save_info_region_jpn">JPN</string>
 
     <!-- settings save data -->
     <string name="settings_save_data_section">Save Data</string>
@@ -249,10 +236,6 @@
     <string name="settings_save_data_rr_restore_confirm_message">This will overwrite your current Retro Rewind saves and rating data. Other data is not affected.</string>
     <string name="settings_save_data_rr_delete_confirm_title">Delete RR save data?</string>
     <string name="settings_save_data_rr_delete_confirm_message">This permanently deletes your Retro Rewind saves and rating data. Other data is not affected.</string>
-
-    <!-- version history -->
-    <string name="home_version_history_coming_soon">Coming soon…</string>
-    <string name="home_version_history_coming_soon_body">Version history temporarily unavailable.</string>
 
     <!-- logging / bug report -->
     <string name="settings_logging">Logging</string>

@@ -497,7 +497,6 @@ class SaveDataViewModel(
   ) {
     val baseLicenses =
       info?.licenses ?: List(LICENSE_SLOTS) { i -> LicenseInfo(slotIndex = i, exists = false) }
-    _mergedLicenses.update { current -> current + (region to baseLicenses) }
     val enriched =
       withContext(ioDispatcher) {
         coroutineScope {
