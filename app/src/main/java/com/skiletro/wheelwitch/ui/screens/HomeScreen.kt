@@ -56,11 +56,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.skiletro.wheelwitch.R
-import com.skiletro.wheelwitch.model.LicenseInfo
 import com.skiletro.wheelwitch.model.PackStatus
 import com.skiletro.wheelwitch.model.SemVersion
 import com.skiletro.wheelwitch.model.ServerConnectivity
-import com.skiletro.wheelwitch.ui.components.ActivePlayerCard
+import com.skiletro.wheelwitch.ui.components.EmptySaveBody
+import com.skiletro.wheelwitch.ui.components.LicenseGrid
 import com.skiletro.wheelwitch.ui.components.PrimaryActionButton
 import com.skiletro.wheelwitch.ui.components.ProgressButton
 import com.skiletro.wheelwitch.ui.components.TopBar
@@ -79,9 +79,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Top-level home screen: top bar, version-history placeholder, and
- * the check-for-updates / install / launch bottom bar. The save-data
- * "Licenses" top-bar entry opens [SaveInfoScreen].
+ * Top-level home screen: top bar, inline license grid, and the
+ * check-for-updates / install / launch bottom bar.
  */
 @Composable
 fun HomeScreen(
@@ -95,8 +94,7 @@ fun HomeScreen(
   val installProgress by packUpdate.installProgress.collectAsState()
   val hasWad by miiMaker.hasWad.collectAsState()
   val roomsState by onlineViewModel.roomsState.collectAsState()
-  val activeLicense by saveData.activeLicense.collectAsState()
-  val cachedLeaderboardVrs by saveData.cachedLeaderboardVrs.collectAsState()
+  
 
   val playerCount = (roomsState as? RoomsState.Success)?.playerCount
   val serverConnectivity =
@@ -115,10 +113,9 @@ fun HomeScreen(
   }
 
   var showOnlineMenu by remember { mutableStateOf(false) }
-  var showSaveInfo by remember { mutableStateOf(false) }
   var showExitDialog by remember { mutableStateOf(false) }
 
-  BackHandler(enabled = !(showOnlineMenu || showSaveInfo)) {
+  BackHandler(enabled = !showOnlineMenu) {
     showExitDialog = true
   }
 
@@ -158,7 +155,7 @@ fun HomeScreen(
     val launchFallback = stringResource(R.string.home_launch_fallback)
     val launchStorageNotConfigured = stringResource(R.string.error_storage_not_configured)
 
-    if (!(showOnlineMenu || showSaveInfo)) {
+    if (!showOnlineMenu) {
       Scaffold(
         topBar = {
           Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
@@ -168,7 +165,6 @@ fun HomeScreen(
               miiMakerEnabled = hasWad,
               onOpenOnlineMenu = { showOnlineMenu = true },
               onlineMenuEnabled = serverConnectivity is ServerConnectivity.Online,
-              onOpenSaveInfo = { showSaveInfo = true },
             )
           }
         },
@@ -178,8 +174,6 @@ fun HomeScreen(
               HomeBottomBar(
                 state = state,
                 installProgress = installProgress,
-                activeLicense = activeLicense,
-                cachedLeaderboardVrs = cachedLeaderboardVrs,
                 playerCount = playerCount,
                 serverConnectivity = serverConnectivity,
                 isBusy = state is UiState.Installing,
@@ -214,26 +208,24 @@ fun HomeScreen(
           }
         },
       ) { padding ->
-        Box(
+        Surface(
           modifier =
             Modifier.fillMaxSize()
               .background(MaterialTheme.colorScheme.background)
               .padding(padding),
-          contentAlignment = Alignment.Center,
+          color = MaterialTheme.colorScheme.background,
         ) {
-          Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-              text = stringResource(R.string.home_version_history_coming_soon),
-              style = MaterialTheme.typography.headlineSmall,
-              fontWeight = FontWeight.Bold,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-              text = stringResource(R.string.home_version_history_coming_soon_body),
-              style = MaterialTheme.typography.bodyMedium,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
-              textAlign = TextAlign.Center,
+          val selectedRegion by saveData.selectedRegion.collectAsState()
+          val mergedLicenses by saveData.mergedLicenses.collectAsState()
+          val isLoading by saveData.isLoading.collectAsState()
+
+          val licenses = selectedRegion?.let { mergedLicenses[it] }
+          if (selectedRegion == null || licenses == null) {
+            EmptySaveBody(isLoading = isLoading)
+          } else {
+            LicenseGrid(
+              licenses = licenses,
+              isLoading = isLoading,
             )
           }
         }
@@ -246,14 +238,6 @@ fun HomeScreen(
       exit = slideOutVertically() + fadeOut(),
     ) {
       OnlineMenuScreen(viewModel = onlineViewModel, onClose = { showOnlineMenu = false })
-    }
-
-    AnimatedVisibility(
-      visible = showSaveInfo,
-      enter = slideInVertically() + fadeIn(),
-      exit = slideOutVertically() + fadeOut(),
-    ) {
-      SaveInfoScreen(viewModel = saveData, onClose = { showSaveInfo = false })
     }
   }
 }
@@ -278,8 +262,6 @@ fun HomeScreen(
 private fun HomeBottomBar(
   state: UiState,
   installProgress: DownloadProgress?,
-  activeLicense: LicenseInfo?,
-  cachedLeaderboardVrs: Map<Int, Int>,
   playerCount: Int?,
   serverConnectivity: ServerConnectivity,
   isBusy: Boolean,
@@ -296,13 +278,6 @@ private fun HomeBottomBar(
     modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    if (activeLicense != null && state !is UiState.Installing) {
-      ActivePlayerCard(
-        license = activeLicense,
-        cachedLeaderboardVr = cachedLeaderboardVrs[activeLicense.slotIndex],
-      )
-    }
-
     Spacer(modifier = Modifier.weight(1f))
 
     AnimatedContent(

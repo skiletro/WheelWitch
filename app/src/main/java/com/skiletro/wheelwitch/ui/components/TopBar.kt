@@ -52,8 +52,8 @@ private const val DisabledIconAlpha = 0.38f
 /**
  * Top app bar shown on the Home screen.
  *
- * Renders the brand name + subtitle, a clock, and four icon buttons:
- * online menu, save data (licenses), Mii Maker, and settings.
+ * Renders the brand name + subtitle, a clock, and three icon buttons:
+ * online menu, Mii Maker, and settings.
  *
  * [onLaunchMiiMaker] and [onOpenOnlineMenu] accept an `enabled` flag
  * that gates the corresponding button. The Mii Maker button also dims
@@ -66,8 +66,7 @@ fun TopBar(
     onLaunchMiiMaker: () -> Unit,
     miiMakerEnabled: Boolean,
     onOpenOnlineMenu: () -> Unit,
-    onlineMenuEnabled: Boolean,
-    onOpenSaveInfo: () -> Unit
+    onlineMenuEnabled: Boolean
 ) {
     var bobOffset by remember { mutableFloatStateOf(0f) }
     LaunchedEffect(Unit) {
@@ -83,7 +82,6 @@ fun TopBar(
     }
 
     var onlineMenuFocused by remember { mutableStateOf(false) }
-    var saveInfoFocused by remember { mutableStateOf(false) }
     var miiMakerFocused by remember { mutableStateOf(false) }
     var settingsFocused by remember { mutableStateOf(false) }
 
@@ -134,18 +132,6 @@ fun TopBar(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(
                     alpha = if (onlineMenuEnabled) 1f else 0.38f
                 ),
-            )
-        }
-        IconButton(
-            onClick = onOpenSaveInfo,
-            modifier = Modifier
-                .onFocusChanged { saveInfoFocused = it.isFocused }
-                .focusBorder(saveInfoFocused)
-        ) {
-            Icon(
-                imageVector = ImageVector.vectorResource(R.drawable.ic_id_card_2),
-                contentDescription = stringResource(R.string.cd_save_data),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         IconButton(
