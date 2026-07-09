@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -701,15 +702,17 @@ private fun AboutSection() {
         BuildConfig.GIT_HASH,
       )
     else stringResource(R.string.settings_version_release, BuildConfig.VERSION_NAME)
-  SettingsItem(
-    icon = ImageVector.vectorResource(R.drawable.ic_info),
-    title = stringResource(R.string.settings_wheel_witch),
-    summary =
-      stringResource(
-        R.string.settings_about_summary,
-        version,
-        stringResource(R.string.settings_app_subtitle),
-      ),
-    trailing = null,
-  )
+  Box(modifier = Modifier.focusable()) {
+    SettingsItem(
+      icon = ImageVector.vectorResource(R.drawable.ic_info),
+      title = stringResource(R.string.settings_wheel_witch),
+      summary =
+        stringResource(
+          R.string.settings_about_summary,
+          version,
+          stringResource(R.string.settings_app_subtitle),
+        ),
+      trailing = null,
+    )
+  }
 }

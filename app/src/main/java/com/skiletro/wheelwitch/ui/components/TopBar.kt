@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -124,7 +125,7 @@ fun TopBar(
             enabled = onlineMenuEnabled,
             modifier = Modifier
                 .onFocusChanged { onlineMenuFocused = it.isFocused }
-                .focusBorder(onlineMenuFocused)
+                .focusBorder(onlineMenuFocused, CircleShape)
         ) {
             Icon(
                 imageVector = ImageVector.vectorResource(R.drawable.ic_dns),
@@ -139,7 +140,7 @@ fun TopBar(
             enabled = miiMakerEnabled,
             modifier = Modifier
                 .onFocusChanged { miiMakerFocused = it.isFocused }
-                .focusBorder(miiMakerFocused)
+                .focusBorder(miiMakerFocused, CircleShape)
         ) {
             Icon(
                 imageVector = ImageVector.vectorResource(R.drawable.ic_face_up),
@@ -153,7 +154,7 @@ fun TopBar(
             onClick = onOpenSettings,
             modifier = Modifier
                 .onFocusChanged { settingsFocused = it.isFocused }
-                .focusBorder(settingsFocused)
+                .focusBorder(settingsFocused, CircleShape)
         ) {
             Icon(
                 imageVector = ImageVector.vectorResource(R.drawable.ic_settings),

@@ -3,6 +3,7 @@ package com.skiletro.wheelwitch.ui.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -65,7 +66,7 @@ fun ScreenHeader(
                 onClick = onBack,
                 modifier = Modifier
                     .onFocusChanged { backFocused = it.isFocused }
-                    .focusBorder(backFocused)
+                    .focusBorder(backFocused, CircleShape)
             ) {
                 Icon(
                     imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_back),
@@ -94,7 +95,7 @@ fun ScreenHeader(
                 onClick = onRefresh,
                 modifier = Modifier
                     .onFocusChanged { refreshFocused = it.isFocused }
-                    .focusBorder(refreshFocused)
+                    .focusBorder(refreshFocused, CircleShape)
             ) {
                 Icon(
                     imageVector = ImageVector.vectorResource(R.drawable.ic_refresh),

@@ -3,7 +3,6 @@ package com.skiletro.wheelwitch.ui.components
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -34,9 +33,8 @@ import com.skiletro.wheelwitch.ui.theme.buttonShape
  *   state (used for things like a currently-selected license slot).
  * - Focus state is hoisted to a `remember` scope (NOT inside the clickable
  *   lambda) so the state survives recomposition correctly.
- * - The focus border is drawn with [shape] when it is a
- *   [RoundedCornerShape]; any other shape falls back to [buttonShape]
- *   for the border because [focusBorder] only supports rounded corners.
+ * - The focus border is drawn with [shape], which may be a
+ *   [RoundedCornerShape] or [CircleShape] (or falls back to [buttonShape]).
  */
 @Composable
 fun FocusableSurface(
@@ -65,7 +63,7 @@ fun FocusableSurface(
             .onFocusChanged { isFocused = it.isFocused }
             .focusBorder(
                 isFocused = isFocused || selected,
-                shape = shape as? RoundedCornerShape ?: buttonShape
+                shape = shape
             )
     ) {
         content()
