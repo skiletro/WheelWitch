@@ -217,6 +217,7 @@ fun HomeScreen(
         ) {
           val selectedRegion by saveData.selectedRegion.collectAsState()
           val mergedLicenses by saveData.mergedLicenses.collectAsState()
+          val scoreResults by saveData.scoreResults.collectAsState()
           val isLoading by saveData.isLoading.collectAsState()
 
           val licenses = selectedRegion?.let { mergedLicenses[it] }
@@ -225,6 +226,7 @@ fun HomeScreen(
           } else {
             LicenseGrid(
               licenses = licenses,
+              scoreResults = scoreResults,
               isLoading = isLoading,
             )
           }

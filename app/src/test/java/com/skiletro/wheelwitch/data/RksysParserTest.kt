@@ -10,8 +10,8 @@ class RksysParserTest {
     private const val MII_NAME_OFFSET = 0x14
     private const val MII_NAME_LENGTH = 20
     private const val PID_OFFSET = 0x5C
-    private const val RACE_WINS_OFFSET = 0x88
-    private const val RACE_LOSSES_OFFSET = 0x8C
+    private const val RACE_WINS_OFFSET = 0x98
+    private const val RACE_LOSSES_OFFSET = 0x9C
     private const val VR_OFFSET = 0xB0
     private const val MII_RFL_OFFSET = 0x5684
     private const val MII_RFL_DATA_LENGTH = 74

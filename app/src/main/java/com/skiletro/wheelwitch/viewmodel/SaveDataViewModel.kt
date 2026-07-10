@@ -10,12 +10,17 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.viewModelScope
 import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.data.DolphinTree
+import com.skiletro.wheelwitch.data.RRRatingParser
 import com.skiletro.wheelwitch.data.RksysParser
 import com.skiletro.wheelwitch.data.SaveManager
 import com.skiletro.wheelwitch.data.SaveManager.Region
+import com.skiletro.wheelwitch.data.readDolphinBytes
 import com.skiletro.wheelwitch.model.LicenseInfo
+import com.skiletro.wheelwitch.model.LicenseStats
 import com.skiletro.wheelwitch.model.PlayerLeaderboardData
 import com.skiletro.wheelwitch.model.SaveFileInfo
+import com.skiletro.wheelwitch.model.ScoreResult
+import com.skiletro.wheelwitch.model.computeScore
 import com.skiletro.wheelwitch.network.VersionFileParser
 import com.skiletro.wheelwitch.util.prefs.Prefs
 import com.skiletro.wheelwitch.util.prefs.PrefsKeys
@@ -141,11 +146,39 @@ class SaveDataViewModel(
       }
       .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
+  val scoreResults: StateFlow<Map<Int, ScoreResult?>> =
+    combine(_mergedLicenses, _selectedRegion) { merged, region ->
+      val licenses = region?.let { merged[it] } ?: return@combine emptyMap()
+      licenses.associate { license ->
+        license.slotIndex to buildScoreResult(license)
+      }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+  private fun buildScoreResult(license: LicenseInfo): ScoreResult? {
+    if (!license.exists) return null
+    val vrPoints = license.profileId?.let { pid ->
+      ratingVrMap[pid]?.let { java.lang.Math.round(it * 100.0).toDouble() }
+    } ?: (license.vr ?: 0).toDouble()
+    return computeScore(
+      LicenseStats(
+        vrPoints = vrPoints,
+        vsWins = license.raceWins ?: 0,
+        vsLosses = license.raceLosses ?: 0,
+        firsts = license.firsts ?: 0,
+        dist = license.totalDist ?: 0.0,
+        dist1st = license.dist1st ?: 0.0,
+      )
+    )
+  }
+
   private val _cachedLeaderboardVrs = MutableStateFlow<Map<Int, Int>>(emptyMap())
   val cachedLeaderboardVrs: StateFlow<Map<Int, Int>> = _cachedLeaderboardVrs.asStateFlow()
 
   private val _isLoading = MutableStateFlow(false)
   val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+  /** Maps profileId → internal VR (0–10000) from RRating.pul, or empty if unavailable. */
+  private var ratingVrMap: Map<Long, Float> = emptyMap()
 
   private val _error = MutableStateFlow<String?>(null)
   val error: StateFlow<String?> = _error.asStateFlow()
@@ -256,6 +289,7 @@ class SaveDataViewModel(
         _hasSave.value = hasSaves
         _hasAnySave.value = computeHasAnySave(tree)
         _hasRRSave.value = computeHasRRSave(tree)
+        ratingVrMap = loadRatingVrMap(tree)
         val target = pickSelectedRegion(regions)
         if (target != _selectedRegion.value) {
           _selectedRegion.value = target
@@ -569,6 +603,12 @@ class SaveDataViewModel(
         }
       }
     }.getOrElse { emptyMap() }
+  }
+
+  private fun loadRatingVrMap(tree: DolphinTree): Map<Long, Float> {
+    val file = tree.pulsarRrDir?.findFile("RRRating.pul") ?: return emptyMap()
+    val bytes = readDolphinBytes(tree.resolver, file) ?: return emptyMap()
+    return RRRatingParser.parse(bytes).associate { it.profileId.toLong() to it.vr }
   }
 
   /**

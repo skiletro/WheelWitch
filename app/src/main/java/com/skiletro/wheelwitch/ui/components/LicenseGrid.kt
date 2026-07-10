@@ -26,12 +26,14 @@ import androidx.compose.ui.unit.dp
 import com.dontsaybojio.rollingnumbers.RollingNumbers
 import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.LicenseInfo
+import com.skiletro.wheelwitch.model.ScoreResult
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
 import com.skiletro.wheelwitch.ui.theme.surfaceShape
 
 @Composable
 fun LicenseGrid(
   licenses: List<LicenseInfo>,
+  scoreResults: Map<Int, ScoreResult?>,
   isLoading: Boolean,
 ) {
   Box(
@@ -46,14 +48,20 @@ fun LicenseGrid(
           modifier = Modifier.fillMaxWidth().weight(1f),
           horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-          LicenseCell(
-            license = pair.getOrNull(0),
-            modifier = Modifier.weight(1f),
-          )
-          LicenseCell(
-            license = pair.getOrNull(1),
-            modifier = Modifier.weight(1f),
-          )
+          pair.getOrNull(0)?.let { first ->
+            LicenseCell(
+              license = first,
+              scoreResult = scoreResults[first.slotIndex],
+              modifier = Modifier.weight(1f),
+            )
+          }
+          pair.getOrNull(1)?.let { second ->
+            LicenseCell(
+              license = second,
+              scoreResult = scoreResults[second.slotIndex],
+              modifier = Modifier.weight(1f),
+            )
+          }
         }
       }
     }
@@ -66,6 +74,7 @@ fun LicenseGrid(
 @Composable
 fun LicenseCell(
   license: LicenseInfo?,
+  scoreResult: ScoreResult?,
   modifier: Modifier = Modifier,
 ) {
   val exists = license?.exists == true
@@ -81,7 +90,7 @@ fun LicenseCell(
     Box(modifier = Modifier.fillMaxSize()) {
       val populated = license?.takeIf { it.exists }
       if (populated != null) {
-        PopulatedCell(license = populated)
+        PopulatedCell(license = populated, scoreResult = scoreResult)
       } else {
         EmptyCell()
       }
@@ -90,7 +99,7 @@ fun LicenseCell(
 }
 
 @Composable
-fun PopulatedCell(license: LicenseInfo) {
+fun PopulatedCell(license: LicenseInfo, scoreResult: ScoreResult?) {
   Row(
     modifier = Modifier.fillMaxSize().padding(14.dp),
     verticalAlignment = Alignment.CenterVertically,
@@ -117,7 +126,7 @@ fun PopulatedCell(license: LicenseInfo) {
           color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
       }
-      Spacer(modifier = Modifier.height(6.dp))
+      Spacer(modifier = Modifier.height(3.dp))
       val vr = license.leaderboardVr ?: 0
       Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
@@ -132,7 +141,7 @@ fun PopulatedCell(license: LicenseInfo) {
           ),
         )
       }
-      Spacer(modifier = Modifier.height(2.dp))
+      Spacer(modifier = Modifier.height(1.dp))
       val wins = license.raceWins ?: 0
       val losses = license.raceLosses ?: 0
       Row(verticalAlignment = Alignment.CenterVertically) {
@@ -160,6 +169,8 @@ fun PopulatedCell(license: LicenseInfo) {
         )
       }
     }
+    Spacer(modifier = Modifier.width(12.dp))
+    RankBadge(result = scoreResult)
   }
 }
 

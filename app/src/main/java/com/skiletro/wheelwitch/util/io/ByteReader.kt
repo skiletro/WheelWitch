@@ -40,6 +40,15 @@ object ByteReader {
         return sb.toString()
     }
 
+    fun readFloatBE(bytes: ByteArray, offset: Int): Float {
+        if (offset + 4 > bytes.size) return 0f
+        val bits = ((bytes[offset].toInt() and 0xFF) shl 24) or
+          ((bytes[offset + 1].toInt() and 0xFF) shl 16) or
+          ((bytes[offset + 2].toInt() and 0xFF) shl 8) or
+          (bytes[offset + 3].toInt() and 0xFF)
+        return Float.fromBits(bits)
+    }
+
     fun checkMagic(bytes: ByteArray, offset: Int, expected: ByteArray): Boolean {
         if (offset + expected.size > bytes.size) return false
         for (i in expected.indices) {

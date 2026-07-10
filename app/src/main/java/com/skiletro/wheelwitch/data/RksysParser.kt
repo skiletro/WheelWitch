@@ -29,9 +29,14 @@ object RksysParser {
   /** 20 bytes = 10 UTF-16BE code units (2 bytes each). */
   private const val MII_NAME_LENGTH = 20
   private const val PID_OFFSET = 0x5C
-  private const val RACE_WINS_OFFSET = 0x88
-  private const val RACE_LOSSES_OFFSET = 0x8C
+  private const val RACE_WINS_OFFSET = 0x98
+  private const val RACE_LOSSES_OFFSET = 0x9C
   private const val VR_OFFSET = 0xB0
+
+  /** Additional stat offsets for rank calculation. */
+  private const val TOTAL_DIST_OFFSET = 0xC4
+  private const val FIRSTS_OFFSET = 0xDC
+  private const val DIST1ST_OFFSET = 0xE0
 
   /**
    * Offset of the RFL (Mii binary) payload. RFL is the raw 74-byte
@@ -69,6 +74,10 @@ object RksysParser {
     val raceWins = ByteReader.readInt32BE(bytes, base + RACE_WINS_OFFSET)
     val raceLosses = ByteReader.readInt32BE(bytes, base + RACE_LOSSES_OFFSET)
 
+    val firsts = ByteReader.readUInt32BE(bytes, base + FIRSTS_OFFSET).toInt()
+    val totalDist = ByteReader.readFloatBE(bytes, base + TOTAL_DIST_OFFSET).toDouble().coerceAtLeast(0.0)
+    val dist1st = ByteReader.readFloatBE(bytes, base + DIST1ST_OFFSET).toDouble().coerceAtLeast(0.0)
+
     val miiDataBase64 =
       if (base + MII_RFL_OFFSET + MII_RFL_DATA_LENGTH <= bytes.size) {
         val rflData =
@@ -81,9 +90,13 @@ object RksysParser {
       exists = true,
       miiName = miiName,
       friendCode = pidToFriendCode(pid),
+      profileId = pid,
       vr = vr,
       raceWins = raceWins,
       raceLosses = raceLosses,
+      firsts = firsts,
+      totalDist = totalDist,
+      dist1st = dist1st,
       miiDataBase64 = miiDataBase64,
     )
   }

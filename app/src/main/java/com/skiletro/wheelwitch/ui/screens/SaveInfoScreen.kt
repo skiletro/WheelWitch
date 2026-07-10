@@ -45,6 +45,7 @@ import com.skiletro.wheelwitch.viewmodel.SaveDataViewModel
 fun SaveInfoScreen(viewModel: SaveDataViewModel, onClose: () -> Unit) {
   val selectedRegion by viewModel.selectedRegion.collectAsState()
   val mergedLicenses by viewModel.mergedLicenses.collectAsState()
+  val scoreResults by viewModel.scoreResults.collectAsState()
   val isLoading by viewModel.isLoading.collectAsState()
   val error by viewModel.error.collectAsState()
 
@@ -86,6 +87,7 @@ fun SaveInfoScreen(viewModel: SaveDataViewModel, onClose: () -> Unit) {
     } else {
       LicenseGrid(
         licenses = licenses,
+        scoreResults = scoreResults,
         isLoading = isLoading,
       )
     }

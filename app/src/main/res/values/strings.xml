@@ -237,6 +237,11 @@
     <string name="settings_save_data_rr_delete_confirm_title">Delete RR save data?</string>
     <string name="settings_save_data_rr_delete_confirm_message">This permanently deletes your Retro Rewind saves and rating data. Other data is not affected.</string>
 
+    <!-- rank -->
+    <string name="rank_locked">Locked</string>
+    <string name="rank_races_format">%d/100 races</string>
+    <string name="rank_score_label">Score: </string>
+
     <!-- logging / bug report -->
     <string name="settings_logging">Logging</string>
     <string name="settings_logging_to_file">Save logs to file</string>

@@ -26,9 +26,13 @@ data class LicenseInfo(
   val exists: Boolean,
   val miiName: String? = null,
   val friendCode: String? = null,
+  val profileId: Long? = null,
   val vr: Int? = null,
   val raceWins: Int? = null,
   val raceLosses: Int? = null,
   val miiDataBase64: String? = null,
   val leaderboardVr: Int? = null,
+  val firsts: Int? = null,
+  val totalDist: Double? = null,
+  val dist1st: Double? = null,
 )
