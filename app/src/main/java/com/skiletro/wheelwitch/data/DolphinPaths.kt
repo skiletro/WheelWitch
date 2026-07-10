@@ -95,17 +95,17 @@ object DolphinPaths {
 
   /**
    * Directory for a vanilla MKW save at
-   * `Wii/title/00010001/<region>/data/`.
+   * `Wii/title/00010004/<regionAsHex>/data/`.
    */
-  fun vanillaSaveDir(context: Context, region: String): File =
-    File(nandTitleDir(context, "00010001"), "$region/data")
+  fun vanillaSaveDir(context: Context, region: SaveManager.Region): File =
+    File(nandTitleDir(context, SaveManager.TITLE_ID), "${region.hexCode()}/data")
 
   /**
    * Directory for a patched-ISO save at
    * `Wii/title/00010004/524d4352/data/`.
    */
   fun patchedIsoSaveDir(context: Context): File =
-    File(nandTitleDir(context, "00010004"), "524d4352/data")
+    File(nandTitleDir(context, SaveManager.TITLE_ID), "${SaveManager.PATCHED_ISO_HEX_ID}/data")
 
   /**
    * The expected SAF tree document id for the Dolphin user folder.
