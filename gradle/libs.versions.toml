@@ -3,21 +3,21 @@ agp = "9.2.1"
 coreKtx = "1.18.0"
 lifecycleRuntimeKtx = "2.10.0"
 activityCompose = "1.13.0"
-kotlin = "2.2.10"
-composeBom = "2026.02.01"
-okhttp = "4.12.0"
-junitJupiter = "5.11.4"
-junitPlatform = "1.11.4"
-mockk = "1.13.14"
-truth = "1.4.4"
-coroutines = "1.10.2"
+kotlin = "2.4.0"
+composeBom = "2026.06.01"
+okhttp = "5.4.0"
+junitJupiter = "6.1.1"
+junitPlatform = "6.1.1"
+mockk = "1.14.11"
+truth = "1.4.5"
+coroutines = "1.11.0"
 
 material = "1.12.0"
 rollingnumbers = "0.3.1"
-spotless = "8.7.0"
+spotless = "8.8.0"
 timber = "5.0.1"
 androidxDocumentfile = "1.0.1"
-coil = "3.3.0"
+coil = "3.5.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -34,7 +34,7 @@ androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "u
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
-okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver", version.ref = "okhttp" }
+okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver3", version.ref = "okhttp" }
 rollingnumbers = { group = "com.dontsaybojio", name = "rollingnumbers", version.ref = "rollingnumbers" }
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }

@@ -1,11 +1,11 @@
 package com.skiletro.wheelwitch.util.io
 
 import com.google.common.truth.Truth.assertThat
+import mockwebserver3.Dispatcher
+import mockwebserver3.MockResponse
+import mockwebserver3.MockWebServer
+import mockwebserver3.RecordedRequest
 import okhttp3.OkHttpClient
-import okhttp3.mockwebserver.Dispatcher
-import okhttp3.mockwebserver.MockResponse
-import okhttp3.mockwebserver.MockWebServer
-import okhttp3.mockwebserver.RecordedRequest
 import okio.Buffer
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -35,19 +35,20 @@ class FileDownloaderTest {
 
     @AfterEach
     fun tearDown() {
-        server.shutdown()
+        server.close()
         targetFile.delete()
     }
 
     @Test
     fun `retries succeed after 2 transient failures`() {
-        server.enqueue(MockResponse().setResponseCode(500).setBody("boom 1"))
-        server.enqueue(MockResponse().setResponseCode(503).setBody("boom 2"))
+        server.enqueue(MockResponse.Builder().code(500).body("boom 1").build())
+        server.enqueue(MockResponse.Builder().code(503).body("boom 2").build())
         server.enqueue(
-            MockResponse()
-                .setResponseCode(200)
-                .setHeader("Content-Length", "11")
-                .setBody("hello world")
+            MockResponse.Builder()
+                .code(200)
+                .addHeader("Content-Length", "11")
+                .body("hello world")
+                .build()
         )
 
         val result = FileDownloader.downloadToFile(
@@ -65,13 +66,14 @@ class FileDownloaderTest {
 
     @Test
     fun `progress callback emits terminal 1f on eventual success`() {
-        server.enqueue(MockResponse().setResponseCode(500))
-        server.enqueue(MockResponse().setResponseCode(500))
+        server.enqueue(MockResponse.Builder().code(500).build())
+        server.enqueue(MockResponse.Builder().code(500).build())
         server.enqueue(
-            MockResponse()
-                .setResponseCode(200)
-                .setHeader("Content-Length", "5")
-                .setBody("12345")
+            MockResponse.Builder()
+                .code(200)
+                .addHeader("Content-Length", "5")
+                .body("12345")
+                .build()
         )
 
         val reports = mutableListOf<DownloadProgress>()
@@ -89,9 +91,9 @@ class FileDownloaderTest {
 
     @Test
     fun `gives up after 3 attempts when all fail with 500`() {
-        server.enqueue(MockResponse().setResponseCode(500))
-        server.enqueue(MockResponse().setResponseCode(500))
-        server.enqueue(MockResponse().setResponseCode(500))
+        server.enqueue(MockResponse.Builder().code(500).build())
+        server.enqueue(MockResponse.Builder().code(500).build())
+        server.enqueue(MockResponse.Builder().code(500).build())
 
         val ex = runCatching {
             FileDownloader.downloadToFile(
@@ -110,7 +112,7 @@ class FileDownloaderTest {
 
     @Test
     fun `fails fast on HTTP 404 without retrying`() {
-        server.enqueue(MockResponse().setResponseCode(404).setBody("nope"))
+        server.enqueue(MockResponse.Builder().code(404).body("nope").build())
 
         val ex = runCatching {
             FileDownloader.downloadToFile(
@@ -130,10 +132,11 @@ class FileDownloaderTest {
     @Test
     fun `fails fast on empty 200 body`() {
         server.enqueue(
-            MockResponse()
-                .setResponseCode(200)
-                .setHeader("Content-Length", "0")
-                .setBody("")
+            MockResponse.Builder()
+                .code(200)
+                .addHeader("Content-Length", "0")
+                .body("")
+                .build()
         )
 
         val ex = runCatching {
@@ -154,10 +157,11 @@ class FileDownloaderTest {
     @Test
     fun `succeeds on first attempt with no retries needed`() {
         server.enqueue(
-            MockResponse()
-                .setResponseCode(200)
-                .setHeader("Content-Length", "3")
-                .setBody("abc")
+            MockResponse.Builder()
+                .code(200)
+                .addHeader("Content-Length", "3")
+                .body("abc")
+                .build()
         )
 
         val result = FileDownloader.downloadToFile(
@@ -178,10 +182,11 @@ class FileDownloaderTest {
     @Test
     fun `downloadToFile sends Accept-Encoding identity header`() {
         server.enqueue(
-            MockResponse()
-                .setResponseCode(200)
-                .setHeader("Content-Length", "3")
-                .setBody("abc")
+            MockResponse.Builder()
+                .code(200)
+                .addHeader("Content-Length", "3")
+                .body("abc")
+                .build()
         )
 
         FileDownloader.downloadToFile(
@@ -192,7 +197,7 @@ class FileDownloaderTest {
         )
 
         val recorded = server.takeRequest()
-        assertThat(recorded.getHeader("Accept-Encoding")).isEqualTo("identity")
+        assertThat(recorded.headers.get("Accept-Encoding")).isEqualTo("identity")
     }
 
     // --- Tier 2: downloadInParallel ---
@@ -208,22 +213,24 @@ class FileDownloaderTest {
             object : Dispatcher() {
                 override fun dispatch(request: RecordedRequest): MockResponse {
                     if (request.method == "HEAD") {
-                        return MockResponse()
-                            .setResponseCode(200)
-                            .setHeader("Content-Length", content.size.toString())
-                            .setHeader("Accept-Ranges", "bytes")
+                        return MockResponse.Builder()
+                            .code(200)
+                            .addHeader("Content-Length", content.size.toString())
+                            .addHeader("Accept-Ranges", "bytes")
+                            .build()
                     }
-                    val range = request.getHeader("Range")
-                        ?: return MockResponse().setResponseCode(400)
+                    val range = request.headers.get("Range")
+                        ?: return MockResponse.Builder().code(400).build()
                     val (start, end) = parseRange(range)
                     val slice = content.copyOfRange(start.toInt(), (end + 1).toInt())
-                    return MockResponse()
-                        .setResponseCode(206)
-                        .setHeader(
+                    return MockResponse.Builder()
+                        .code(206)
+                        .addHeader(
                             "Content-Range",
                             "bytes $start-$end/${content.size}",
                         )
-                        .setBody(Buffer().write(slice))
+                        .body(Buffer().write(slice))
+                        .build()
                 }
             }
     }
@@ -260,16 +267,18 @@ class FileDownloaderTest {
         // body. Only the 200 should be consumed by the GET; the parallel
         // path is skipped entirely.
         server.enqueue(
-            MockResponse()
-                .setResponseCode(200)
-                .setHeader("Content-Length", "5")
-                .setHeader("Accept-Ranges", "none")
+            MockResponse.Builder()
+                .code(200)
+                .addHeader("Content-Length", "5")
+                .addHeader("Accept-Ranges", "none")
+                .build()
         )
         server.enqueue(
-            MockResponse()
-                .setResponseCode(200)
-                .setHeader("Content-Length", "5")
-                .setBody("hello")
+            MockResponse.Builder()
+                .code(200)
+                .addHeader("Content-Length", "5")
+                .body("hello")
+                .build()
         )
 
         val result = FileDownloader.downloadInParallel(
@@ -289,14 +298,16 @@ class FileDownloaderTest {
     @Test
     fun `downloadInParallel falls back when Content-Length is missing`() {
         server.enqueue(
-            MockResponse()
-                .setResponseCode(200)
-                .setHeader("Accept-Ranges", "bytes")
+            MockResponse.Builder()
+                .code(200)
+                .addHeader("Accept-Ranges", "bytes")
+                .build()
         )
         server.enqueue(
-            MockResponse()
-                .setResponseCode(200)
-                .setBody("chunked-body")
+            MockResponse.Builder()
+                .code(200)
+                .body("chunked-body")
+                .build()
         )
 
         val result = FileDownloader.downloadInParallel(
@@ -320,13 +331,14 @@ class FileDownloaderTest {
             object : Dispatcher() {
                 override fun dispatch(request: RecordedRequest): MockResponse {
                     if (request.method == "HEAD") {
-                        return MockResponse()
-                            .setResponseCode(200)
-                            .setHeader("Content-Length", content.size.toString())
-                            .setHeader("Accept-Ranges", "bytes")
+                        return MockResponse.Builder()
+                            .code(200)
+                            .addHeader("Content-Length", content.size.toString())
+                            .addHeader("Accept-Ranges", "bytes")
+                            .build()
                     }
-                    val range = request.getHeader("Range")
-                        ?: return MockResponse().setResponseCode(400)
+                    val range = request.headers.get("Range")
+                        ?: return MockResponse.Builder().code(400).build()
                     val (start, end) = parseRange(range)
                     // The first chunk (bytes 0-255) is the one that gets
                     // a 503 on its first attempt; the dispatcher hands
@@ -334,16 +346,17 @@ class FileDownloaderTest {
                     // attempt count for the first chunk specifically.
                     if (start == 0L) {
                         val n = firstChunkAttempts.incrementAndGet()
-                        if (n == 1) return MockResponse().setResponseCode(503)
+                        if (n == 1) return MockResponse.Builder().code(503).build()
                     }
                     val slice = content.copyOfRange(start.toInt(), (end + 1).toInt())
-                    return MockResponse()
-                        .setResponseCode(206)
-                        .setHeader(
+                    return MockResponse.Builder()
+                        .code(206)
+                        .addHeader(
                             "Content-Range",
                             "bytes $start-$end/${content.size}",
                         )
-                        .setBody(Buffer().write(slice))
+                        .body(Buffer().write(slice))
+                        .build()
                 }
             }
 
@@ -368,12 +381,13 @@ class FileDownloaderTest {
             object : Dispatcher() {
                 override fun dispatch(request: RecordedRequest): MockResponse {
                     if (request.method == "HEAD") {
-                        return MockResponse()
-                            .setResponseCode(200)
-                            .setHeader("Content-Length", content.size.toString())
-                            .setHeader("Accept-Ranges", "bytes")
+                        return MockResponse.Builder()
+                            .code(200)
+                            .addHeader("Content-Length", content.size.toString())
+                            .addHeader("Accept-Ranges", "bytes")
+                            .build()
                     }
-                    return MockResponse().setResponseCode(503)
+                    return MockResponse.Builder().code(503).build()
                 }
             }
 
