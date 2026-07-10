@@ -194,7 +194,7 @@ class SaveManagerTest {
     assertThat(result.isSuccess).isTrue()
     val entries = readZipEntries(destOutput.toByteArray())
     val names = entries.map { it.name }
-    assertThat(names).contains("Wii/title/00010001/RMCP/data/rksys.dat")
+    assertThat(names).contains("Wii/title/00010004/524d4350/data/rksys.dat")
     assertThat(names).contains("RetroWFC/RMCP/rksys.dat")
     // Manifest should list vanilla regions.
     val manifest = JSONObject(String(entries.first { it.name == "manifest.json" }.bytes))
@@ -234,7 +234,7 @@ class SaveManagerTest {
     assertThat(result.isSuccess).isTrue()
     val entries = readZipEntries(destOutput.toByteArray())
     val names = entries.map { it.name }
-    assertThat(names).doesNotContain("Wii/title/00010001/RMCP/data/rksys.dat")
+    assertThat(names).doesNotContain("Wii/title/00010004/524d4350/data/rksys.dat")
   }
 
   // --- hasAnySave: vanilla and patched ISO -------------------------------
@@ -384,7 +384,7 @@ class SaveManagerTest {
         zos.putNextEntry(ZipEntry("manifest.json"))
         zos.write(manifest.toString().encodeToByteArray())
         zos.closeEntry()
-        zos.putNextEntry(ZipEntry("Wii/title/00010001/RMCP/data/rksys.dat"))
+        zos.putNextEntry(ZipEntry("Wii/title/00010004/524d4350/data/rksys.dat"))
         zos.write("vanilla-save".encodeToByteArray())
         zos.closeEntry()
       }
@@ -541,7 +541,7 @@ class SaveManagerTest {
         zos.putNextEntry(ZipEntry("Wii/shared2/Pulsar/RetroRewind6/RRRating.pul"))
         zos.write("rating-data".encodeToByteArray())
         zos.closeEntry()
-        zos.putNextEntry(ZipEntry("Wii/title/00010001/RMCP/data/rksys.dat"))
+        zos.putNextEntry(ZipEntry("Wii/title/00010004/524d4350/data/rksys.dat"))
         zos.write("vanilla-data".encodeToByteArray())
         zos.closeEntry()
         zos.putNextEntry(ZipEntry("Wii/shared2/menu/FaceLib/RFL_DB.dat"))
@@ -858,8 +858,8 @@ class SaveManagerTest {
 
     // Vanilla save NAND chain (includeVanillaSaves stubs RMCP for brevity).
     if (includeVanillaSaves) {
-      val titleIdDir = mockDir(SaveManager.TITLE_ID_RETAIL)
-      val regionDir = mockDir(Region.PAL.code)
+      val titleIdDir = mockDir(SaveManager.TITLE_ID)
+      val regionDir = mockDir(Region.PAL.hexCode())
       val dataDir = mockDir("data")
       val saveFile = mockk<DocumentFile>(relaxed = true)
       val saveFileUri = mockk<Uri>(relaxed = true)
@@ -868,10 +868,10 @@ class SaveManagerTest {
       every { saveFile.exists() } returns true
       every { saveFile.isFile } returns true
       every { saveFile.delete() } returns true
-      every { titleDir.findFile(SaveManager.TITLE_ID_RETAIL) } returns titleIdDir
-      every { titleDir.createDirectory(SaveManager.TITLE_ID_RETAIL) } returns titleIdDir
-      every { titleIdDir.findFile(Region.PAL.code) } returns regionDir
-      every { titleIdDir.createDirectory(Region.PAL.code) } returns regionDir
+      every { titleDir.findFile(SaveManager.TITLE_ID) } returns titleIdDir
+      every { titleDir.createDirectory(SaveManager.TITLE_ID) } returns titleIdDir
+      every { titleIdDir.findFile(Region.PAL.hexCode()) } returns regionDir
+      every { titleIdDir.createDirectory(Region.PAL.hexCode()) } returns regionDir
       every { regionDir.findFile("data") } returns dataDir
       every { regionDir.createDirectory("data") } returns dataDir
       every { dataDir.findFile(SaveManager.SAVE_FILE_NAME) } returns saveFile
@@ -880,7 +880,7 @@ class SaveManagerTest {
         ByteArrayInputStream("vanilla-RMCP".encodeToByteArray())
     }
     if (includePatchedIso) {
-      val patchedIdDir = mockDir(SaveManager.TITLE_ID_PATCHED)
+      val patchedIdDir = mockDir(SaveManager.TITLE_ID)
       val patchedRegionDir = mockDir(SaveManager.PATCHED_ISO_HEX_ID)
       val patchedDataDir = mockDir("data")
       val patchedSaveFile = mockk<DocumentFile>(relaxed = true)
@@ -890,8 +890,8 @@ class SaveManagerTest {
       every { patchedSaveFile.exists() } returns true
       every { patchedSaveFile.isFile } returns true
       every { patchedSaveFile.delete() } returns true
-      every { titleDir.findFile(SaveManager.TITLE_ID_PATCHED) } returns patchedIdDir
-      every { titleDir.createDirectory(SaveManager.TITLE_ID_PATCHED) } returns patchedIdDir
+      every { titleDir.findFile(SaveManager.TITLE_ID) } returns patchedIdDir
+      every { titleDir.createDirectory(SaveManager.TITLE_ID) } returns patchedIdDir
       every { patchedIdDir.findFile(SaveManager.PATCHED_ISO_HEX_ID) } returns patchedRegionDir
       every { patchedIdDir.createDirectory(SaveManager.PATCHED_ISO_HEX_ID) } returns patchedRegionDir
       every { patchedRegionDir.findFile("data") } returns patchedDataDir

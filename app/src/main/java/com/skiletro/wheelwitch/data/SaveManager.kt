@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import timber.log.Timber
+import kotlin.text.startsWith
 
 /**
  * Unified save data backup/restore and per-region helpers for the
@@ -58,17 +59,19 @@ object SaveManager {
     PAL("RMCP"),
     USA("RMCE"),
     JPN("RMCJ"),
-    KOR("RMCK"),
+    KOR("RMCK");
+
+    fun hexCode(): String = code.codePoints().toArray()
+      .joinToString("") { cp ->
+        cp.toString(16).lowercase().padStart(2, '0')
+      }
   }
 
   /** Filename of the save file inside the region directory. */
   const val SAVE_FILE_NAME = "rksys.dat"
 
-  /** Wii title ID for standard retail games (Mario Kart Wii and others). */
-  const val TITLE_ID_RETAIL = "00010001"
-
-  /** Wii title ID for WiiWare / channels (used by patched ISOs). */
-  const val TITLE_ID_PATCHED = "00010004"
+  /** Wii title ID for game channels (also used by patched ISOs). */
+  const val TITLE_ID = "00010004"
 
   /**
    * Hex-encoded game ID for patched Retro Rewind ISOs (`RMCR`).
@@ -207,14 +210,14 @@ object SaveManager {
   /**
    * Searches for existing vanilla save (`rksys.dat`) for every
    * [Region] under the Wii NAND path
-   * `Wii/title/00010001/<region>/data/`. Returns the list of regions
+   * `Wii/title/00010004/<regionAsHex>/data/`. Returns the list of regions
    * whose save was found. Does NOT create any directories — only
    * checks existing paths.
    */
   private fun vanillaSaveFiles(tree: DolphinTree): List<Pair<Region, DocumentFile>> {
     val results = mutableListOf<Pair<Region, DocumentFile>>()
     for (region in Region.entries) {
-      val file = findNandSaveFile(tree.root, TITLE_ID_RETAIL, region.code)
+      val file = findNandSaveFile(tree.root, TITLE_ID, region.hexCode())
       if (file != null) results.add(region to file)
     }
     return results
@@ -226,7 +229,7 @@ object SaveManager {
    * Does NOT create any directories.
    */
   private fun findPatchedIsoSaveFile(tree: DolphinTree): DocumentFile? =
-    findNandSaveFile(tree.root, TITLE_ID_PATCHED, PATCHED_ISO_HEX_ID)
+    findNandSaveFile(tree.root, TITLE_ID, PATCHED_ISO_HEX_ID)
 
   /**
    * Snapshots the per-region Retro Rewind `rksys.dat` files and
@@ -379,7 +382,7 @@ object SaveManager {
             for ((region, file) in availableVanilla) {
               val bytes = readDolphinBytes(tree.resolver, file) ?: continue
               zip.putNextEntry(
-                ZipEntry("Wii/title/$TITLE_ID_RETAIL/${region.code}/data/$SAVE_FILE_NAME").apply {
+                ZipEntry("Wii/title/$TITLE_ID/${region.hexCode()}/data/$SAVE_FILE_NAME").apply {
                   size = bytes.size.toLong()
                 }
               )
@@ -392,7 +395,7 @@ object SaveManager {
               if (bytes != null) {
                 zip.putNextEntry(
                   ZipEntry(
-                    "Wii/title/$TITLE_ID_PATCHED/$PATCHED_ISO_HEX_ID/data/$SAVE_FILE_NAME"
+                    "Wii/title/$TITLE_ID/$PATCHED_ISO_HEX_ID/data/$SAVE_FILE_NAME"
                   ).apply { size = bytes.size.toLong() }
                 )
                 zip.write(bytes)
@@ -542,9 +545,10 @@ object SaveManager {
               writeDolphinBytes(tree.resolver, parent, name, bytes)
               when {
                 entryName.startsWith("RetroWFC/") && name == SAVE_FILE_NAME -> rksys++
-                entryName.startsWith("Wii/title/$TITLE_ID_RETAIL/") &&
+                entryName.startsWith("Wii/title/$TITLE_ID/") &&
+                  !entryName.startsWith("Wii/title/$TITLE_ID/$PATCHED_ISO_HEX_ID/data") &&
                   name == SAVE_FILE_NAME -> vanillaSaves++
-                entryName.startsWith("Wii/title/$TITLE_ID_PATCHED/") &&
+                entryName.startsWith("Wii/title/$TITLE_ID/$PATCHED_ISO_HEX_ID/data") &&
                   name == SAVE_FILE_NAME -> patchedIso = true
                 entryName.startsWith("Wii/shared2/menu/FaceLib/") &&
                   name == UserDataPaths.RFL_DB -> faceLib = true
@@ -644,27 +648,27 @@ object SaveManager {
       val dir = saveDir(tree, region)
       return dir to parts[1]
     }
-    if (normalized.startsWith("Wii/title/$TITLE_ID_RETAIL/")) {
-      // Vanilla save: Wii/title/00010001/<region>/data/<filename>
-      val rest = normalized.removePrefix("Wii/title/$TITLE_ID_RETAIL/")
+    if (normalized.startsWith("Wii/title/$TITLE_ID/")) {
+      if (normalized.startsWith("Wii/title/$TITLE_ID/$PATCHED_ISO_HEX_ID/data")) {
+        // Patched ISO: Wii/title/00010004/524d4352/data/<filename>
+        val rest = normalized.removePrefix("Wii/title/$TITLE_ID/")
+        val parts = rest.split('/').filter { it.isNotEmpty() }
+        if (parts.size != 3 || parts[0] != PATCHED_ISO_HEX_ID || parts[1] != "data") return null
+        val dir =
+          navigateOrCreate(
+            tree.root,
+            listOf("Wii", "title", TITLE_ID, PATCHED_ISO_HEX_ID, "data"),
+          )
+        return dir to parts[2]
+      }
+      // Vanilla save: Wii/title/00010004/<regionAsHex>/data/<filename>
+      val rest = normalized.removePrefix("Wii/title/$TITLE_ID/")
       val parts = rest.split('/').filter { it.isNotEmpty() }
-      if (parts.size != 3 || parts[0].length != 4 || parts[1] != "data") return null
+      if (parts.size != 3 || parts[1] != "data") return null
       val region = parts[0]
-      if (region !in Region.entries.map { it.code }) return null
+      if (region !in Region.entries.map { it.hexCode() }) return null
       val dir =
-        navigateOrCreate(tree.root, listOf("Wii", "title", TITLE_ID_RETAIL, region, "data"))
-      return dir to parts[2]
-    }
-    if (normalized.startsWith("Wii/title/$TITLE_ID_PATCHED/")) {
-      // Patched ISO: Wii/title/00010004/524d4352/data/<filename>
-      val rest = normalized.removePrefix("Wii/title/$TITLE_ID_PATCHED/")
-      val parts = rest.split('/').filter { it.isNotEmpty() }
-      if (parts.size != 3 || parts[0] != PATCHED_ISO_HEX_ID || parts[1] != "data") return null
-      val dir =
-        navigateOrCreate(
-          tree.root,
-          listOf("Wii", "title", TITLE_ID_PATCHED, PATCHED_ISO_HEX_ID, "data"),
-        )
+        navigateOrCreate(tree.root, listOf("Wii", "title", TITLE_ID, region, "data"))
       return dir to parts[2]
     }
     if (normalized.startsWith("Wii/shared2/menu/FaceLib/")) {
