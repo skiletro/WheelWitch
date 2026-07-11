@@ -116,6 +116,14 @@ fun rankFromScore(score: Double): Int = when {
 
 fun nextThreshold(rank: Int): Double? = RANK_THRESH.getOrNull(rank)
 
+fun wouldBeScore(result: ScoreResult): Double {
+  val M = W_VR * result.vrNorm + W_WIN * result.winPct + W_FIRSTS * result.firstsNorm +
+    W_DIST * result.distNorm + W_DIST1ST * result.dist1stNorm
+  return (ALPHA * M + BETA).coerceIn(0.0, 100.0)
+}
+
+fun wouldBeRank(result: ScoreResult): Int = rankFromScore(wouldBeScore(result))
+
 fun computeNeeds(stats: LicenseStats): NextRankInfo {
   val cur = computeScore(stats)
   val thr = nextThreshold(cur.rank) ?: return NextRankInfo(
