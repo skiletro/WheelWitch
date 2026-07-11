@@ -20,6 +20,7 @@ import com.skiletro.wheelwitch.model.LicenseStats
 import com.skiletro.wheelwitch.model.PlayerLeaderboardData
 import com.skiletro.wheelwitch.model.SaveFileInfo
 import com.skiletro.wheelwitch.model.ScoreResult
+import com.skiletro.wheelwitch.model.VanityBadge
 import com.skiletro.wheelwitch.model.computeScore
 import com.skiletro.wheelwitch.network.VersionFileParser
 import com.skiletro.wheelwitch.util.prefs.Prefs
@@ -171,6 +172,9 @@ class SaveDataViewModel(
     )
   }
 
+  private val _vanityBadges = MutableStateFlow<Map<String, VanityBadge>>(emptyMap())
+  val vanityBadges: StateFlow<Map<String, VanityBadge>> = _vanityBadges.asStateFlow()
+
   private val _cachedLeaderboardVrs = MutableStateFlow<Map<Int, Int>>(emptyMap())
   val cachedLeaderboardVrs: StateFlow<Map<Int, Int>> = _cachedLeaderboardVrs.asStateFlow()
 
@@ -290,6 +294,8 @@ class SaveDataViewModel(
         _hasAnySave.value = computeHasAnySave(tree)
         _hasRRSave.value = computeHasRRSave(tree)
         ratingVrMap = loadRatingVrMap(tree)
+        _vanityBadges.value = withContext(ioDispatcher) { VersionFileParser.fetchBadges() }
+        Timber.tag(TAG).d("Fetched %d vanity badge entries", _vanityBadges.value.size)
         val target = pickSelectedRegion(regions)
         if (target != _selectedRegion.value) {
           _selectedRegion.value = target

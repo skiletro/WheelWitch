@@ -27,6 +27,7 @@ import com.dontsaybojio.rollingnumbers.RollingNumbers
 import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.LicenseInfo
 import com.skiletro.wheelwitch.model.ScoreResult
+import com.skiletro.wheelwitch.model.VanityBadge
 import com.skiletro.wheelwitch.ui.theme.CtmkfFontFamily
 import com.skiletro.wheelwitch.ui.theme.surfaceShape
 
@@ -34,6 +35,7 @@ import com.skiletro.wheelwitch.ui.theme.surfaceShape
 fun LicenseGrid(
   licenses: List<LicenseInfo>,
   scoreResults: Map<Int, ScoreResult?>,
+  badges: Map<String, VanityBadge>,
   isLoading: Boolean,
 ) {
   Box(
@@ -52,6 +54,7 @@ fun LicenseGrid(
             LicenseCell(
               license = first,
               scoreResult = scoreResults[first.slotIndex],
+              badge = first.friendCode?.let { badges[it] },
               modifier = Modifier.weight(1f),
             )
           }
@@ -59,6 +62,7 @@ fun LicenseGrid(
             LicenseCell(
               license = second,
               scoreResult = scoreResults[second.slotIndex],
+              badge = second.friendCode?.let { badges[it] },
               modifier = Modifier.weight(1f),
             )
           }
@@ -75,6 +79,7 @@ fun LicenseGrid(
 fun LicenseCell(
   license: LicenseInfo?,
   scoreResult: ScoreResult?,
+  badge: VanityBadge? = null,
   modifier: Modifier = Modifier,
 ) {
   val exists = license?.exists == true
@@ -90,7 +95,7 @@ fun LicenseCell(
     Box(modifier = Modifier.fillMaxSize()) {
       val populated = license?.takeIf { it.exists }
       if (populated != null) {
-        PopulatedCell(license = populated, scoreResult = scoreResult)
+        PopulatedCell(license = populated, scoreResult = scoreResult, badge = badge)
       } else {
         EmptyCell()
       }
@@ -99,7 +104,7 @@ fun LicenseCell(
 }
 
 @Composable
-fun PopulatedCell(license: LicenseInfo, scoreResult: ScoreResult?) {
+fun PopulatedCell(license: LicenseInfo, scoreResult: ScoreResult?, badge: VanityBadge? = null) {
   Row(
     modifier = Modifier.fillMaxSize().padding(14.dp),
     verticalAlignment = Alignment.CenterVertically,
@@ -170,7 +175,7 @@ fun PopulatedCell(license: LicenseInfo, scoreResult: ScoreResult?) {
       }
     }
     Spacer(modifier = Modifier.width(12.dp))
-    RankBadge(result = scoreResult)
+    RankBadge(result = scoreResult, vanityBadge = badge)
   }
 }
 

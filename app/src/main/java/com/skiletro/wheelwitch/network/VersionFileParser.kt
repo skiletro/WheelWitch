@@ -11,6 +11,7 @@ import com.skiletro.wheelwitch.model.ServerInfo
 import com.skiletro.wheelwitch.model.TimeTrialLeaderboardResponse
 import com.skiletro.wheelwitch.model.TimeTrialTrack
 import com.skiletro.wheelwitch.model.UpdateEntry
+import com.skiletro.wheelwitch.model.VanityBadge
 import com.skiletro.wheelwitch.util.net.HttpClientProvider
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Request
@@ -89,6 +90,7 @@ object VersionFileParser {
     private const val RACE_STATS_URL = "$RWFC_API/api/racestats/global"
     private const val TIME_TRIAL_TRACKS_URL = "$RWFC_API/api/timetrial/tracks"
     private const val TIME_TRIAL_LEADERBOARD_URL = "$RWFC_API/api/timetrial/leaderboard"
+    private const val BADGES_BASE = "https://update.rwfc.net/RetroRewind/badges/"
 
     private val httpClient get() = HttpClientProvider.client
 
@@ -176,6 +178,17 @@ object VersionFileParser {
             name = if (rawName == null || rawName === JSONObject.NULL) null else rawName.toString(),
             miiData = if (rawMiiData == null || rawMiiData === JSONObject.NULL) null else rawMiiData.toString(),
         )
+    }
+
+    /** Fetches the vanity badge map: friend code → [VanityBadge]. */
+    fun fetchBadges(): Map<String, VanityBadge> = runCatching {
+        val ant = VanityBadgeParser.parseBadgeText(fetchUrl("${BADGES_BASE}ant.txt"), VanityBadge.ANT)
+        val dev = VanityBadgeParser.parseBadgeText(fetchUrl("${BADGES_BASE}dev.txt"), VanityBadge.DEVELOPER)
+        val dono = VanityBadgeParser.parseBadgeText(fetchUrl("${BADGES_BASE}dono.txt"), VanityBadge.DONATOR)
+        ant + dev + dono
+    }.getOrElse {
+        Timber.tag("Network").w(it, "Failed to fetch vanity badges")
+        emptyMap()
     }
 
     /** Blocking HTTP GET. Throws on non-2xx or empty body. */

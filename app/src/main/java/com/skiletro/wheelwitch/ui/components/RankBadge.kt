@@ -28,6 +28,7 @@ import com.skiletro.wheelwitch.R
 import com.skiletro.wheelwitch.model.RANK_NAMES
 import com.skiletro.wheelwitch.model.RANK_THRESH
 import com.skiletro.wheelwitch.model.ScoreResult
+import com.skiletro.wheelwitch.model.VanityBadge
 import com.skiletro.wheelwitch.model.rankFromScore
 
 private fun rankIconRes(rank: Int): Int? = when (rank) {
@@ -44,7 +45,7 @@ private fun rankIconRes(rank: Int): Int? = when (rank) {
 }
 
 @Composable
-fun RankBadge(result: ScoreResult?) {
+fun RankBadge(result: ScoreResult?, vanityBadge: VanityBadge? = null) {
   if (result == null) return
 
   Column(
@@ -53,15 +54,15 @@ fun RankBadge(result: ScoreResult?) {
     modifier = Modifier.widthIn(min = 70.dp),
   ) {
     if (!result.meetsRaceReq) {
-      LockedBadge(result)
+      LockedBadge(result, vanityBadge)
     } else {
-      PopulatedBadge(result)
+      PopulatedBadge(result, vanityBadge)
     }
   }
 }
 
 @Composable
-private fun PopulatedBadge(result: ScoreResult) {
+private fun PopulatedBadge(result: ScoreResult, vanityBadge: VanityBadge?) {
   val iconRes = remember(result.rank) { rankIconRes(result.rank) }
   val image = iconRes?.let { painterResource(it) }
   val isMaxRank = result.rank >= 9
@@ -69,12 +70,25 @@ private fun PopulatedBadge(result: ScoreResult) {
   val nextIconRes = remember(nextRank) { nextRank?.let { rankIconRes(it) } }
   val nextImage = nextIconRes?.let { painterResource(it) }
 
-  if (image != null) {
-    androidx.compose.foundation.Image(
-      painter = image,
-      contentDescription = RANK_NAMES.getOrElse(result.rank - 1) { "" },
-      modifier = Modifier.size(width = 40.dp, height = 48.dp),
-    )
+  Row(
+    verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.Center,
+  ) {
+    if (vanityBadge != null) {
+      Image(
+        painter = painterResource(R.drawable.ic_rank_crown),
+        contentDescription = null,
+        modifier = Modifier.size(width = 40.dp, height = 48.dp),
+      )
+      Spacer(Modifier.width(4.dp))
+    }
+    if (image != null) {
+      androidx.compose.foundation.Image(
+        painter = image,
+        contentDescription = RANK_NAMES.getOrElse(result.rank - 1) { "" },
+        modifier = Modifier.size(width = 40.dp, height = 48.dp),
+      )
+    }
   }
 
   Spacer(Modifier.height(1.dp))
@@ -136,18 +150,31 @@ private fun PopulatedBadge(result: ScoreResult) {
 }
 
 @Composable
-private fun LockedBadge(result: ScoreResult) {
+private fun LockedBadge(result: ScoreResult, vanityBadge: VanityBadge?) {
   val iconRes = remember(result.rank) { rankIconRes(result.rank) }
   val image = iconRes?.let { painterResource(it) }
 
-  if (image != null) {
-    androidx.compose.foundation.Image(
-      painter = image,
-      contentDescription = null,
-      modifier = Modifier
-        .size(width = 40.dp, height = 48.dp)
-        .alpha(0.3f),
-    )
+  Row(
+    verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.Center,
+  ) {
+    if (vanityBadge != null) {
+      Image(
+        painter = painterResource(R.drawable.ic_rank_crown),
+        contentDescription = null,
+        modifier = Modifier.size(width = 40.dp, height = 48.dp),
+      )
+      Spacer(Modifier.width(4.dp))
+    }
+    if (image != null) {
+      androidx.compose.foundation.Image(
+        painter = image,
+        contentDescription = null,
+        modifier = Modifier
+          .size(width = 40.dp, height = 48.dp)
+          .alpha(0.3f),
+      )
+    }
   }
 
   Spacer(Modifier.height(1.dp))
