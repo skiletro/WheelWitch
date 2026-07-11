@@ -31,6 +31,12 @@ import com.skiletro.wheelwitch.model.ScoreResult
 import com.skiletro.wheelwitch.model.VanityBadge
 import com.skiletro.wheelwitch.model.rankFromScore
 
+private fun badgeIconRes(badge: VanityBadge): Int = when (badge) {
+  VanityBadge.ANT -> R.drawable.ic_badge_ant
+  VanityBadge.DEVELOPER -> R.drawable.ic_badge_dev
+  VanityBadge.DONATOR -> R.drawable.ic_badge_donator
+}
+
 private fun rankIconRes(rank: Int): Int? = when (rank) {
   1 -> R.drawable.ic_rank_e
   2 -> R.drawable.ic_rank_d
@@ -76,7 +82,7 @@ private fun PopulatedBadge(result: ScoreResult, vanityBadge: VanityBadge?) {
   ) {
     if (vanityBadge != null) {
       Image(
-        painter = painterResource(R.drawable.ic_rank_crown),
+        painter = painterResource(badgeIconRes(vanityBadge)),
         contentDescription = null,
         modifier = Modifier.size(width = 40.dp, height = 48.dp),
       )
@@ -160,7 +166,7 @@ private fun LockedBadge(result: ScoreResult, vanityBadge: VanityBadge?) {
   ) {
     if (vanityBadge != null) {
       Image(
-        painter = painterResource(R.drawable.ic_rank_crown),
+        painter = painterResource(badgeIconRes(vanityBadge)),
         contentDescription = null,
         modifier = Modifier.size(width = 40.dp, height = 48.dp),
       )
