@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -69,7 +70,7 @@ fun PrimaryActionButton(
                     text = subText,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Normal,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = SubTextAlpha),
+                    color = LocalContentColor.current.copy(alpha = SubTextAlpha),
                     textAlign = TextAlign.Center
                 )
             }

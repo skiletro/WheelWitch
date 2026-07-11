@@ -18,6 +18,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -148,12 +149,51 @@ fun HomeScreen(
     }
   }
 
+  val scope = rememberCoroutineScope()
+  var showLaunchWarningDialog by remember { mutableStateOf(false) }
+
+  val launchDolphinNotInstalled = stringResource(R.string.home_launch_dolphin_not_installed)
+  val launchNoRom = stringResource(R.string.home_launch_no_rom)
+  val launchFallback = stringResource(R.string.home_launch_fallback)
+  val launchStorageNotConfigured = stringResource(R.string.error_storage_not_configured)
+
+  val performLaunch: suspend () -> Unit = {
+    val result = withContext(Dispatchers.IO) { DolphinLauncher.launchRetroRewind(context) }
+    val message =
+      when (result) {
+        is DolphinLauncher.LaunchResult.AutoStarted -> null
+        is DolphinLauncher.LaunchResult.FallbackStarted -> launchFallback
+        DolphinLauncher.LaunchResult.DolphinNotInstalled -> launchDolphinNotInstalled
+        DolphinLauncher.LaunchResult.StorageNotConfigured -> launchStorageNotConfigured
+        DolphinLauncher.LaunchResult.NoRom -> launchNoRom
+      }
+    if (message != null) {
+      Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+    }
+  }
+
+  if (showLaunchWarningDialog) {
+    AlertDialog(
+      onDismissRequest = { showLaunchWarningDialog = false },
+      title = { Text(stringResource(R.string.home_check_in_progress_title)) },
+      text = { Text(stringResource(R.string.home_check_in_progress_body)) },
+      confirmButton = {
+        TextButton(onClick = {
+          showLaunchWarningDialog = false
+          scope.launch { performLaunch() }
+        }) {
+          Text(stringResource(R.string.home_launch_anyway))
+        }
+      },
+      dismissButton = {
+        TextButton(onClick = { showLaunchWarningDialog = false }) {
+          Text(stringResource(R.string.action_cancel))
+        }
+      },
+    )
+  }
+
   Box(modifier = Modifier.fillMaxSize()) {
-    val scope = rememberCoroutineScope()
-    val launchDolphinNotInstalled = stringResource(R.string.home_launch_dolphin_not_installed)
-    val launchNoRom = stringResource(R.string.home_launch_no_rom)
-    val launchFallback = stringResource(R.string.home_launch_fallback)
-    val launchStorageNotConfigured = stringResource(R.string.error_storage_not_configured)
 
     if (!showOnlineMenu) {
       Scaffold(
@@ -182,25 +222,10 @@ fun HomeScreen(
                 onInstall = { packUpdate.installLatest() },
                 onUpdate = { packUpdate.update() },
                 onLaunch = {
-                  scope.launch {
-                    val result =
-                      withContext(Dispatchers.IO) {
-                        DolphinLauncher.launchRetroRewind(context)
-                      }
-                    val message =
-                      when (result) {
-                        is DolphinLauncher.LaunchResult.AutoStarted -> null
-                        is DolphinLauncher.LaunchResult.FallbackStarted ->
-                          launchFallback
-                        DolphinLauncher.LaunchResult.DolphinNotInstalled ->
-                          launchDolphinNotInstalled
-                        DolphinLauncher.LaunchResult.StorageNotConfigured ->
-                          launchStorageNotConfigured
-                        DolphinLauncher.LaunchResult.NoRom -> launchNoRom
-                      }
-                    if (message != null) {
-                      Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-                    }
+                  if (state is UiState.Checking) {
+                    showLaunchWarningDialog = true
+                  } else {
+                    scope.launch { performLaunch() }
                   }
                 },
               )
@@ -218,6 +243,7 @@ fun HomeScreen(
           val selectedRegion by saveData.selectedRegion.collectAsState()
           val mergedLicenses by saveData.mergedLicenses.collectAsState()
           val scoreResults by saveData.scoreResults.collectAsState()
+          val badges by saveData.vanityBadges.collectAsState()
           val isLoading by saveData.isLoading.collectAsState()
 
           val licenses = selectedRegion?.let { mergedLicenses[it] }
@@ -227,6 +253,7 @@ fun HomeScreen(
             LicenseGrid(
               licenses = licenses,
               scoreResults = scoreResults,
+              badges = badges,
               isLoading = isLoading,
             )
           }
@@ -358,7 +385,7 @@ private fun HomeBottomBar(
                   PrimaryActionButton(
                     text = stringResource(R.string.home_launch_retro_rewind),
                     onClick = onLaunch,
-                    enabled = false,
+                    enabled = !isBusy,
                     subText = "\u2022 ${stringResource(R.string.home_offline)}",
                   )
                 }
@@ -496,33 +523,44 @@ private fun CheckFailedButton(
         .onFocusChanged { onFocusChanged(it.isFocused) }
         .focusBorder(checkButtonFocused),
   ) {
-    if (showSpinner) {
-      androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
-        CircularProgressIndicator(
-          modifier = Modifier.size(20.dp),
-          color = MaterialTheme.colorScheme.onErrorContainer,
-          strokeWidth = 2.dp,
-        )
-        Spacer(modifier = Modifier.width(10.dp))
+    Box(contentAlignment = Alignment.Center) {
+      Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.alpha(0f),
+      ) {
         Text(
           text = title,
           style = MaterialTheme.typography.titleMedium,
-          fontWeight = FontWeight.Medium,
         )
       }
-    } else {
-      Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-          text = title,
-          style = MaterialTheme.typography.titleMedium,
-          fontWeight = FontWeight.Medium,
-        )
-        if (subtitle != null) {
-          Text(
-            text = subtitle,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Normal,
+      if (showSpinner) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+          CircularProgressIndicator(
+            modifier = Modifier.size(20.dp),
+            color = MaterialTheme.colorScheme.onErrorContainer,
+            strokeWidth = 2.dp,
           )
+          Spacer(modifier = Modifier.width(10.dp))
+          Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
+          )
+        }
+      } else {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+          Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
+          )
+          if (subtitle != null) {
+            Text(
+              text = subtitle,
+              style = MaterialTheme.typography.labelSmall,
+              fontWeight = FontWeight.Normal,
+            )
+          }
         }
       }
     }
@@ -567,7 +605,6 @@ private fun StatusRow(
         else -> null
       }
     }
-  val rightEnabled = !isBusy && !isChecking
   val leftEnabled = !isBusy && !isChecking
 
   Row(verticalAlignment = Alignment.CenterVertically) {
@@ -585,50 +622,67 @@ private fun StatusRow(
           .onFocusChanged { onFocusChanged(it.isFocused) }
           .focusBorder(checkButtonFocused),
     ) {
-      if (isChecking) {
-        androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
-          CircularProgressIndicator(
-            modifier = Modifier.size(20.dp),
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
-            strokeWidth = 2.dp,
-          )
-          Spacer(modifier = Modifier.width(10.dp))
-          Text(
-            text = stringResource(R.string.status_checking),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Medium,
-          )
-        }
-      } else {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+      Box(contentAlignment = Alignment.Center) {
+        Column(
+          horizontalAlignment = Alignment.CenterHorizontally,
+          modifier = Modifier.alpha(0f),
+        ) {
           Text(
             text = stringResource(R.string.home_check_for_updates),
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Medium,
           )
-          if (checkSubtitle != null) {
-            Text(
-              text = checkSubtitle,
-              style = MaterialTheme.typography.labelSmall,
-              fontWeight = FontWeight.Normal,
+        }
+        if (isChecking) {
+          Row(verticalAlignment = Alignment.CenterVertically) {
+            CircularProgressIndicator(
+              modifier = Modifier.size(20.dp),
+              color = MaterialTheme.colorScheme.onSecondaryContainer,
+              strokeWidth = 2.dp,
             )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+              text = stringResource(R.string.status_checking),
+              style = MaterialTheme.typography.titleMedium,
+              fontWeight = FontWeight.Medium,
+            )
+          }
+        } else {
+          Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+              text = stringResource(R.string.home_check_for_updates),
+              style = MaterialTheme.typography.titleMedium,
+              fontWeight = FontWeight.Medium,
+            )
+            if (checkSubtitle != null) {
+              Text(
+                text = checkSubtitle,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Normal,
+              )
+            }
           }
         }
       }
     }
     Spacer(modifier = Modifier.width(12.dp))
-    when (status) {
-      is PackStatus.NotInstalled ->
+    when {
+      isChecking && status !is PackStatus.NotInstalled ->
+        PrimaryActionButton(
+          text = stringResource(R.string.home_launch_retro_rewind),
+          onClick = onLaunch,
+          enabled = !isBusy,
+        )
+      status is PackStatus.NotInstalled ->
         PrimaryActionButton(
           text = stringResource(R.string.action_install),
           onClick = onInstall,
-          enabled = rightEnabled,
+          enabled = !isBusy && !isChecking,
         )
-      is PackStatus.UpdateAvailable ->
+      status is PackStatus.UpdateAvailable ->
         PrimaryActionButton(
           text = stringResource(R.string.home_update_to, status.latestVersion),
           onClick = onUpdate,
-          enabled = rightEnabled,
+          enabled = !isBusy,
         )
       else -> {
         val bullet = "\u2022 "
@@ -647,7 +701,7 @@ private fun StatusRow(
         PrimaryActionButton(
           text = stringResource(R.string.home_launch_retro_rewind),
           onClick = onLaunch,
-          enabled = rightEnabled,
+          enabled = !isBusy,
           subText = launchSubText,
         )
       }
