@@ -13,6 +13,8 @@ import com.skiletro.wheelwitch.model.TimeTrialTrack
 import com.skiletro.wheelwitch.model.UpdateEntry
 import com.skiletro.wheelwitch.model.VanityBadge
 import com.skiletro.wheelwitch.util.net.HttpClientProvider
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Request
 import org.json.JSONObject
@@ -93,6 +95,7 @@ object VersionFileParser {
     private const val BADGES_BASE = "https://update.rwfc.net/RetroRewind/badges/"
 
     private val httpClient get() = HttpClientProvider.client
+    private val probeClient get() = HttpClientProvider.probeClient
 
     /** Fetches the full update manifest: latest version, all update steps, and file deletions. */
     fun fetchServerInfo(): Result<ServerInfo> = runCatching {
@@ -138,6 +141,16 @@ object VersionFileParser {
         }
     }
 
+    /**
+     * Quick reachability check using the short-timeout [probeClient].
+     * Returns true if the server is reachable and responds successfully.
+     * Used by VMs to short-circuit before expensive timeouts.
+     */
+    fun probeServer(): Boolean = runCatching {
+        val request = Request.Builder().url(HEALTH_LIVE_URL).build()
+        probeClient.newCall(request).execute().use { it.isSuccessful }
+    }.getOrDefault(false)
+
     /** Fetches global race statistics and returns the raw JSON for caching. */
     fun fetchGlobalRaceStatsRaw(): Result<Pair<RaceStats, String>> = runCatching {
         val json = fetchUrl(RACE_STATS_URL)
@@ -180,12 +193,14 @@ object VersionFileParser {
         )
     }
 
-    /** Fetches the vanity badge map: friend code → [VanityBadge]. */
-    fun fetchBadges(): Map<String, VanityBadge> = runCatching {
-        val ant = VanityBadgeParser.parseBadgeText(fetchUrl("${BADGES_BASE}ant.txt"), VanityBadge.ANT)
-        val dev = VanityBadgeParser.parseBadgeText(fetchUrl("${BADGES_BASE}dev.txt"), VanityBadge.DEVELOPER)
-        val dono = VanityBadgeParser.parseBadgeText(fetchUrl("${BADGES_BASE}dono.txt"), VanityBadge.DONATOR)
-        ant + dev + dono
+    /** Fetches the vanity badge map: friend code → [VanityBadge]. Fetches all 3 badge files concurrently. */
+    suspend fun fetchBadges(): Map<String, VanityBadge> = runCatching {
+        kotlinx.coroutines.coroutineScope {
+            val ant = async { VanityBadgeParser.parseBadgeText(fetchUrl("${BADGES_BASE}ant.txt"), VanityBadge.ANT) }
+            val dev = async { VanityBadgeParser.parseBadgeText(fetchUrl("${BADGES_BASE}dev.txt"), VanityBadge.DEVELOPER) }
+            val dono = async { VanityBadgeParser.parseBadgeText(fetchUrl("${BADGES_BASE}dono.txt"), VanityBadge.DONATOR) }
+            ant.await() + dev.await() + dono.await()
+        }
     }.getOrElse {
         Timber.tag("Network").w(it, "Failed to fetch vanity badges")
         emptyMap()

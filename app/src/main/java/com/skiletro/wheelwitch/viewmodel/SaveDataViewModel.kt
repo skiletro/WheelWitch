@@ -263,6 +263,7 @@ class SaveDataViewModel(
           _mergedLicenses.value = emptyMap()
           _hasAnySave.value = computeHasAnySave(tree)
           _hasRRSave.value = computeHasRRSave(tree)
+          _isLoading.value = false
           return@launch
         }
         val parsed =
@@ -271,9 +272,6 @@ class SaveDataViewModel(
               .map { region ->
                 async(ioDispatcher) {
                   val bytes = SaveManager.readSave(tree, region)
-                  // `bytes != null` is the same condition
-                  // SaveManager.hasSave checks. Reuse the read
-                  // result so we don't double the SAF IPC.
                   if (bytes != null) {
                     val info = runCatching { parser(bytes) }.getOrNull()
                     if (info != null) {
@@ -294,20 +292,31 @@ class SaveDataViewModel(
         _hasAnySave.value = computeHasAnySave(tree)
         _hasRRSave.value = computeHasRRSave(tree)
         ratingVrMap = loadRatingVrMap(tree)
-        _vanityBadges.value = withContext(ioDispatcher) { VersionFileParser.fetchBadges() }
-        Timber.tag(TAG).d("Fetched %d vanity badge entries", _vanityBadges.value.size)
         val target = pickSelectedRegion(regions)
         if (target != _selectedRegion.value) {
           _selectedRegion.value = target
         }
+        // Publish local un-merged licenses immediately so the UI shows
+        // local data (Mii name, local VR) without waiting for network.
+        if (target != null && infos[target] != null && mergedLicenses.value[target] == null) {
+          _mergedLicenses.value = mergedLicenses.value + (target to infos[target]!!.licenses)
+        }
+        _isLoading.value = false
+
+        // Network enhancements run in background — they never block
+        // the license grid from rendering local save data.
+        launch {
+          val badges = withContext(ioDispatcher) { VersionFileParser.fetchBadges() }
+          Timber.tag(TAG).d("Fetched %d vanity badge entries", badges.size)
+          _vanityBadges.value = badges
+        }
         if (target != null) {
-          refreshMergedLicensesForRegion(target, infos[target])
+          launch { refreshMergedLicensesForRegion(target, infos[target]) }
         }
       } catch (e: Exception) {
         Timber.tag(TAG).e(e, "refresh failed")
         _error.value =
           e.message ?: app.getString(R.string.vm_failed_format, "read save data")
-      } finally {
         _isLoading.value = false
       }
     }

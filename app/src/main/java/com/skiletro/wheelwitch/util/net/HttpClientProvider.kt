@@ -27,6 +27,14 @@ object HttpClientProvider {
 
     val largeDownloadClient: OkHttpClient by lazy { buildClient(readTimeoutSeconds = 60) }
 
+    val probeClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(PROBE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .readTimeout(PROBE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .followRedirects(false)
+            .build()
+    }
+
     private fun buildClient(readTimeoutSeconds: Long): OkHttpClient =
         OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
@@ -43,4 +51,5 @@ object HttpClientProvider {
 
     private const val MAX_REQUESTS: Int = 16
     private const val MAX_REQUESTS_PER_HOST: Int = 8
+    private const val PROBE_TIMEOUT_SECONDS: Long = 3
 }

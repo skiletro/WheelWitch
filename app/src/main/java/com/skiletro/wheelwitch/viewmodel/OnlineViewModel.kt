@@ -132,6 +132,16 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
     private fun initialFetch() {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
+                // Quick probe first — avoids 15s timeout when the server
+                // is unreachable and immediately shows the Offline state.
+                if (!VersionFileParser.probeServer()) {
+                    _roomsState.value = RoomsState.Success(
+                        rooms = emptyList(),
+                        playerCount = null,
+                        serverConnectivity = ServerConnectivity.Offline
+                    )
+                    return@withContext
+                }
                 val roomsResult = VersionFileParser.fetchRooms()
                 if (roomsResult.isSuccess) {
                     val rooms = roomsResult.getOrThrow()
@@ -213,7 +223,7 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
             }.onFailure { e ->
                 Timber.tag("Online").w(e, "Detailed health fetch failed; trying live endpoint")
                 val liveOk = withContext(Dispatchers.IO) {
-                    VersionFileParser.fetchHealthLive().getOrDefault(false)
+                    VersionFileParser.probeServer()
                 }
                 if (liveOk) {
                     // Live endpoint reachable but detailed health failed; synthesize a
