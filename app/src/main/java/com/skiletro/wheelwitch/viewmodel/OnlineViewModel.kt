@@ -176,6 +176,25 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
 
     fun goBack() {
         _currentPage.value = OnlineMenuPage.Hub
+        refreshConnectivity()
+    }
+
+    /**
+     * Lightweight server-reachability probe that runs when the user
+     * returns to the hub. If the probe succeeds and the current rooms
+     * state shows offline, the connectivity flag is flipped to Online
+     * so hub options re-enable without a full page reload.
+     */
+    private fun refreshConnectivity() {
+        viewModelScope.launch {
+            val online = withContext(Dispatchers.IO) { VersionFileParser.probeServer() }
+            if (online) {
+                val current = _roomsState.value
+                if (current is RoomsState.Success && current.serverConnectivity != ServerConnectivity.Online) {
+                    _roomsState.value = current.copy(serverConnectivity = ServerConnectivity.Online)
+                }
+            }
+        }
     }
 
     /** Fetches the current room list. Does not navigate; use [navigateTo] for that. */

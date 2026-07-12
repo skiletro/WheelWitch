@@ -41,12 +41,14 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.skiletro.wheelwitch.R
+import com.skiletro.wheelwitch.model.ServerConnectivity
 import com.skiletro.wheelwitch.ui.components.FocusableSurface
 import com.skiletro.wheelwitch.ui.components.ScreenHeader
 import com.skiletro.wheelwitch.ui.theme.statusColors
 import com.skiletro.wheelwitch.ui.theme.surfaceShape
 import com.skiletro.wheelwitch.viewmodel.OnlineMenuPage
 import com.skiletro.wheelwitch.viewmodel.OnlineViewModel
+import com.skiletro.wheelwitch.viewmodel.RoomsState
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -133,6 +135,11 @@ private fun HubPage(
     sharedTransitionScope: SharedTransitionScope,
     animatedContentScope: AnimatedVisibilityScope,
 ) {
+    val roomsState by viewModel.roomsState.collectAsState()
+    val serverConnectivity =
+        (roomsState as? RoomsState.Success)?.serverConnectivity ?: ServerConnectivity.Unknown
+    val isOnline = serverConnectivity is ServerConnectivity.Online
+
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -154,6 +161,7 @@ private fun HubPage(
                 title = stringResource(R.string.online_rooms),
                 description = stringResource(R.string.online_rooms_desc),
                 onClick = { viewModel.navigateTo(OnlineMenuPage.Rooms) },
+                enabled = isOnline,
                 titleSharedKey = "online_title_Rooms",
                 sharedTransitionScope = sharedTransitionScope,
                 animatedContentScope = animatedContentScope,
@@ -163,6 +171,7 @@ private fun HubPage(
                 title = stringResource(R.string.online_leaderboard),
                 description = stringResource(R.string.online_leaderboard_desc),
                 onClick = { viewModel.navigateTo(OnlineMenuPage.Leaderboard) },
+                enabled = isOnline,
                 titleSharedKey = "online_title_Leaderboard",
                 sharedTransitionScope = sharedTransitionScope,
                 animatedContentScope = animatedContentScope,
@@ -181,6 +190,7 @@ private fun HubPage(
                 title = stringResource(R.string.online_race_stats),
                 description = stringResource(R.string.online_race_stats_desc),
                 onClick = { viewModel.navigateTo(OnlineMenuPage.RaceStats) },
+                enabled = isOnline,
                 titleSharedKey = "online_title_RaceStats",
                 sharedTransitionScope = sharedTransitionScope,
                 animatedContentScope = animatedContentScope,
@@ -190,6 +200,7 @@ private fun HubPage(
                 title = stringResource(R.string.online_time_trials),
                 description = stringResource(R.string.online_time_trials_desc),
                 onClick = { viewModel.navigateTo(OnlineMenuPage.TimeTrial) },
+                enabled = isOnline,
                 titleSharedKey = "online_title_TimeTrial",
                 sharedTransitionScope = sharedTransitionScope,
                 animatedContentScope = animatedContentScope,

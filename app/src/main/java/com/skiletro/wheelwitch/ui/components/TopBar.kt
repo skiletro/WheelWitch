@@ -67,7 +67,6 @@ fun TopBar(
     onLaunchMiiMaker: () -> Unit,
     miiMakerEnabled: Boolean,
     onOpenOnlineMenu: () -> Unit,
-    onlineMenuEnabled: Boolean
 ) {
     var bobOffset by remember { mutableFloatStateOf(0f) }
     LaunchedEffect(Unit) {
@@ -122,7 +121,6 @@ fun TopBar(
         }
         IconButton(
             onClick = onOpenOnlineMenu,
-            enabled = onlineMenuEnabled,
             modifier = Modifier
                 .onFocusChanged { onlineMenuFocused = it.isFocused }
                 .focusBorder(onlineMenuFocused, CircleShape)
@@ -130,9 +128,7 @@ fun TopBar(
             Icon(
                 imageVector = ImageVector.vectorResource(R.drawable.ic_dns),
                 contentDescription = stringResource(R.string.cd_online_menu),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                    alpha = if (onlineMenuEnabled) 1f else 0.38f
-                ),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         IconButton(

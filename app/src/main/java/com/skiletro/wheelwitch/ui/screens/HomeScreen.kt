@@ -204,7 +204,6 @@ fun HomeScreen(
               onLaunchMiiMaker = { miiMaker.launchMiiMaker() },
               miiMakerEnabled = hasWad,
               onOpenOnlineMenu = { showOnlineMenu = true },
-              onlineMenuEnabled = serverConnectivity is ServerConnectivity.Online,
             )
           }
         },
