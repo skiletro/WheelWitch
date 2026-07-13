@@ -38,10 +38,7 @@ internal fun parseUpdatesText(text: String): List<UpdateEntry> {
 }
 
 /**
- * Normalises an update manifest URL to the live server layout:
- *  - rewrites the dead `update.rwfc.net` host to the new
- *    `rwfc.net/updates` base (the manifest still embeds the old
- *    `http://update.rwfc.net:8000/...` URLs in each line)
+ * Normalises an update manifest URL:
  *  - upgrades `http://` to `https://`
  *  - drops the legacy `:8000` port
  *
@@ -50,17 +47,6 @@ internal fun parseUpdatesText(text: String): List<UpdateEntry> {
  */
 internal fun normalizeUpdateUrl(url: String): String {
     val parsed = url.toHttpUrlOrNull() ?: return url
-    if (parsed.host == "update.rwfc.net") {
-        val originalPath = parsed.encodedPath
-        val newPath = "/updates" + if (originalPath.startsWith("/")) originalPath else "/$originalPath"
-        return parsed.newBuilder()
-            .scheme("https")
-            .host("rwfc.net")
-            .port(443)
-            .encodedPath(newPath)
-            .build()
-            .toString()
-    }
     if (parsed.scheme != "http") return url
     return parsed.newBuilder().scheme("https").port(443).build().toString()
 }
@@ -80,7 +66,7 @@ internal fun parseDeletionsText(text: String): List<DeletionEntry> {
 
 /** Fetches update manifests, room status, leaderboard data from the RWFC network. */
 object VersionFileParser {
-    private const val RR_BASE = "https://rwfc.net/updates/"
+    private const val RR_BASE = "https://update.rwfc.net/"
     private const val VERSION_URL = "${RR_BASE}RetroRewind/RetroRewindVersion.txt"
     private const val DELETE_URL = "${RR_BASE}RetroRewind/RetroRewindDelete.txt"
     private const val FULL_ZIP_URL = "${RR_BASE}RetroRewind/zip/RetroRewind.zip"
