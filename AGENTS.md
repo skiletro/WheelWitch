@@ -78,31 +78,31 @@ The sub-packages under `util/` are intentional. Keep new files in the right sub-
 - **Leaderboard**: clickable rows with 5dp primary border on focus; one-shot `hasRequestedFocus` guard for pagination
 - **File downloads**: `FileDownloader.downloadToFile()` with progress callback, HTTP validation, configurable client
 - **Mii Maker WAD**: downloads zip from GameBanana, extracts `.wad`, launches via `ACTION_VIEW` + FileProvider
-- **Update server**: `https://rwfc.net/updates/`; version/deletion manifest files; fallback to full reinstall if < 3.2.6
+- **Update server**: see `VersionFileParser.RR_BASE`; version/deletion manifest files; fallback to full reinstall if < `RewindPackManager.MIN_INCREMENTAL_VERSION`
 - **Copy buffer**: 262144 bytes; **Parallel incremental downloads** via `async/await`
 - **Multi-region saves**: `SaveManager.Region` enum (PAL/USA/JPN) mapped from the ROM filename prefix; one save file per region
 
 ## Key Constants
 
-| Thing | Value |
-|-------|-------|
-| Dolphin package | `org.dolphinemu.dolphinemu` |
-| Dolphin activity | `org.dolphinemu.dolphinemu.ui.main.MainActivity` |
-| Launch intent extra | `"AutoStartFile"` (path to `rr_autostartfile.json`) |
-| Launch descriptor filename | `rr_autostartfile.json` |
-| Update server | `https://rwfc.net/updates/` |
-| Version file | `RetroRewind/RetroRewindVersion.txt` |
-| Delete file | `RetroRewind/RetroRewindDelete.txt` |
-| Full zip | `RetroRewind/zip/RetroRewind.zip` |
-| Min reinstall version | `3.2.6` |
-| Local version file | `<SAF tree>/WheelWitch/pack/RetroRewind6/version.txt` |
-| Launch descriptor path | `<SAF tree>/WheelWitch/rom/rr_autostartfile.json` |
-| Save path | `<packRoot>/riivolution/save/RetroWFC/<regionCode>/rksys.dat` |
-| Dolphin.ini path | `<SAF tree>/Config/Dolphin.ini` |
-| WheelWitch subpath | `WheelWitch` under Dolphin's `files/` |
-| ROM extensions | `iso`, `rvz`, `wbfs` |
-| Riivolution XML default | `riivolution/RetroRewind6.xml` |
-| Display name | `Retro Rewind` |
+All values live in code. This table maps each thing to its canonical source.
+
+| Thing | Source |
+|-------|--------|
+| Dolphin package | `DolphinLauncher.DOLPHIN_PACKAGE` |
+| Dolphin activity | `DolphinLauncher.DOLPHIN_MAIN_ACTIVITY` |
+| Launch intent extra | `DolphinLauncher.LAUNCH_EXTRA_NAME` |
+| Launch descriptor filename | `DolphinLauncher.RR_JSON_NAME` |
+| Display name | `DolphinLauncher.DISPLAY_NAME` |
+| ROM extensions | `DolphinLauncher.ROM_EXTENSIONS` |
+| Riivolution XML default | `DolphinLauncher.DEFAULT_XML_REL_PATH` |
+| Min reinstall version | `RewindPackManager.MIN_INCREMENTAL_VERSION` |
+| Update server host | `VersionFileParser.RR_BASE` |
+| API host | `VersionFileParser.RWFC_API` |
+| Badges host | `VersionFileParser.BADGES_BASE` |
+| WheelWitch subpath | `DolphinPaths.WHEELWITCH_SUBPATH` |
+| Config INI filename | `DolphinTree.CONFIG_INI_NAME` |
+| Version filename | `DolphinTree.VERSION_FILE_NAME` |
+| Metadata XML filename | `DolphinTree.METADATA_XML_NAME` |
 
 ## Tests (~273 tests)
 
