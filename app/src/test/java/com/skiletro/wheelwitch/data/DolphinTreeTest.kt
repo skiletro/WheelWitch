@@ -615,17 +615,21 @@ class DolphinTreeTest {
   ) = runBlocking {
     val (_, packDir, _) = setupDirChain()
     val zip = File(tempDir.toFile(), "pack.zip")
+    val fileName = "file1.txt"
+    val fileContent = "hello"
     ZipOutputStream(zip.outputStream()).use { zos ->
-      zos.putNextEntry(ZipEntry("file1.txt"))
-      zos.write("hello".encodeToByteArray())
+      zos.putNextEntry(ZipEntry(fileName))
+      zos.write(fileContent.encodeToByteArray())
       zos.closeEntry()
     }
     val existing = mockk<DocumentFile>(relaxed = true)
     val created = mockk<DocumentFile>(relaxed = true)
     val uri = mockk<Uri>(relaxed = true)
     every { created.uri } returns uri
-    every { packDir.findFile("file1.txt") } returns existing
-    every { packDir.createFile("application/octet-stream", "file1.txt") } returns created
+    every { existing.name } returns fileName
+    every { packDir.listFiles() } returns arrayOf(existing)
+    every { packDir.findFile(fileName) } returns existing
+    every { packDir.createFile("application/octet-stream", fileName) } returns created
     val baos = ByteArrayOutputStream()
     every { resolver.openOutputStream(uri) } returns baos
 
@@ -633,7 +637,7 @@ class DolphinTreeTest {
     tree.extractZipToPack(zip) { /* no-op */ }
 
     verify { existing.delete() }
-    assertThat(baos.toString(Charsets.UTF_8)).isEqualTo("hello")
+    assertThat(baos.toString(Charsets.UTF_8)).isEqualTo(fileContent)
   }
 
   @Test

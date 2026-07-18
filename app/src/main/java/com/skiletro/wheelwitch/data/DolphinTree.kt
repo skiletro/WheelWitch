@@ -246,6 +246,20 @@ class DolphinTree(context: Context, val treeUri: Uri) {
 
         val byPath: Map<List<String>, DocumentFile> =
           precreateDirectories(fileEntries, onProgress, filesTotal, bytesTotal)
+        val childrenByParentUri = mutableMapOf<Uri, MutableMap<String, DocumentFile>>()
+        val getChild: (DocumentFile, String) -> DocumentFile? = { parent, fileName ->
+          val cachedFiles = childrenByParentUri.getOrPut(parent.uri) {
+            val childrenMap = mutableMapOf<String, DocumentFile>()
+            val children = parent.listFiles()
+            for (child in children) {
+              child.name?.let { childFileName ->
+                childrenMap[childFileName] = child
+              }
+            }
+            childrenMap
+          }
+          cachedFiles[fileName]
+        }
 
         var fileIndex = 0
         var bytesDone = 0L
@@ -265,6 +279,7 @@ class DolphinTree(context: Context, val treeUri: Uri) {
           writeZipEntry(
             entry = entry,
             parent = byPath.getValue(parentParts(entry.name)),
+            getChild = getChild,
             fileName = entry.name.substringAfterLast('/'),
             input = zip.getInputStream(entry),
           )
@@ -529,6 +544,7 @@ class DolphinTree(context: Context, val treeUri: Uri) {
   private fun writeZipEntry(
     entry: ZipEntry,
     parent: DocumentFile,
+    getChild: (DocumentFile, String) -> DocumentFile?,
     fileName: String,
     input: InputStream,
   ) {
@@ -536,7 +552,7 @@ class DolphinTree(context: Context, val treeUri: Uri) {
       Timber.tag(TAG).d("Skipping user data path: %s", entry.name)
       return
     }
-    parent.findFile(fileName)?.delete()
+    getChild(parent, fileName)?.delete()
     val target =
       parent.createFile("application/octet-stream", fileName)
         ?: error("Cannot create ${entry.name} in pack/")
