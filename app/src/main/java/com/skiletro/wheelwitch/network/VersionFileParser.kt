@@ -69,7 +69,7 @@ object VersionFileParser {
     private const val RR_BASE = "https://update.rwfc.net/"
     private const val VERSION_URL = "${RR_BASE}RetroRewind/RetroRewindVersion.txt"
     private const val DELETE_URL = "${RR_BASE}RetroRewind/RetroRewindDelete.txt"
-    private const val FULL_ZIP_URL = "${RR_BASE}RetroRewind/zip/RetroRewind.zip"
+    private const val INSTALL_URL = "${RR_BASE}RetroRewind/RetroRewindInstall.txt"
     private const val RWFC_API = "https://rwfc.net"
     private const val ROOM_STATUS_URL = "$RWFC_API/api/roomstatus"
     private const val LEADERBOARD_URL = "$RWFC_API/api/leaderboard"
@@ -96,8 +96,8 @@ object VersionFileParser {
 
     private fun fetchDeletions() = parseDeletionsText(fetchUrl(DELETE_URL))
 
-    /** Returns the URL for the full Retro Rewind zip download. */
-    fun getFullZipUrl(): String = FULL_ZIP_URL
+    /** Fetches the URL for the full Retro Rewind zip download from the server pointer file. */
+    fun getFullZipUrl(): String = fetchUrl(INSTALL_URL).trim()
 
     /** Fetches the list of active multiplayer rooms from the RWFC API. */
     fun fetchRooms(): Result<List<Room>> = runCatching {

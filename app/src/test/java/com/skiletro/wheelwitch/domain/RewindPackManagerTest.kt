@@ -300,6 +300,18 @@ class RewindPackManagerTest {
     verify(exactly = 0) { FileDownloader.downloadToFile(any(), any(), any(), any(), any(), any()) }
   }
 
+  @Test
+  fun `installLatest returns failure when getFullZipUrl throws`() = runBlocking {
+    every { VersionFileParser.fetchServerInfo() } returns Result.success(serverInfo())
+    every { VersionFileParser.getFullZipUrl() } throws
+      RuntimeException("Failed to fetch install URL")
+
+    val result = manager().installLatest { /* no-op */ }
+
+    assertThat(result.isFailure).isTrue()
+    verify(exactly = 0) { FileDownloader.downloadToFile(any(), any(), any(), any(), any(), any()) }
+  }
+
   // --- update ----------------------------------------------------------
 
   @Test
