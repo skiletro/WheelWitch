@@ -2,6 +2,7 @@ package com.skiletro.wheelwitch.util.io
 
 import com.skiletro.wheelwitch.util.net.HttpClientProvider
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -350,18 +351,38 @@ object FileDownloader {
                         onProgress = onProgress,
                     )
                 }
+            /**
+             * Workers for chunks other than the first chunk need to wait initially
+             * to avoid a race condition where the first request to the server
+             * gets a `200` response with the full download, ignoring the requested range.
+             * This would break the chunked downloader if a different chunk gets the `200`
+             * (at the very least it would force a retry).
+             * All following requests seem to correctly get partial `206` responses.
+             */
+            val firstDone = CompletableDeferred<Unit>()
             val workers =
                 ranges.map { range ->
                     async(Dispatchers.IO) {
-                        downloadChunk(
-                            url = url,
-                            targetFile = targetFile,
-                            range = range,
-                            bytesDone = bytesDone,
-                            client = client,
-                            maxRetries = maxRetries,
-                            initialBackoffMillis = initialBackoffMillis,
-                        )
+                        val isFirstChunk = range.start == 0L
+                        if (!isFirstChunk) {
+                            firstDone.await()
+                        }
+                        try {
+                            downloadChunk(
+                                url = url,
+                                targetFile = targetFile,
+                                range = range,
+                                bytesDone = bytesDone,
+                                firstDone = firstDone,
+                                client = client,
+                                maxRetries = maxRetries,
+                                initialBackoffMillis = initialBackoffMillis,
+                            )
+                        } finally {
+                            if (!firstDone.isCompleted) {
+                                firstDone.complete(Unit)
+                            }
+                        }
                     }
                 }
             try {
@@ -441,6 +462,7 @@ object FileDownloader {
         targetFile: File,
         range: ByteRange,
         bytesDone: AtomicLong,
+        firstDone: CompletableDeferred<Unit>,
         client: OkHttpClient,
         maxRetries: Int,
         initialBackoffMillis: Long,
@@ -449,7 +471,7 @@ object FileDownloader {
         var lastError: Throwable? = null
         for (attempt in 0 until totalAttempts) {
             try {
-                downloadChunkOnce(url, targetFile, range, bytesDone, client)
+                downloadChunkOnce(url, targetFile, range, bytesDone, firstDone, client)
                 return
             } catch (e: Http4xxException) {
                 throw e
@@ -484,6 +506,7 @@ object FileDownloader {
         targetFile: File,
         range: ByteRange,
         bytesDone: AtomicLong,
+        firstDone: CompletableDeferred<Unit>,
         client: OkHttpClient,
     ) {
         val request =
@@ -494,6 +517,10 @@ object FileDownloader {
                 .build()
         val response = client.newCall(request).execute()
         response.use {
+            val isFirstChunk = range.start == 0L
+            if (isFirstChunk) {
+                firstDone.complete(Unit)
+            }
             if (it.code == 416) {
                 throw Http4xxException("Range not satisfiable for ${range.start}-${range.endInclusive}")
             }
@@ -503,10 +530,14 @@ object FileDownloader {
             if (it.code in 500..599) {
                 throw IOException("Chunk HTTP ${it.code}")
             }
+            if (it.code == 200 && !isFirstChunk) {
+                // Because we won't read the stream until we're in the correct range, we throw here.
+                throw IOException("Chunk byte range $range was ignored")
+            }
             check(it.code == 200 || it.code == 206) {
                 "Chunk expected 200/206, got ${it.code}"
             }
-            val body = it.body ?: throw IOException("Chunk has no body")
+            val body = it.body
             val input = body.byteStream()
             val expectedSize = range.size
             val raf = RandomAccessFile(targetFile, "rw")
@@ -555,7 +586,7 @@ object FileDownloader {
             }
             check(response.isSuccessful) { "Download failed: HTTP ${response.code} ${response.message}" }
             Timber.tag(TAG).d("HTTP %d for %s", response.code, url)
-            val body = response.body ?: throw EmptyBodyException("No response body")
+            val body = response.body
             val totalBytes = body.contentLength()
             if (totalBytes == 0L) throw EmptyBodyException("Empty response body")
 
