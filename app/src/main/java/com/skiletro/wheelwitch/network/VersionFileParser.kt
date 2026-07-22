@@ -78,7 +78,7 @@ object VersionFileParser {
     private const val RACE_STATS_URL = "$RWFC_API/api/racestats/global"
     private const val TIME_TRIAL_TRACKS_URL = "$RWFC_API/api/timetrial/tracks"
     private const val TIME_TRIAL_LEADERBOARD_URL = "$RWFC_API/api/timetrial/leaderboard"
-    private const val BADGES_BASE = "https://update.rwfc.net/RetroRewind/badges/"
+    private const val BADGES_BASE = "$RWFC_API/api/game/badges/"
 
     private val httpClient get() = HttpClientProvider.client
     private val probeClient get() = HttpClientProvider.probeClient
