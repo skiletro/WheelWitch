@@ -285,13 +285,14 @@ class SaveDataViewModel(
               .awaitAll()
           }
         val validReads = parsed.filterNotNull()
-        val infos = validReads.mapNotNull { it.info?.let { info -> it.region to info } }.toMap()
+        val rawInfos = validReads.mapNotNull { it.info?.let { info -> it.region to info } }.toMap()
         val hasSaves = validReads.associate { it.region to it.hasSave }
+        ratingVrMap = loadRatingVrMap(tree)
+        val infos = populateRatingVr(ratingVrMap, rawInfos)
         _saveInfos.value = infos
         _hasSave.value = hasSaves
         _hasAnySave.value = computeHasAnySave(tree)
         _hasRRSave.value = computeHasRRSave(tree)
-        ratingVrMap = loadRatingVrMap(tree)
         val target = pickSelectedRegion(regions)
         if (target != _selectedRegion.value) {
           _selectedRegion.value = target
@@ -624,6 +625,19 @@ class SaveDataViewModel(
     val file = tree.pulsarRrDir?.findFile("RRRating.pul") ?: return emptyMap()
     val bytes = readDolphinBytes(tree.resolver, file) ?: return emptyMap()
     return RRRatingParser.parse(bytes).associate { it.profileId.toLong() to it.vr }
+  }
+
+  private fun populateRatingVr(
+    ratingVrMap: Map<Long, Float>,
+    infos: Map<Region, SaveFileInfo>
+  ): Map<Region, SaveFileInfo> {
+    return infos.mapValues { (_, saveFile) ->
+      SaveFileInfo(saveFile.licenses.map { license ->
+        license.copy(
+          ratingVr = ratingVrMap[license.profileId]?.let { (it * 100).toInt() }
+        )
+      })
+    }
   }
 
   /**

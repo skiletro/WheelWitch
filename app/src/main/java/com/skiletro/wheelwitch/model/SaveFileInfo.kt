@@ -30,6 +30,7 @@ data class LicenseInfo(
   val vr: Int? = null,
   val raceWins: Int? = null,
   val raceLosses: Int? = null,
+  val ratingVr: Int? = null,
   val miiDataBase64: String? = null,
   val leaderboardVr: Int? = null,
   val firsts: Int? = null,

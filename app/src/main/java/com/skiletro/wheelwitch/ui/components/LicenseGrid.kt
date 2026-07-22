@@ -132,7 +132,7 @@ fun PopulatedCell(license: LicenseInfo, scoreResult: ScoreResult?, badge: Vanity
         )
       }
       Spacer(modifier = Modifier.height(3.dp))
-      val vr = license.leaderboardVr ?: 0
+      val vr = license.ratingVr ?: license.vr ?: 0
       Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
           text = "VR ",
