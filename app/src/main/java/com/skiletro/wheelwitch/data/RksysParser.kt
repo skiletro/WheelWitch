@@ -115,7 +115,10 @@ object RksysParser {
    * The checksum is `(md5[0] & 0xFF) >> 1` because the friend-code high
    * byte uses only 7 bits (the top bit is reserved).
    */
-  private fun pidToFriendCode(pid: Long): String {
+  private fun pidToFriendCode(pid: Long): String? {
+    if (pid == 0L) {
+      return null
+    }
     // Layout: PID (LE, 4 bytes) || "JCMR" (ASCII, 4 bytes)
     val buffer = ByteArray(8)
     buffer[0] = (pid and 0xFF).toByte()

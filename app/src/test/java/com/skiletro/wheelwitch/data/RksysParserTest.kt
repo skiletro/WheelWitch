@@ -156,12 +156,25 @@ class RksysParserTest {
   }
 
   @Test
+  fun `parse license null friend code from PID 0`() {
+    val buf = createBuffer()
+    val base = RksysParser.LICENSE_BASES[0]
+    buf.writeAscii(base, "RKPD")
+    // PID = 0 means that the game does not show a friend code
+    buf.writeUInt32BE(base + PID_OFFSET, 0L)
+
+    val info = RksysParser.parse(buf)
+    val friendCode = info.licenses[0].friendCode
+    assertThat(friendCode).isNull()
+  }
+
+  @Test
   fun `parse license correct friend code from PID`() {
     val buf = createBuffer()
     val base = RksysParser.LICENSE_BASES[0]
     buf.writeAscii(base, "RKPD")
-    // PID = 0 gives friend code based on MD5("JCMR") checksum
-    buf.writeUInt32BE(base + PID_OFFSET, 0L)
+    // Use a PID value other than `0L`
+    buf.writeUInt32BE(base + PID_OFFSET, 1L)
 
     val info = RksysParser.parse(buf)
     val friendCode = info.licenses[0].friendCode
