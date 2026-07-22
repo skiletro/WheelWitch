@@ -148,6 +148,16 @@ class DolphinTree(context: Context, val treeUri: Uri) {
   }
 
   /**
+   * Dolphin's `GameSettings/` directory under the tree root. Holds
+   * per-game INI configuration files. WheelWitch writes `RMC.ini`
+   * here to force-disable cheats and RetroAchievements on launch.
+   */
+  val gameSettingsDir: DocumentFile by lazy {
+    findOrCreateDir(root, "GameSettings")
+      ?: error("Cannot create or find GameSettings/ in Dolphin tree")
+  }
+
+  /**
    * The Dolphin's `Wii/` directory under the tree root. Used by the
    * unified save backup to reach `Wii/shared2/...` (Mii DB, Pulsar
    * settings, ghost data). May be null when the user has never run
