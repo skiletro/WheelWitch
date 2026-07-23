@@ -231,24 +231,9 @@ object DolphinLauncher {
 
     // Force-disable cheats and RetroAchievements for online safety
     try {
-      val gsDir = tree.gameSettingsDir
-      gsDir.findFile("RMC.ini")?.delete()
-      gsDir.createFile("text/plain", "RMC.ini")?.let { file ->
-        tree.resolver.openOutputStream(file.uri)?.use { out ->
-          out.write(
-            """
-[Core]
-EnableCheats = False
-[Dolphin.Core]
-EnableCheats = False
-[Achievements.Achievements]
-Enabled = False
-            """.trimIndent().toByteArray(Charsets.UTF_8)
-          )
-        }
-      } ?: error("Cannot create RMC.ini")
+      tree.ensureRmcGameInis()
     } catch (e: Exception) {
-      Timber.tag(TAG).w(e, "Failed to write RMC.ini")
+      Timber.tag(TAG).w(e, "Failed to write game INI settings")
     }
 
     val rom = pickRomFile(tree) ?: return LaunchResult.NoRom
